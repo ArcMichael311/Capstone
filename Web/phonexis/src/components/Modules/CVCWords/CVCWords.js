@@ -11,10 +11,10 @@ const cvcTypes = [
 const videos = [
   {
     id: 1,
-    title: 'CVC Word Introduction',
-    description: 'Watch how consonant-vowel-consonant words are formed and sounded out.',
+    title: 'CVC Phonics Song',
+    description: 'Source: KidsTV123 (YouTube)',
     url: '/cvc-video/video1.mp4',
-    duration: '5:00',
+    duration: '5:36',
   },
 ];
 

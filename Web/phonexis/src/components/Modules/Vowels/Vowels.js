@@ -23,23 +23,23 @@ const videos = [
   {
     id: 1,
     title: 'Introduction to Vowels',
-    description: 'Learn about the 5 main vowel sounds and how they are pronounced.',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video1.mp4',
-    duration: '5:30',
+    duration: '2:07',
   },
   {
     id: 2,
-    title: 'Vowel Sounds in Words',
-    description: 'Practice identifying vowel sounds in common words.',
+    title: 'Introduction to Double Letter Vowels',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video2.mp4',
-    duration: '6:45',
+    duration: '1:57',
   },
   {
     id: 3,
-    title: 'Double Letter Vowels',
-    description: 'Learn about double letter vowel combinations and their sounds.',
+    title: 'Introduction to Long Vowel Song',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video3.mp4',
-    duration: '7:00',
+    duration: '1:39',
   },
 ];
 
