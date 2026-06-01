@@ -463,8 +463,10 @@ export default function VowelRush() {
         </div>
 
         <div className="rush-board" aria-live="polite">
-          <div className="rush-grid" aria-hidden="true" />
-          {/* skyline clouds removed (use emoji sparingly elsewhere) */}
+          <div className="rush-boss" aria-hidden="true">
+            <span className="rush-boss-icon">👽</span>
+            <span className="rush-boss-label">BOSS</span>
+          </div>
 
           {comboFlash ? <div className="rush-combo-banner">🔥 COMBO x5  ❤️ +1 Heart</div> : null}
 
@@ -477,7 +479,7 @@ export default function VowelRush() {
               onClick={() => handleStarCatch(activeStar)}
               onAnimationEnd={() => handleStarMiss(activeStar)}
             >
-              <span className="rush-star-icon" aria-hidden="true">⭐</span>
+              <span className="rush-star-icon" aria-hidden="true">🔥</span>
               <span className="rush-star-content">
                 <span className="rush-star-letter">{activeStar.letter}</span>
               </span>
@@ -489,7 +491,7 @@ export default function VowelRush() {
           )}
 
           <div className={`rush-basket lane-${basketLane}`} style={{ '--rush-lane': basketLane }} aria-hidden="true">
-            <span className="rush-basket-icon">🧺</span>
+            <span className="rush-basket-icon">🚀</span>
           </div>
 
           <div className="rush-ground">
@@ -536,18 +538,20 @@ export default function VowelRush() {
   );
 
   return (
-    <div className="vowel-rush-inline" aria-label="Vowel Rush game">
-      <div className="rush-topbar">
-        <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
+    <div className="vowel-rush-overlay" role="dialog" aria-modal="true" aria-label="Vowel Rush game">
+      <div className="vowel-rush-shell">
+        <div className="rush-topbar">
+          <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
+        </div>
+
+        {screen === 'instructions' ? renderMenuCard() : null}
+        {screen === 'difficulty' ? renderDifficultyCard() : null}
+        {screen === 'game' ? renderGameBoard() : null}
+        {screen === 'gameover' ? renderGameOverCard() : null}
+        {screen === 'complete' ? renderCompleteCard() : null}
+
+        <p className="rush-footer-note">{finalMessage || statusMessage}</p>
       </div>
-
-      {screen === 'instructions' ? renderMenuCard() : null}
-      {screen === 'difficulty' ? renderDifficultyCard() : null}
-      {screen === 'game' ? renderGameBoard() : null}
-      {screen === 'gameover' ? renderGameOverCard() : null}
-      {screen === 'complete' ? renderCompleteCard() : null}
-
-      <p className="rush-footer-note">{finalMessage || statusMessage}</p>
     </div>
   );
 }

@@ -211,33 +211,55 @@
   min-height: min(56vh, 40rem);
   overflow: hidden;
   border-radius: 1.35rem;
-  border: 2px solid rgba(244, 213, 122, 0.35);
+  border: 1px solid rgba(98, 214, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 25%),
-    radial-gradient(circle at top, rgba(244, 213, 122, 0.16), transparent 30%),
-    linear-gradient(180deg, rgba(16, 18, 33, 0.92), rgba(6, 8, 16, 0.98));
-}
-
-.rush-grid {
-  position: absolute;
-  inset: 0;
-  /* 6 columns × 10 rows grid lines */
-  background-image:
-    linear-gradient(to right, rgba(244, 213, 122, 0.18) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(244, 213, 122, 0.12) 1px, transparent 1px);
-  background-size: calc(100% / 6) calc(100% / 10);
-  pointer-events: none;
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 55% 35%, rgba(255, 255, 255, 0.16) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 35% 65%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 75% 72%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.4px),
+    radial-gradient(circle at top, rgba(98, 214, 255, 0.18), transparent 28%),
+    radial-gradient(circle at bottom, rgba(163, 89, 255, 0.14), transparent 35%),
+    linear-gradient(180deg, #02030a 0%, #050816 48%, #090b1f 100%);
 }
 
 .rush-board::before {
   content: '';
   position: absolute;
   inset: auto 0 0;
-  height: 26%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(244, 213, 122, 0.1));
+  height: 18%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(10, 18, 42, 0.85));
 }
 
-/* skyline clouds removed */
+.rush-boss {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: grid;
+  gap: 0.15rem;
+  place-items: center;
+  pointer-events: none;
+  animation: rush-boss-float 2.4s ease-in-out infinite;
+}
+
+.rush-boss-icon {
+  display: block;
+  font-size: clamp(2.5rem, 5vw, 3.4rem);
+  filter: drop-shadow(0 0 12px rgba(98, 214, 255, 0.55));
+}
+
+.rush-boss-label {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(98, 214, 255, 0.12);
+  color: #c9f7ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
 
 .rush-letter-placeholder {
   position: absolute;
@@ -253,10 +275,10 @@
   position: absolute;
   /* snap the star center to the center of the column explicitly */
   left: calc((var(--rush-lane) + 0.5) * (100% / 6));
-  top: 8%;
+  top: 10%;
   transform: translateX(-50%);
-  width: clamp(4.5rem, 13vw, 6.2rem);
-  height: clamp(4.5rem, 13vw, 6.2rem);
+  width: clamp(3.7rem, 10vw, 5rem);
+  height: clamp(3.7rem, 10vw, 5rem);
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -274,9 +296,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(4.5rem, 13vw, 6.2rem);
-  color: #ffd95c;
-  text-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  font-size: clamp(3.7rem, 10vw, 5rem);
+  color: #ffb347;
+  text-shadow: 0 0 16px rgba(255, 179, 71, 0.55), 0 8px 18px rgba(0, 0, 0, 0.35);
   line-height: 1;
   text-align: center;
 }
@@ -338,7 +360,7 @@
 }
 
 .rush-basket-icon {
-  font-size: clamp(2.8rem, 6vw, 3.4rem);
+  font-size: clamp(2.5rem, 5.5vw, 3.1rem);
   filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
 }
 
@@ -447,6 +469,17 @@
   100% {
     transform: translateX(-50%) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes rush-boss-float {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateY(-0.45rem);
   }
 }
 
