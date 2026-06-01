@@ -131,7 +131,7 @@
   display: grid;
   gap: 1.5rem;
   place-items: center;
-  width: min(100%, 28rem);
+  width: min(100%, 32rem);
   margin: 0 auto;
 }
 

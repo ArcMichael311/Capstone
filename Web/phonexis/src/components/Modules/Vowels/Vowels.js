@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Vowels.css';
+import DoubleVowelLesson from './DoubleVowelLesson';
 
 const vowels = [
   { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
@@ -51,7 +52,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
-
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -331,6 +331,8 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             <button type="button" className="vowels-listen" onClick={speakCurrent}>
               🔊 LISTEN TO SOUND
             </button>
+
+            <DoubleVowelLesson onFeedback={setFeedback} />
 
             <p className="game-feedback">{feedback}</p>
           </div>
