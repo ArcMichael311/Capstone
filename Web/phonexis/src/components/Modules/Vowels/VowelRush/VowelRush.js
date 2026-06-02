@@ -90,7 +90,7 @@ const moveBasket = (currentLane, direction) => {
   return nextLane;
 };
 
-export default function VowelRush() {
+export default function VowelRush({ onClose }) {
   const [screen, setScreen] = useState('instructions');
   const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
   const [activeStar, setActiveStar] = useState(null);
@@ -542,6 +542,11 @@ export default function VowelRush() {
       <div className="vowel-rush-shell">
         <div className="rush-topbar">
           <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
+          {typeof onClose === 'function' ? (
+            <button type="button" className="rush-secondary-btn" onClick={onClose}>
+              ← Return to Vowels
+            </button>
+          ) : null}
         </div>
 
         {screen === 'instructions' ? renderMenuCard() : null}

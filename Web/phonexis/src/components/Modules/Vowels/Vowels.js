@@ -164,7 +164,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     <div className="module-detail vowels-detail">
       <div className="vowels-topbar">
         <button type="button" className="vowels-back" onClick={onBack}>
-          ← BACK TO DASHBOARD
+          ← RETURN TO LEARNING PATH
         </button>
       </div>
 
@@ -410,11 +410,11 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             <p className="game-feedback">{pretestResult ? '' : pretestMessage}</p>
           </div>
         </div>
-      ) : (
+      ) : mode === 'vowelrush' ? (
         <div className="vowelrush-stage">
-          <VowelRush />
+          <VowelRush onClose={() => handleModeChange('learning')} />
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

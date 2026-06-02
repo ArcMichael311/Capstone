@@ -127,6 +127,12 @@ export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);
 export const fetchBackendModuleProgress = (userId, moduleName) => getFromBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}`);
+export const fetchBackendModuleGames = () => getFromBackend('/api/module-games');
+export const fetchBackendGamesByModule = (moduleKey) => getFromBackend(`/api/module-games/module/${encodeURIComponent(moduleKey)}`);
+export const fetchBackendGameByKey = (gameKey) => getFromBackend(`/api/module-games/key/${encodeURIComponent(gameKey)}`);
+export const createBackendGame = (payload) => postToBackend('/api/module-games', payload);
+export const updateBackendGame = (gameId, payload) => putToBackend(`/api/module-games/${gameId}`, payload);
+export const deleteBackendGame = (gameId) => requestToBackend(`/api/module-games/${gameId}`, { method: 'DELETE' });
 export const updateBackendModuleVideos = (userId, moduleName, videoIds) => postToBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}/videos`, {
   videoIds,
 });

@@ -2,7 +2,7 @@ import './Profile.css';
 import { useEffect, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
 
-export default function Profile({ onNavigate, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout }) {
+export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout }) {
   const [activeTab, setActiveTab] = useState('info');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -99,8 +99,8 @@ export default function Profile({ onNavigate, user, overallProgress = 0, alphabe
 
   return (
     <section className="profile-shell">
-      <button type="button" className="profile-back" onClick={() => onNavigate('dashboard')}>
-        ← BACK TO DASHBOARD
+      <button type="button" className="profile-back" onClick={() => (typeof onBack === 'function' ? onBack() : onNavigate('dashboard'))}>
+        ← RETURN
       </button>
 
       <div className="profile-header">

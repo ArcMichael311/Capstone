@@ -549,7 +549,7 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
     <div className="module-detail cvc-detail">
       <div className="cvc-topbar">
         <button type="button" className="cvc-back" onClick={onBack}>
-          ← BACK TO DASHBOARD
+          ← RETURN TO LEARNING PATH
         </button>
       </div>
 

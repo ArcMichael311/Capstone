@@ -158,7 +158,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     <div className="module-detail consonants-detail">
       <div className="consonants-topbar">
         <button type="button" className="consonants-back" onClick={onBack}>
-          ← BACK TO DASHBOARD
+          ← RETURN TO LEARNING PATH
         </button>
       </div>
 

@@ -25,7 +25,9 @@ import {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState('login');
+  const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
+  const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [activeModule, setActiveModule] = useState('alphabet');
   const [currentUser, setCurrentUser] = useState(null);
@@ -40,6 +42,10 @@ function App() {
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
   const [isProgressHydrated, setIsProgressHydrated] = useState(false);
   const [backendUserId, setBackendUserId] = useState(null);
+
+  useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
 
   const mapAuthUserToProfile = useCallback((user) => {
     if (!user) {
@@ -123,6 +129,34 @@ function App() {
     return 'dashboard';
   }, []);
 
+  const navigateTo = useCallback((nextView) => {
+    if (!nextView) {
+      return;
+    }
+
+    if (isAuthenticated && activeViewRef.current && activeViewRef.current !== nextView) {
+      setNavigationHistory((history) => [...history, activeViewRef.current]);
+    }
+
+    setActiveView(nextView);
+  }, [isAuthenticated]);
+
+  const goBack = useCallback((fallbackView = 'dashboard') => {
+    let previousView = null;
+
+    setNavigationHistory((history) => {
+      if (history.length === 0) {
+        previousView = fallbackView;
+        return history;
+      }
+
+      previousView = history[history.length - 1];
+      return history.slice(0, -1);
+    });
+
+    setActiveView(previousView || fallbackView);
+  }, []);
+
   useEffect(() => {
     try {
       const storedVolume = localStorage.getItem('phonexis_music_volume');
@@ -183,6 +217,7 @@ function App() {
       if (!session?.user) {
         setIsAuthenticated(false);
         setCurrentUser(null);
+        setNavigationHistory([]);
         setActiveView('login');
         return;
       }
@@ -537,6 +572,7 @@ function App() {
     }
 
     setIsAuthenticated(true);
+    setNavigationHistory([]);
     setActiveView(getLandingViewByRole(mappedProfile));
   };
 
@@ -549,6 +585,7 @@ function App() {
 
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setNavigationHistory([]);
     setActiveView('login');
   };
 
@@ -580,11 +617,11 @@ function App() {
     if (!isAuthenticated) {
       switch (activeView) {
         case 'register':
-          return <Register onNavigate={setActiveView} onSuccess={handleAuthSuccess} />;
+          return <Register onNavigate={navigateTo} onSuccess={handleAuthSuccess} />;
         case 'forgotpassword':
           return (
             <ForgotPassword 
-              onNavigate={setActiveView} 
+              onNavigate={navigateTo} 
               onEmailSubmit={(email) => {
                 setResetEmail(email);
                 setActiveView('reset');
@@ -592,10 +629,10 @@ function App() {
             />
           );
         case 'reset':
-          return <ResetPassword onNavigate={setActiveView} email={resetEmail} />;
+          return <ResetPassword onNavigate={navigateTo} email={resetEmail} />;
         case 'login':
         default:
-          return <Login onNavigate={setActiveView} onSuccess={handleAuthSuccess} />;
+          return <Login onNavigate={navigateTo} onSuccess={handleAuthSuccess} />;
       }
     }
 
@@ -606,7 +643,7 @@ function App() {
     if (isAdminUser) {
       return (
         <Admin
-          onNavigate={setActiveView}
+          onNavigate={navigateTo}
           onLogout={handleLogout}
         />
       );
@@ -615,7 +652,7 @@ function App() {
     if (isTeacherUser) {
       return (
         <Teacher
-          onNavigate={setActiveView}
+          onNavigate={navigateTo}
           onLogout={handleLogout}
           user={currentUser}
           backendUserId={backendUserId}
@@ -630,7 +667,7 @@ function App() {
           <AlphabetRecognition
             onPretestComplete={handlePretestComplete}
             onProgressUpdate={handleAlphabetModeComplete}
-            onBack={() => setActiveView('dashboard')}
+            onBack={() => goBack('dashboard')}
             completedModes={completedAlphabetModes}
           />
         );
@@ -659,7 +696,7 @@ function App() {
         return (
           <CVCWords
             onComplete={handleCvcComplete}
-            onBack={() => setActiveView('dashboard')}
+            onBack={() => goBack('dashboard')}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
           />
@@ -689,7 +726,7 @@ function App() {
         return (
           <Vowels
             onComplete={handleVowelsComplete}
-            onBack={() => setActiveView('dashboard')}
+            onBack={() => goBack('dashboard')}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
           />
@@ -719,7 +756,7 @@ function App() {
         return (
           <Consonants
             onComplete={handleConsonantsComplete}
-            onBack={() => setActiveView('dashboard')}
+            onBack={() => goBack('dashboard')}
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}
@@ -755,7 +792,8 @@ function App() {
       case 'profile':
         return (
           <Profile
-            onNavigate={setActiveView}
+            onNavigate={navigateTo}
+            onBack={() => goBack('dashboard')}
             user={currentUser}
             overallProgress={overallProgress}
             alphabetProgress={alphabetProgress}

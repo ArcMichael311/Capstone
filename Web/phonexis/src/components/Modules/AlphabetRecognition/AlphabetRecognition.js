@@ -209,7 +209,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
           {mode === 'learning' ? 'Alphabet Recognition' : `Pretest - ${difficulty?.toUpperCase()}`}
         </p>
         <button type="button" className="module-back secondary" onClick={onBack}>
-          ← Back to dashboard
+          ← Return to learning path
         </button>
       </div>
 
