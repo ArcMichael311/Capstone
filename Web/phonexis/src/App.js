@@ -23,6 +23,7 @@ import {
 } from './lib/supabaseClient';
 
 function App() {
+  const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState('login');
   const [, setNavigationHistory] = useState([]);
@@ -52,9 +53,11 @@ function App() {
       return null;
     }
 
+    const normalizedEmail = String(user.email || user.user_metadata?.email || '').trim().toLowerCase();
+    const isAdminEmail = normalizedEmail === ADMIN_EMAIL;
     const firstname = user.user_metadata?.firstname || user.user_metadata?.firstName || user.firstname || user.firstName || '';
     const lastname = user.user_metadata?.lastname || user.user_metadata?.lastName || user.lastname || user.lastName || '';
-    const role = user.user_metadata?.role || user.role || 'student';
+    const role = isAdminEmail ? 'admin' : user.user_metadata?.role || user.role || 'student';
 
     return {
       ...user,
@@ -79,6 +82,17 @@ function App() {
     const email = String(profile.email || profile.user_metadata?.email || '').trim().toLowerCase();
     if (!email) {
       return profile;
+    }
+
+    if (email === ADMIN_EMAIL) {
+      return {
+        ...profile,
+        role: 'admin',
+        user_metadata: {
+          ...(profile.user_metadata || {}),
+          role: 'admin',
+        },
+      };
     }
 
     try {
@@ -117,6 +131,11 @@ function App() {
   }, []);
 
   const getLandingViewByRole = useCallback((userProfile) => {
+    const email = String(userProfile?.email || userProfile?.user_metadata?.email || '').trim().toLowerCase();
+    if (email === ADMIN_EMAIL) {
+      return 'admin';
+    }
+
     const normalizedRole = String(userProfile?.role || userProfile?.user_metadata?.role || '').toLowerCase();
     if (normalizedRole === 'admin') {
       return 'admin';
@@ -645,6 +664,7 @@ function App() {
         <Admin
           onNavigate={navigateTo}
           onLogout={handleLogout}
+          currentUser={currentUser}
         />
       );
     }
