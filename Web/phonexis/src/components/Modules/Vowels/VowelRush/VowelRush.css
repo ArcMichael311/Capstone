@@ -1,0 +1,513 @@
+.vowel-rush-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  background:
+    radial-gradient(circle at top, rgba(255, 199, 79, 0.14), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(126, 211, 33, 0.08), transparent 26%),
+    linear-gradient(160deg, rgba(14, 18, 33, 0.98), rgba(10, 12, 22, 0.98));
+  backdrop-filter: blur(10px);
+}
+
+.vowel-rush-shell {
+  width: min(100%, 72rem);
+  max-height: 100%;
+  overflow: auto;
+  display: grid;
+  gap: 1rem;
+  border: 2px solid rgba(212, 175, 55, 0.55);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, rgba(29, 36, 61, 0.96), rgba(15, 18, 33, 0.98));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  padding: 1rem;
+}
+
+.rush-topbar,
+.rush-game-header,
+.rush-actions,
+.rush-status-bar,
+.rush-difficulty-grid,
+.rush-instructions-list {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rush-topbar {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rush-topbar-note,
+.rush-footer-note,
+.rush-panel-header p,
+.rush-status-chip span,
+.rush-difficulty-detail,
+.rush-difficulty-goal {
+  color: rgba(233, 236, 244, 0.75);
+}
+
+.rush-close-btn,
+.rush-primary-btn,
+.rush-secondary-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 0.9rem;
+  padding: 0.8rem 1.1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rush-close-btn,
+.rush-secondary-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4d57a;
+}
+
+.rush-close-btn:hover,
+.rush-secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.rush-primary-btn {
+  background: linear-gradient(135deg, #f4d57a, #ffbf47);
+  color: #141625;
+  box-shadow: 0 10px 24px rgba(244, 213, 122, 0.22);
+}
+
+.rush-primary-btn:hover {
+  transform: translateY(-1px) scale(1.01);
+}
+
+.rush-card,
+.rush-game-shell {
+  border-radius: 1.35rem;
+  border: 1px solid rgba(244, 213, 122, 0.25);
+  background: rgba(7, 10, 19, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.rush-card {
+  display: grid;
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.rush-panel-header {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.rush-eyebrow {
+  margin: 0;
+  color: #f4d57a;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.rush-panel-header h2,
+.rush-final-card h2 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.5rem, 2vw, 2.2rem);
+}
+
+.rush-panel-header p,
+.rush-final-card p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.rush-instructions-list {
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rush-rule {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f2f7;
+}
+
+.rush-difficulty-grid {
+  gap: 0.9rem;
+}
+
+.rush-difficulty-card {
+  flex: 1 1 16rem;
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(244, 213, 122, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fbff;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.rush-difficulty-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rush-difficulty-card.active {
+  border-color: rgba(244, 213, 122, 0.9);
+  background: rgba(244, 213, 122, 0.12);
+  box-shadow: 0 0 0 1px rgba(244, 213, 122, 0.18) inset;
+}
+
+.rush-difficulty-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.rush-actions {
+  justify-content: flex-end;
+}
+
+.rush-game-shell {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.rush-game-header {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rush-status-bar {
+  justify-content: space-between;
+}
+
+.rush-status-chip {
+  flex: 1 1 9rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.rush-status-chip strong {
+  color: #ffffff;
+  font-size: 1.05rem;
+}
+
+.rush-board {
+  position: relative;
+  min-height: min(56vh, 40rem);
+  overflow: hidden;
+  border-radius: 1.35rem;
+  border: 1px solid rgba(98, 214, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 55% 35%, rgba(255, 255, 255, 0.16) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 35% 65%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 75% 72%, rgba(255, 255, 255, 0.2) 0 1px, transparent 1.4px),
+    radial-gradient(circle at top, rgba(98, 214, 255, 0.18), transparent 28%),
+    radial-gradient(circle at bottom, rgba(163, 89, 255, 0.14), transparent 35%),
+    linear-gradient(180deg, #02030a 0%, #050816 48%, #090b1f 100%);
+}
+
+.rush-board::before {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(10, 18, 42, 0.85));
+}
+
+.rush-boss {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: grid;
+  gap: 0.15rem;
+  place-items: center;
+  pointer-events: none;
+  animation: rush-boss-float 2.4s ease-in-out infinite;
+}
+
+.rush-boss-icon {
+  display: block;
+  font-size: clamp(2.5rem, 5vw, 3.4rem);
+  filter: drop-shadow(0 0 12px rgba(98, 214, 255, 0.55));
+}
+
+.rush-boss-label {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(98, 214, 255, 0.12);
+  color: #c9f7ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.rush-letter-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.rush-star {
+  position: absolute;
+  /* snap the star center to the center of the column explicitly */
+  left: calc((var(--rush-lane) + 0.5) * (100% / 6));
+  top: 10%;
+  transform: translateX(-50%);
+  width: clamp(3.7rem, 10vw, 5rem);
+  height: clamp(3.7rem, 10vw, 5rem);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.25);
+  animation-name: rush-fall;
+  animation-duration: var(--rush-fall-duration, 1700ms);
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.rush-star-icon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(3.7rem, 10vw, 5rem);
+  color: #ffb347;
+  text-shadow: 0 0 16px rgba(255, 179, 71, 0.55), 0 8px 18px rgba(0, 0, 0, 0.35);
+  line-height: 1;
+  text-align: center;
+}
+
+.rush-star-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.rush-star-letter {
+  margin-top: 0;
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+  font-weight: 900;
+  color: #1a1a2e;
+  text-shadow: none;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.rush-star.vowel .rush-star-icon {
+  color: #ffe57c;
+}
+
+.rush-star.consonant .rush-star-icon {
+  color: #ff8c8c;
+}
+
+.rush-star.correct {
+  filter: drop-shadow(0 0 0.4rem rgba(126, 211, 33, 0.45));
+}
+
+.rush-star.wrong {
+  animation: rush-shake 0.35s ease;
+}
+
+.rush-basket {
+  position: absolute;
+  bottom: 4.5rem;
+  /* align basket center to the same column center calculation */
+  left: calc((var(--rush-lane) + 0.5) * (100% / 6));
+  transform: translateX(-50%);
+  width: clamp(3.8rem, 7vw, 4.7rem);
+  height: clamp(3.8rem, 7vw, 4.7rem);
+  display: grid;
+  place-items: center;
+  transition: left 0.18s ease;
+}
+
+.rush-basket-icon {
+  font-size: clamp(2.5rem, 5.5vw, 3.1rem);
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.35));
+}
+
+.rush-ground {
+  position: absolute;
+  inset: auto 0 0;
+  display: grid;
+  gap: 0.4rem;
+  place-items: center;
+  padding: 1rem;
+  color: #ffffff;
+  text-align: center;
+  z-index: 2;
+}
+
+.rush-avatar {
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 2rem;
+}
+
+.rush-combo-banner {
+  position: absolute;
+  left: 50%;
+  top: 1rem;
+  transform: translateX(-50%);
+  z-index: 3;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: rgba(244, 213, 122, 0.18);
+  color: #fff7d1;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  animation: rush-pop 0.7s ease;
+}
+
+.rush-final-card {
+  justify-items: center;
+  text-align: center;
+}
+
+.rush-final-card.gameover {
+  background: linear-gradient(180deg, rgba(123, 24, 24, 0.86), rgba(50, 10, 12, 0.96));
+}
+
+.rush-final-card.complete {
+  background: linear-gradient(180deg, rgba(19, 71, 54, 0.9), rgba(8, 22, 19, 0.98));
+}
+
+.rush-footer-note {
+  margin: 0;
+  text-align: center;
+  min-height: 1.25rem;
+}
+
+@keyframes rush-fall {
+  from {
+    top: 8%;
+    opacity: 1;
+  }
+
+  to {
+    top: 70%;
+    opacity: 0.95;
+  }
+}
+
+@keyframes rush-shake {
+  0%,
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+
+  20% {
+    transform: translateX(calc(-50% - 0.35rem)) rotate(-8deg);
+  }
+
+  40% {
+    transform: translateX(calc(-50% + 0.35rem)) rotate(8deg);
+  }
+
+  60% {
+    transform: translateX(calc(-50% - 0.25rem)) rotate(-4deg);
+  }
+
+  80% {
+    transform: translateX(calc(-50% + 0.25rem)) rotate(4deg);
+  }
+}
+
+@keyframes rush-pop {
+  0% {
+    transform: translateX(-50%) scale(0.85);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.05);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes rush-boss-float {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateY(-0.45rem);
+  }
+}
+
+@keyframes rush-float {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(1.5rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .rush-topbar,
+  .rush-game-header,
+  .rush-status-bar,
+  .rush-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rush-letter {
+    top: 6%;
+  }
+
+  .rush-board {
+    min-height: 30rem;
+  }
+}

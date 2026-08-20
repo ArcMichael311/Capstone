@@ -322,8 +322,8 @@ export default function AlphaQuest({ onClose }) {
             </button>
           </div>
 
-          <button className="alpha-quest-close-btn" onClick={onClose}>
-            ← Back to Alphabet
+          <button type="button" className="alpha-quest-close-btn" onClick={onClose}>
+            ← Return to Alphabet Module
           </button>
         </div>
       )}
@@ -336,7 +336,7 @@ export default function AlphaQuest({ onClose }) {
               <p className="game-difficulty">{DIFFICULTY_MODES[difficulty].name}</p>
             </div>
             <div className="game-score">Score: {score}</div>
-            <button className="alpha-quest-quit-btn" onClick={onClose}>
+            <button type="button" className="alpha-quest-quit-btn" onClick={onClose}>
               ← Quit
             </button>
           </div>
@@ -481,11 +481,11 @@ export default function AlphaQuest({ onClose }) {
             )}
 
             <div className="game-over-buttons">
-              <button className="game-over-btn play-again" onClick={() => setGameState('menu')}>
+              <button type="button" className="game-over-btn play-again" onClick={() => setGameState('menu')}>
                 Play Again
               </button>
-              <button className="game-over-btn back-to-alpha" onClick={onClose}>
-                Back to Alphabet
+              <button type="button" className="game-over-btn back-to-alpha" onClick={onClose}>
+                Return to Alphabet Module
               </button>
             </div>
           </div>

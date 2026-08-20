@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './Vowels.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
+import VowelRush from './VowelRush';
 
 const vowels = [
   { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
@@ -22,23 +23,23 @@ const videos = [
   {
     id: 1,
     title: 'Introduction to Vowels',
-    description: 'Learn about the 5 main vowel sounds and how they are pronounced.',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video1.mp4',
-    duration: '5:30',
+    duration: '2:07',
   },
   {
     id: 2,
-    title: 'Vowel Sounds in Words',
-    description: 'Practice identifying vowel sounds in common words.',
+    title: 'Introduction to Double Letter Vowels',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video2.mp4',
-    duration: '6:45',
+    duration: '1:57',
   },
   {
     id: 3,
-    title: 'Double Letter Vowels',
-    description: 'Learn about double letter vowel combinations and their sounds.',
+    title: 'Introduction to Long Vowel Song',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/vowels-videos/video3.mp4',
-    duration: '7:00',
+    duration: '1:39',
   },
 ];
 
@@ -163,7 +164,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     <div className="module-detail vowels-detail">
       <div className="vowels-topbar">
         <button type="button" className="vowels-back" onClick={onBack}>
-          ← BACK TO DASHBOARD
+          ← RETURN TO LEARNING PATH
         </button>
       </div>
 
@@ -204,6 +205,15 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
           disabled={!allVideosWatched}
         >
           Pretest
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'vowelrush'}
+          className={`mode-pill${mode === 'vowelrush' ? ' active' : ''}`}
+          onClick={() => handleModeChange('vowelrush')}
+        >
+          VowelRush
         </button>
       </div>
 
@@ -337,66 +347,74 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             <p className="game-feedback">{feedback}</p>
           </div>
         </div>
-      ) : (
+      ) : mode === 'pretest' ? (
         <div className="pretest-stage">
-          <div className="pretest-header">
-            <h3>Pretest: Fill in the Missing Vowel</h3>
-            <p>Complete the word by adding the correct vowel</p>
-          </div>
+          <div className="pretest-column pretest-main-column">
+            <div className="pretest-header">
+              <h3>Pretest: Fill in the Missing Vowel</h3>
+              <p>Complete the word by adding the correct vowel</p>
+            </div>
 
-          <div className="pretest-card">
-            <span className="pretest-card-icon" aria-hidden="true">
-              {currentPretest.icon}
-            </span>
-            <p className="pretest-word">{currentPretest.prompt}</p>
+            <div className="pretest-card">
+              <span className="pretest-card-icon" aria-hidden="true">
+                {currentPretest.icon}
+              </span>
+              <p className="pretest-word">{currentPretest.prompt}</p>
 
-            <div className="pretest-answer-row" aria-label="Answer selection">
-              <div className="pretest-letter-box" aria-label="Missing letter answer">
-                <span>{pretestChoice || '\u00A0'}</span>
+              <div className="pretest-answer-row" aria-label="Answer selection">
+                <div className="pretest-letter-box" aria-label="Missing letter answer">
+                  <span>{pretestChoice || '\u00A0'}</span>
+                </div>
+
+                <div className="pretest-actions">
+                  <button type="button" className="pretest-check" onClick={handlePretestCheck}>
+                    ✓ CHECK ANSWER
+                  </button>
+                </div>
               </div>
 
-              <button type="button" className="pretest-check" onClick={handlePretestCheck}>
-                ✓ CHECK ANSWER
-              </button>
+              <div className="pretest-choice-row" role="group" aria-label="Vowel options">
+                {currentPretest.choices.map((choice) => (
+                  <button
+                    key={choice}
+                    type="button"
+                    className={choice === pretestChoice ? 'pretest-choice active' : 'pretest-choice'}
+                    onClick={() => {
+                      setPretestChoice(choice);
+                      setPretestResult(null);
+                      setPretestMessage('Choose the correct answer.');
+                    }}
+                  >
+                    {choice}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <div className="pretest-choice-row" role="group" aria-label="Vowel options">
-              {currentPretest.choices.map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  className={choice === pretestChoice ? 'pretest-choice active' : 'pretest-choice'}
-                  onClick={() => {
-                    setPretestChoice(choice);
-                    setPretestResult(null);
-                    setPretestMessage('Choose the correct answer.');
-                  }}
-                >
-                  {choice}
-                </button>
+            <div className={pretestResult === 'correct' ? 'pretest-result correct' : 'pretest-result wrong'} aria-live="polite">
+              {pretestResult ? pretestMessage : ''}
+            </div>
+
+            {pretestResult === 'correct' ? (
+              <button type="button" className="pretest-next" onClick={handleNextPretestQuestion}>
+                NEXT QUESTION
+              </button>
+            ) : null}
+
+            <div className="pretest-dots" aria-label="Pretest progress">
+              {pretestActivityDeck.map((item, index) => (
+                <span key={item.letter || item.letters} className={index === pretestIndex ? 'pretest-dot active' : 'pretest-dot'} />
               ))}
             </div>
+
+            <p className="game-feedback">{pretestResult ? '' : pretestMessage}</p>
           </div>
-
-          <div className={pretestResult === 'correct' ? 'pretest-result correct' : 'pretest-result wrong'} aria-live="polite">
-            {pretestResult ? pretestMessage : ''}
-          </div>
-
-          {pretestResult === 'correct' ? (
-            <button type="button" className="pretest-next" onClick={handleNextPretestQuestion}>
-              NEXT QUESTION
-            </button>
-          ) : null}
-
-          <div className="pretest-dots" aria-label="Pretest progress">
-            {pretestActivityDeck.map((item, index) => (
-              <span key={item.letter || item.letters} className={index === pretestIndex ? 'pretest-dot active' : 'pretest-dot'} />
-            ))}
-          </div>
-
-          <p className="game-feedback">{pretestResult ? '' : pretestMessage}</p>
         </div>
-      )}
+      ) : mode === 'vowelrush' ? (
+        <div className="vowelrush-stage">
+          <VowelRush onClose={() => handleModeChange('learning')} />
+        </div>
+      ) : null}
     </div>
   );
 }

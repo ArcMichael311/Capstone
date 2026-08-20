@@ -27,45 +27,45 @@ const consonants = [
 const videos = [
   {
     id: 1,
-    title: 'Consonant Sounds Overview',
-    description: 'Meet the consonant family and hear how the sounds differ from vowels.',
+    title: 'br, dr, gr l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video1.mp4',
-    duration: '4:45',
+    duration: '1:47',
   },
   {
     id: 2,
-    title: 'Beginning Consonant Sounds',
-    description: 'Practice the first group of consonant sounds with simple examples.',
+    title: 'ch, sh l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video2.mp4',
-    duration: '5:10',
+    duration: '1:30',
   },
   {
     id: 3,
-    title: 'Middle Position Sounds',
-    description: 'Listen for consonants that appear in the middle of words.',
+    title: 'cl, gl, pl l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video3.mp4',
-    duration: '5:05',
+    duration: '1:44',
   },
   {
     id: 4,
-    title: 'Ending Consonant Practice',
-    description: 'Focus on consonants at the end of words and repeat the sounds aloud.',
+    title: 'kn, mb l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video4.mp4',
-    duration: '5:20',
+    duration: '1:21',
   },
   {
     id: 5,
-    title: 'Consonant Word Building',
-    description: 'Combine consonants with familiar words to strengthen recognition.',
+    title: 'kn, mb l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video5.mp4',
-    duration: '4:55',
+    duration: '1:20',
   },
   {
     id: 6,
-    title: 'Consonant Review Challenge',
-    description: 'Review all consonant sounds before moving on to explore mode.',
+    title: 'sm, sn, st l Double-Letter Consonants',
+    description: 'Source: A*List! English Learning Videos for Kids (YouTube)',
     url: '/consonants-videos/video6.mp4',
-    duration: '5:35',
+    duration: '1:48',
   },
 ];
 
@@ -158,7 +158,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     <div className="module-detail consonants-detail">
       <div className="consonants-topbar">
         <button type="button" className="consonants-back" onClick={onBack}>
-          ← BACK TO DASHBOARD
+          ← RETURN TO LEARNING PATH
         </button>
       </div>
 
