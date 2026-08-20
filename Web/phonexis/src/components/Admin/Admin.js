@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import './Admin.css';
-import { fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
+import { deleteBackendUser, fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
 
-export default function Admin({ onLogout }) {
+export default function Admin({ onLogout, currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [promotingUserId, setPromotingUserId] = useState(null);
+  const [deletingUserId, setDeletingUserId] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
 
@@ -46,6 +47,31 @@ export default function Admin({ onLogout }) {
       setError('Failed to update user');
     } finally {
       setPromotingUserId(null);
+    }
+  };
+
+  const deleteAccount = async (userId) => {
+    const confirmDelete = window.confirm('Delete this account? This cannot be undone.');
+    if (!confirmDelete) {
+      return;
+    }
+
+    setDeletingUserId(userId);
+    setError(null);
+    setNotice(null);
+
+    try {
+      const res = await deleteBackendUser(userId);
+      if (res.error) {
+        setError(res.error.message || 'Failed to delete user');
+      } else {
+        setNotice('User deleted successfully.');
+        await loadUsers();
+      }
+    } catch (e) {
+      setError('Failed to delete user');
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -118,7 +144,10 @@ export default function Admin({ onLogout }) {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {users.map((u) => {
+              const isCurrentAdmin = String(u.email || '').trim().toLowerCase() === String(currentUser?.email || '').trim().toLowerCase();
+
+              return (
               <tr key={u.id}>
                 <td>{u.id}</td>
                 <td>{toFullName(u)}</td>
@@ -129,21 +158,34 @@ export default function Admin({ onLogout }) {
                   </span>
                 </td>
                 <td>
-                  {String(u.role || '').toLowerCase() === 'student' ? (
+                  {isCurrentAdmin ? (
+                    <span className="admin-small">Current admin</span>
+                  ) : String(u.role || '').toLowerCase() === 'student' ? (
                     <button
                       type="button"
                       className="admin-promote-button"
                       onClick={() => promoteToTeacher(u.id)}
-                      disabled={loading || !!promotingUserId}
+                      disabled={loading || !!promotingUserId || !!deletingUserId}
                     >
                       {promotingUserId === u.id ? 'Updating...' : 'Promote to Teacher'}
                     </button>
                   ) : (
                     <span className="admin-small">—</span>
                   )}
+                  {!isCurrentAdmin && (
+                    <button
+                      type="button"
+                      className="admin-delete-button"
+                      onClick={() => deleteAccount(u.id)}
+                      disabled={loading || !!promotingUserId || !!deletingUserId}
+                    >
+                      {deletingUserId === u.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {!loading && users.length === 0 && (
               <tr>
                 <td colSpan="5" className="admin-empty">No accounts found.</td>
