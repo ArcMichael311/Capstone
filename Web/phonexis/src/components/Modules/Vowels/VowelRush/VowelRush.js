@@ -232,14 +232,14 @@ export default function VowelRush({ onClose }) {
     roundCountRef.current += 1;
     setRoundCount(roundCountRef.current);
     setEffectState('');
-    setStatusMessage('Move the basket with ➡️, ⬅️, A, or D.');
+    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
   };
 
   const startRun = () => {
     selectedDifficultyRef.current = selectedDifficulty;
     resetRunState();
     setScreen('game');
-    setStatusMessage('Move the basket with ➡️, ⬅️, A, or D.');
+    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
     starTimerRef.current = window.setTimeout(spawnStar, 300);
   };
 
@@ -260,7 +260,7 @@ export default function VowelRush({ onClose }) {
     selectedDifficultyRef.current = selectedDifficulty;
     resetRunState();
     setScreen('game');
-    setStatusMessage('Move the basket with ➡️, ⬅️, A, or D.');
+    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
     starTimerRef.current = window.setTimeout(spawnStar, 300);
   };
 
@@ -368,15 +368,15 @@ export default function VowelRush({ onClose }) {
     <section className="rush-card rush-panel">
       <div className="rush-panel-header">
         <p className="rush-eyebrow">Vowel Rush</p>
-        <h2>Catch the vowel stars with your basket.</h2>
+        <h2>Catch the vowel stars with your rocket.</h2>
         <p>
-          Use the basket to catch the falling vowel stars while the pretest stays open on the left.
+          Use the rocket to catch the falling vowel stars while the pretest stays open on the left.
         </p>
       </div>
 
       <div className="rush-instructions-list" aria-label="Vowel Rush rules">
         <div className="rush-rule">🎯 Catch the vowel stars: A, E, I, O, U.</div>
-        <div className="rush-rule">🧺 Move the basket with ➡️, ⬅️, A, or D.</div>
+        <div className="rush-rule">🚀 Move the rocket with ➡️, ⬅️, A, or D.</div>
         <div className="rush-rule">⭐ Catching a vowel gives 1 point.</div>
         <div className="rush-rule">💔 Catching a consonant removes 1 heart.</div>
         <div className="rush-rule">🔥 Catch 5 vowels in a row to gain 1 heart.</div>

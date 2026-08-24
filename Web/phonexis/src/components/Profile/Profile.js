@@ -53,6 +53,36 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
   const email = user?.email || '';
   const role = user?.role || user?.user_metadata?.role || 'student';
 
+  const handleSendProgressToGmail = () => {
+    if (!email) {
+      setError('No email address is available for this account');
+      setSuccess(null);
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+
+    const subject = `Phonexis Learning Progress for ${displayName}`;
+    const body = [
+      'Student Name:',
+      displayName,
+      '',
+      'Learning Progress:',
+      `- Alphabet Recognition: ${alphabetProgress}%`,
+      `- Vowels & Consonants: ${Math.round((vowelsProgress + consonantsProgress) / 2)}%`,
+      `- CVC Words: ${cvcProgress}%`,
+      `- Overall Progress: ${overallProgress}%`,
+      '',
+      'Best regards,',
+      'Phonexis',
+    ].join('\n');
+
+    const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailComposeUrl, '_blank', 'noopener,noreferrer');
+    setSuccess('Opened Gmail with your progress summary');
+  };
+
   const handleChangePassword = async (event) => {
     event.preventDefault();
     setError(null);
@@ -176,6 +206,9 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
               <span>Overall Progress</span>
               <span className="profile-progress-percentage">{overallProgress}%</span>
             </div>
+            <button type="button" className="profile-send-progress-btn" onClick={handleSendProgressToGmail} disabled={!email}>
+              Send to Gmail
+            </button>
           </div>
         </div>
       )}

@@ -240,6 +240,36 @@
   font-weight: 700;
 }
 
+.profile-send-progress-btn {
+  display: block;
+  appearance: none;
+  border: 1px solid #c7cdd9;
+  border-radius: 0.4rem;
+  padding: 0.7rem 1rem;
+  min-height: 2.8rem;
+  background: #ffffff;
+  color: #2c3141;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+  margin-top: 1rem;
+  margin-left: auto;
+  width: fit-content;
+}
+
+.profile-send-progress-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #9aa3b2;
+}
+
+.profile-send-progress-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .profile-settings-section {
   display: grid;
   gap: 1.5rem;

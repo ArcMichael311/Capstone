@@ -173,7 +173,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setCompletedPromptLetters(nextCompletedPromptLetters);
     setPretestScore(nextScore);
     setTotalAttempts(newTotalAttempts);
-    setFeedback(isCorrect ? `✓ Correct! ${letter} is green.` : `✗ Wrong! ${currentLetter} is red.`);
+    setFeedback(isCorrect ? `✓ Check! ${letter} is correct.` : `✗ Wrong! ${currentLetter} is incorrect.`);
 
     if (newTotalAttempts >= maxAttempts || !nextLetter) {
       setTimeout(() => {
