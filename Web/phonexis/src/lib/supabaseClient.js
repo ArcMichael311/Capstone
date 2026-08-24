@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
+const backendUrl = process.env.REACT_APP_BACKEND_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console
