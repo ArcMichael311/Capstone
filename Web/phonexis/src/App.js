@@ -499,6 +499,20 @@ function App() {
       }
     };
 
+    const playAudioSafely = () => {
+      if (!audioRef.current) {
+        return Promise.resolve();
+      }
+
+      return audioRef.current.play().catch((err) => {
+        console.log('Audio autoplay prevented. User interaction required:', err);
+      });
+    };
+
+    const handleFirstInteraction = () => {
+      void playAudioSafely();
+    };
+
     if (!audioRef.current) {
       audioRef.current = new Audio('/background-music/Children\'s Music  Happy Upbeat Music (Instrumental Music For Kids).mp3');
       audioRef.current.loop = true;
@@ -506,17 +520,22 @@ function App() {
 
     audioRef.current.volume = musicVolume;
 
-    // Play music when user is authenticated (on dashboard)
-    if (isAuthenticated && activeView === 'dashboard') {
-      audioRef.current.play().catch(err => {
-        console.log('Audio autoplay prevented. User interaction required:', err);
-      });
+    const shouldPlayBackgroundMusic = ['login', 'dashboard', 'profile'].includes(activeView);
+
+    if (shouldPlayBackgroundMusic) {
+      void playAudioSafely();
+      window.addEventListener('pointerdown', handleFirstInteraction, { once: true });
+      window.addEventListener('keydown', handleFirstInteraction, { once: true });
+      window.addEventListener('touchstart', handleFirstInteraction, { once: true });
     } else {
-      // Pause music when not on dashboard or not authenticated
+      // Pause music on views that should stay silent
       pauseAudioSafely();
     }
 
     return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
       // Cleanup on unmount
       pauseAudioSafely();
     };
