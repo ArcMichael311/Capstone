@@ -30,6 +30,8 @@ function App() {
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
+  const [theme, setTheme] = useState('light');
+  const [isSoundSettingsOpen, setIsSoundSettingsOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('alphabet');
   const [currentUser, setCurrentUser] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
@@ -185,6 +187,11 @@ function App() {
           setMusicVolume(Math.min(Math.max(parsedVolume, 0), 1));
         }
       }
+
+      const storedTheme = localStorage.getItem('phonexis_theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') {
+        setTheme(storedTheme);
+      }
     } catch (error) {
       // ignore storage errors
     }
@@ -205,6 +212,51 @@ function App() {
       window.removeEventListener('phonexis:music-volume-change', handleMusicVolumeChange);
     };
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('phonexis_theme', theme);
+  }, [theme]);
+
+  const handleGlobalVolumeChange = (event) => {
+    const nextVolume = Math.min(Math.max(Number(event.target.value) / 100, 0), 1);
+    setMusicVolume(nextVolume);
+    localStorage.setItem('phonexis_music_volume', String(nextVolume));
+    window.dispatchEvent(new CustomEvent('phonexis:music-volume-change', { detail: nextVolume }));
+  };
+
+  const renderPreferences = () => (
+    <aside className="app-preferences" aria-label="Sound and theme settings">
+      <div className="app-preferences-buttons">
+        <button
+          type="button"
+          className="app-toggle-button selected"
+          onClick={() => setIsSoundSettingsOpen((isOpen) => !isOpen)}
+          aria-expanded={isSoundSettingsOpen}
+          aria-controls="global-volume-control"
+        >
+          {musicVolume > 0 ? '🔊 Sound' : '🔇 Volume: 0%'}
+        </button>
+        <button type="button" className="app-toggle-button selected" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          {theme === 'light' ? '☀️ Light' : '🌙 Dark'}
+        </button>
+      </div>
+      {isSoundSettingsOpen && (
+        <label className="app-volume-control" id="global-volume-control">
+          <span>Volume</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(musicVolume * 100)}
+            onChange={handleGlobalVolumeChange}
+            aria-label="Background music volume"
+          />
+          <output>{Math.round(musicVolume * 100)}%</output>
+        </label>
+      )}
+    </aside>
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -520,7 +572,7 @@ function App() {
 
     audioRef.current.volume = musicVolume;
 
-    const shouldPlayBackgroundMusic = ['login', 'dashboard', 'profile'].includes(activeView);
+    const shouldPlayBackgroundMusic = ['login', 'register', 'dashboard', 'profile'].includes(activeView);
 
     if (shouldPlayBackgroundMusic) {
       void playAudioSafely();
@@ -840,6 +892,8 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={setTheme}
           />
         );
       case 'admin':
@@ -889,6 +943,7 @@ function App() {
       <div className="app-shell">
         <div className="app-orb app-orb-left" aria-hidden="true" />
         <div className="app-orb app-orb-right" aria-hidden="true" />
+        {['login', 'register'].includes(activeView) ? renderPreferences() : null}
 
         <main className="app-main app-auth-main app-login-main">{renderView()}</main>
       </div>
