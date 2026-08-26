@@ -314,25 +314,57 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             <div className="profile-settings-header">
               <span className="profile-settings-icon" aria-hidden="true">🖼️</span>
               <div>
-                <h3>Background</h3>
-                <p>Choose a white or black background</p>
+                <h3>Theme Studio</h3>
+                <p>Pick the atmosphere that matches your learning mood</p>
               </div>
             </div>
 
-            <div className="profile-background-options" role="group" aria-label="Background color">
+            <div className="profile-theme-options" role="group" aria-label="Theme selection">
               <button
                 type="button"
-                className={`profile-background-btn ${theme === 'light' ? 'active' : ''}`}
+                className={`profile-theme-card profile-theme-card-light ${theme === 'light' ? 'active' : ''}`}
                 onClick={() => onThemeChange?.('light')}
+                aria-pressed={theme === 'light'}
               >
-                White
+                <span className="profile-theme-card-header">
+                  <span className="profile-theme-title-wrap">
+                    <span className="profile-theme-dot" aria-hidden="true" />
+                    <strong>Sunrise Canvas</strong>
+                  </span>
+                  {theme === 'light' && <span className="profile-theme-badge">Active</span>}
+                </span>
+                <span className="profile-theme-preview" aria-hidden="true">
+                  <span className="profile-theme-preview-top" />
+                  <span className="profile-theme-preview-body">
+                    <span className="profile-theme-preview-pill" />
+                    <span className="profile-theme-preview-line" />
+                    <span className="profile-theme-preview-line short" />
+                  </span>
+                </span>
+                <span className="profile-theme-description">Bright, playful, and energetic.</span>
               </button>
               <button
                 type="button"
-                className={`profile-background-btn profile-background-btn-dark ${theme === 'dark' ? 'active' : ''}`}
+                className={`profile-theme-card profile-theme-card-dark ${theme === 'dark' ? 'active' : ''}`}
                 onClick={() => onThemeChange?.('dark')}
+                aria-pressed={theme === 'dark'}
               >
-                Black
+                <span className="profile-theme-card-header">
+                  <span className="profile-theme-title-wrap">
+                    <span className="profile-theme-dot" aria-hidden="true" />
+                    <strong>Midnight Focus</strong>
+                  </span>
+                  {theme === 'dark' && <span className="profile-theme-badge">Active</span>}
+                </span>
+                <span className="profile-theme-preview" aria-hidden="true">
+                  <span className="profile-theme-preview-top" />
+                  <span className="profile-theme-preview-body">
+                    <span className="profile-theme-preview-pill" />
+                    <span className="profile-theme-preview-line" />
+                    <span className="profile-theme-preview-line short" />
+                  </span>
+                </span>
+                <span className="profile-theme-description">Calm, high-contrast, and immersive.</span>
               </button>
             </div>
           </div>

@@ -150,8 +150,110 @@
 [data-theme='dark'] .login-field-box,
 [data-theme='dark'] .register-field-box,
 [data-theme='dark'] .forgotpassword-field-box,
+[data-theme='dark'] .resetpassword-field-box,
 [data-theme='dark'] .profile-form-box {
   background: #263744;
+}
+
+[data-theme='dark'] .login-field input,
+[data-theme='dark'] .register-field input,
+[data-theme='dark'] .forgotpassword-field input,
+[data-theme='dark'] .resetpassword-field input,
+[data-theme='dark'] .profile-form-box input,
+[data-theme='dark'] .profile-settings-header h3,
+[data-theme='dark'] .profile-form-label,
+[data-theme='dark'] .profile-learning-progress h3,
+[data-theme='dark'] .profile-send-progress-btn {
+  color: #edf6f9;
+}
+
+[data-theme='dark'] .login-link,
+[data-theme='dark'] .register-link,
+[data-theme='dark'] .profile-progress-item,
+[data-theme='dark'] .profile-sign-out-section p,
+[data-theme='dark'] .profile-form-hint {
+  color: #c8d8de;
+}
+
+[data-theme='dark'] .login-field input::placeholder,
+[data-theme='dark'] .register-field input::placeholder,
+[data-theme='dark'] .forgotpassword-field input::placeholder,
+[data-theme='dark'] .resetpassword-field input::placeholder,
+[data-theme='dark'] .profile-form-box input::placeholder {
+  color: #9db2bc;
+}
+
+[data-theme='dark'] .profile-send-progress-btn,
+[data-theme='dark'] .profile-background-btn {
+  background: #263744;
+  border-color: #4f6672;
+}
+
+[data-theme='dark'] .app-shell input:not([type='range']):not([type='checkbox']):not([type='radio']):not([type='file']),
+[data-theme='dark'] .app-shell textarea,
+[data-theme='dark'] .app-shell select {
+  background: #263744;
+  color: #edf6f9;
+  border-color: #4f6672;
+}
+
+[data-theme='dark'] .app-shell input::placeholder,
+[data-theme='dark'] .app-shell textarea::placeholder {
+  color: #9db2bc;
+}
+
+[data-theme='dark'] .admin-stat-card,
+[data-theme='dark'] .admin-content,
+[data-theme='dark'] .teacher-board,
+[data-theme='dark'] .teacher-analytics-sidebar,
+[data-theme='dark'] .teacher-analytics-main,
+[data-theme='dark'] .teacher-stat-card,
+[data-theme='dark'] .teacher-chart-card,
+[data-theme='dark'] .teacher-bars-card,
+[data-theme='dark'] .teacher-participant-item,
+[data-theme='dark'] .teacher-board-item {
+  background: #1f2b36;
+  border-color: #3a5160;
+}
+
+[data-theme='dark'] .admin-subtitle,
+[data-theme='dark'] .admin-loading,
+[data-theme='dark'] .admin-table th,
+[data-theme='dark'] .admin-table td,
+[data-theme='dark'] .admin-small,
+[data-theme='dark'] .admin-empty,
+[data-theme='dark'] .admin-content-head h3,
+[data-theme='dark'] .admin-stat-card span,
+[data-theme='dark'] .teacher-subtitle,
+[data-theme='dark'] .teacher-class-code,
+[data-theme='dark'] .teacher-tab,
+[data-theme='dark'] .teacher-board-head p,
+[data-theme='dark'] .teacher-board-main strong,
+[data-theme='dark'] .teacher-board-main p,
+[data-theme='dark'] .teacher-empty,
+[data-theme='dark'] .teacher-participant-item strong,
+[data-theme='dark'] .teacher-participant-item span,
+[data-theme='dark'] .teacher-stat-card span,
+[data-theme='dark'] .teacher-chart-card h4,
+[data-theme='dark'] .teacher-bars-card h4,
+[data-theme='dark'] .teacher-bar-label-wrap,
+[data-theme='dark'] .module-tab span,
+[data-theme='dark'] .module-stage p,
+[data-theme='dark'] .module-stage span,
+[data-theme='dark'] .dashboard-card-copy p,
+[data-theme='dark'] .alphabet-object-caption,
+[data-theme='dark'] .difficulty-desc,
+[data-theme='dark'] .game-difficulty {
+  color: #c8d8de;
+}
+
+[data-theme='dark'] .teacher-tab,
+[data-theme='dark'] .admin-refresh-button,
+[data-theme='dark'] .admin-logout-button,
+[data-theme='dark'] .teacher-generate-code,
+[data-theme='dark'] .teacher-logout {
+  background: #263744;
+  border-color: #4f6672;
 }
 
 @media (max-width: 640px) {
