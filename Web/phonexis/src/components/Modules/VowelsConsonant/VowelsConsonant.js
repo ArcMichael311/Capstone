@@ -9,6 +9,59 @@ const vowels = [
   { letter: 'U', sound: 'uh', word: 'Umbrella', icon: '☂️' },
 ];
 
+const vowelTeamBoards = {
+  A: [
+    { team: 'ain', word: 'rain' },
+    { team: 'ail', word: 'tail' },
+    { team: 'aid', word: 'maid' },
+    { team: 'ait', word: 'bait' },
+    { team: 'ake', word: 'cake' },
+    { team: 'ate', word: 'gate' },
+    { team: 'ame', word: 'game' },
+    { team: 'ane', word: 'plane' },
+  ],
+  E: [
+    { team: 'each', word: 'peach' },
+    { team: 'eat', word: 'meat' },
+    { team: 'ead', word: 'bread' },
+    { team: 'eam', word: 'team' },
+    { team: 'eep', word: 'sleep' },
+    { team: 'ean', word: 'bean' },
+    { team: 'eel', word: 'wheel' },
+    { team: 'ear', word: 'pear' },
+  ],
+  I: [
+    { team: 'igh', word: 'light' },
+    { team: 'ice', word: 'rice' },
+    { team: 'ide', word: 'slide' },
+    { team: 'ime', word: 'time' },
+    { team: 'ine', word: 'pine' },
+    { team: 'ipe', word: 'pipe' },
+    { team: 'ire', word: 'fire' },
+    { team: 'ite', word: 'kite' },
+  ],
+  O: [
+    { team: 'oat', word: 'boat' },
+    { team: 'oak', word: 'oak' },
+    { team: 'oap', word: 'soap' },
+    { team: 'oad', word: 'road' },
+    { team: 'oar', word: 'oar' },
+    { team: 'oal', word: 'goal' },
+    { team: 'ore', word: 'shore' },
+    { team: 'one', word: 'stone' },
+  ],
+  U: [
+    { team: 'ue', word: 'blue' },
+    { team: 'ui', word: 'fruit' },
+    { team: 'ew', word: 'stew' },
+    { team: 'u_e', word: 'cube' },
+    { team: 'ute', word: 'flute' },
+    { team: 'une', word: 'tune' },
+    { team: 'ule', word: 'mule' },
+    { team: 'uit', word: 'suit' },
+  ],
+};
+
 const consonants = [
   { letter: 'B', word: 'Ball', icon: '⚽' },
   { letter: 'C', word: 'Cat', icon: '🐱' },
@@ -47,6 +100,7 @@ export default function VowelsConsonant({ onComplete, onBack }) {
 
   const activeList = mode === 'vowels' ? vowels : consonants;
   const selectedItem = activeList.find((item) => item.letter === selectedLetter) ?? activeList[0];
+  const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
   const currentActivity = activityDeck[activityIndex];
 
   const speakText = (text, message) => {
@@ -208,6 +262,22 @@ export default function VowelsConsonant({ onComplete, onBack }) {
             </span>
             <p className="vowels-object-word">{selectedItem.word}</p>
             <p className="vowels-object-sound">{mode === 'vowels' ? `Sound: "${selectedItem.sound}"` : 'Say the object name.'}</p>
+
+            {mode === 'vowels' ? (
+              <div className="vc-vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
+                <p className="vc-vowel-team-kicker">I can read</p>
+                <h4 className="vc-vowel-team-heading">{selectedItem.letter} Vowel Teams</h4>
+
+                <div className="vc-vowel-team-grid">
+                  {selectedPairs.map((item) => (
+                    <div key={`${selectedItem.letter}-${item.team}`} className="vc-vowel-team-card">
+                      <span className="vc-vowel-team-chunk">{item.team}</span>
+                      <span className="vc-vowel-team-word">{item.word}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <button type="button" className="vowels-listen" onClick={speakCurrent}>

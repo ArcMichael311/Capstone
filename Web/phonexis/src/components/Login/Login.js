@@ -5,6 +5,7 @@ import { supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (event) => {
@@ -78,7 +79,21 @@ export default function Login({ onNavigate, onSuccess }) {
           <span className="login-field-label">Password *</span>
           <span className="login-field-box">
             <span className="login-field-icon" aria-hidden="true">🔒</span>
-            <input type="password" name="password" aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              aria-label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="login-password-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </span>
         </label>
 
