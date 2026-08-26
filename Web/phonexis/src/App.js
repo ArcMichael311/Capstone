@@ -13,6 +13,7 @@ import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
 import Admin from './components/Admin/Admin';
 import Teacher from './components/Teacher/Teacher';
+import { getPathForView, getViewFromPath } from './router/Routing';
 import {
   supabase,
   fetchBackendUsers,
@@ -25,7 +26,7 @@ import {
 function App() {
   const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeView, setActiveView] = useState('login');
+  const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
@@ -49,6 +50,22 @@ function App() {
   useEffect(() => {
     activeViewRef.current = activeView;
   }, [activeView]);
+
+  useEffect(() => {
+    const nextPath = getPathForView(activeView);
+    if (window.location.pathname !== nextPath) {
+      window.history.replaceState({ view: activeView }, '', nextPath);
+    }
+  }, [activeView]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveView(getViewFromPath(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const mapAuthUserToProfile = useCallback((user) => {
     if (!user) {
@@ -159,6 +176,10 @@ function App() {
       setNavigationHistory((history) => [...history, activeViewRef.current]);
     }
 
+    const nextPath = getPathForView(nextView);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ view: nextView }, '', nextPath);
+    }
     setActiveView(nextView);
   }, [isAuthenticated]);
 
