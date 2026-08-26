@@ -5,12 +5,160 @@
   padding: 2.5rem 2rem;
   color: #2C3E50;
   backdrop-filter: blur(10px);
-  background: transparent;
+  background: #ffffff;
+  --app-surface: rgba(255, 255, 255, 0.94);
+  --app-text: #2C3E50;
 }
 
 .app-shell-authenticated {
-  background: transparent;
+  background: #ffffff;
   color: #2C3E50;
+}
+
+[data-theme='dark'] .app-shell,
+[data-theme='dark'] .app-shell-authenticated {
+  background: #000000;
+  color: #edf6f9;
+  --app-surface: rgba(31, 43, 54, 0.96);
+  --app-text: #edf6f9;
+}
+
+.app-preferences {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: grid;
+  gap: 0.6rem;
+  width: max-content;
+  max-width: calc(100vw - 2rem);
+  padding: 0.8rem;
+  border: 1px solid rgba(77, 150, 255, 0.3);
+  border-radius: 1rem;
+  background: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: 0 10px 30px rgba(19, 32, 47, 0.16);
+  backdrop-filter: blur(14px);
+}
+
+.app-preferences-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.app-toggle-button,
+.app-settings-button {
+  border: 1px solid rgba(77, 150, 255, 0.35);
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.app-toggle-button.selected {
+  background: #4d96ff;
+  color: #ffffff;
+}
+
+.app-settings-button {
+  width: 2rem;
+  padding: 0.45rem 0;
+}
+
+.app-volume-control,
+.app-theme-control {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.app-volume-control {
+  min-width: 15rem;
+}
+
+.app-volume-control input {
+  flex: 1;
+  min-width: 4rem;
+  accent-color: #ff6b6b;
+}
+
+.app-volume-control output {
+  min-width: 2.4rem;
+  text-align: right;
+  color: #ff6b6b;
+}
+
+.app-theme-control span {
+  margin-right: auto;
+}
+
+.app-theme-control button {
+  border: 1px solid rgba(77, 150, 255, 0.35);
+  border-radius: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+}
+
+.app-theme-control button.selected {
+  background: #4d96ff;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .app-brand-copy,
+[data-theme='dark'] .app-header,
+[data-theme='dark'] .app-header h1 {
+  color: #edf6f9;
+}
+
+[data-theme='dark'] .register-card,
+[data-theme='dark'] .forgotpassword-card,
+[data-theme='dark'] .resetpassword-card,
+[data-theme='dark'] .dashboard-progress-card,
+[data-theme='dark'] .dashboard-card,
+[data-theme='dark'] .module-banner,
+[data-theme='dark'] .module-stage,
+[data-theme='dark'] .profile-info-tab,
+[data-theme='dark'] .profile-settings-tab {
+  background: #1f2b36;
+  color: #edf6f9;
+}
+
+[data-theme='dark'] .login-card {
+  background-image: linear-gradient(135deg, #1f2b36, #263744), conic-gradient(from var(--login-rgb-angle), #ff3cac, #ffdd00, #00f5a0, #2b86c5, #784ba0, #ff3cac);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+}
+
+[data-theme='dark'] .login-copy p,
+[data-theme='dark'] .register-copy p,
+[data-theme='dark'] .forgotpassword-copy p,
+[data-theme='dark'] .resetpassword-copy p,
+[data-theme='dark'] .dashboard-user p,
+[data-theme='dark'] .module-banner p,
+[data-theme='dark'] .profile-info-value,
+[data-theme='dark'] .profile-settings-header p {
+  color: #c8d8de;
+}
+
+[data-theme='dark'] .login-field-box,
+[data-theme='dark'] .register-field-box,
+[data-theme='dark'] .forgotpassword-field-box,
+[data-theme='dark'] .profile-form-box {
+  background: #263744;
+}
+
+@media (max-width: 640px) {
+  .app-preferences {
+    top: 0.6rem;
+    right: 0.6rem;
+  }
 }
 
 .app-orb {
