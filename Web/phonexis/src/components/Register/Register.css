@@ -79,26 +79,6 @@
   display: grid;
   gap: 1.3rem;
   margin-top: 0.5rem;
-  max-height: 70vh;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.register-form::-webkit-scrollbar {
-  width: 6px;
-}
-
-.register-form::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.register-form::-webkit-scrollbar-thumb {
-  background: #d0d0d0;
-  border-radius: 3px;
-}
-
-.register-form::-webkit-scrollbar-thumb:hover {
-  background: #999;
 }
 
 .register-field {
@@ -117,7 +97,7 @@
 
 .register-field-box {
   display: grid;
-  grid-template-columns: 2.5rem 1fr;
+  grid-template-columns: 2.5rem 1fr auto;
   align-items: center;
   height: 3.5rem;
   border-radius: 1.2rem;
@@ -147,9 +127,26 @@
   outline: none;
   background: transparent;
   color: #2C3E50;
-  padding: 0 1.2rem 0 0.5rem;
+  padding: 0 0.6rem 0 0.5rem;
   font-size: 1rem;
   letter-spacing: 0.3px;
+}
+
+.register-password-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #4D96FF;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  padding: 0 1rem 0 0.35rem;
+  text-transform: uppercase;
+}
+
+.register-password-toggle:hover {
+  color: #FF6B6B;
 }
 
 .register-field input::placeholder {

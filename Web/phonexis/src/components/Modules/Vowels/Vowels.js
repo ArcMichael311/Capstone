@@ -11,6 +11,59 @@ const vowels = [
   { letter: 'U', sound: 'uh', word: 'Umbrella', icon: '☂️' },
 ];
 
+const vowelTeamBoards = {
+  A: [
+    { team: 'ain', word: 'rain' },
+    { team: 'ail', word: 'tail' },
+    { team: 'aid', word: 'maid' },
+    { team: 'ait', word: 'bait' },
+    { team: 'ake', word: 'cake' },
+    { team: 'ate', word: 'gate' },
+    { team: 'ame', word: 'game' },
+    { team: 'ane', word: 'plane' },
+  ],
+  E: [
+    { team: 'each', word: 'peach' },
+    { team: 'eat', word: 'meat' },
+    { team: 'ead', word: 'bread' },
+    { team: 'eam', word: 'team' },
+    { team: 'eep', word: 'sleep' },
+    { team: 'ean', word: 'bean' },
+    { team: 'eel', word: 'wheel' },
+    { team: 'ear', word: 'pear' },
+  ],
+  I: [
+    { team: 'igh', word: 'light' },
+    { team: 'ice', word: 'rice' },
+    { team: 'ide', word: 'slide' },
+    { team: 'ime', word: 'time' },
+    { team: 'ine', word: 'pine' },
+    { team: 'ipe', word: 'pipe' },
+    { team: 'ire', word: 'fire' },
+    { team: 'ite', word: 'kite' },
+  ],
+  O: [
+    { team: 'oat', word: 'boat' },
+    { team: 'oak', word: 'oak' },
+    { team: 'oap', word: 'soap' },
+    { team: 'oad', word: 'road' },
+    { team: 'oar', word: 'oar' },
+    { team: 'oal', word: 'goal' },
+    { team: 'ore', word: 'shore' },
+    { team: 'one', word: 'stone' },
+  ],
+  U: [
+    { team: 'ue', word: 'blue' },
+    { team: 'ui', word: 'fruit' },
+    { team: 'ew', word: 'stew' },
+    { team: 'u_e', word: 'cube' },
+    { team: 'ute', word: 'flute' },
+    { team: 'une', word: 'tune' },
+    { team: 'ule', word: 'mule' },
+    { team: 'uit', word: 'suit' },
+  ],
+};
+
 const pretestActivityDeck = [
   { letter: 'A', prompt: '_pple', icon: '🍎', choices: ['A', 'E', 'I', 'O', 'U'] },
   { letter: 'E', prompt: '_lephant', icon: '🐘', choices: ['A', 'E', 'I', 'O', 'U'] },
@@ -58,6 +111,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   }, [initialVideosWatched]);
 
   const selectedItem = vowels.find((item) => item.letter === selectedLetter) ?? vowels[0];
+  const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
   const currentPretest = pretestActivityDeck[pretestIndex];
   const allVideosWatched = videosWatched.length === videos.length;
 
@@ -336,6 +390,20 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
               </span>
               <p className="vowels-object-word">{selectedItem.word}</p>
               <p className="vowels-object-sound">Sound: "{selectedItem.sound}"</p>
+
+              <div className="vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
+                <p className="vowel-team-kicker">I can read</p>
+                <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Teams</h4>
+
+                <div className="vowel-team-grid">
+                  {selectedPairs.map((item) => (
+                    <div key={`${selectedItem.letter}-${item.team}`} className="vowel-team-card">
+                      <span className="vowel-team-chunk">{item.team}</span>
+                      <span className="vowel-team-word">{item.word}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <button type="button" className="vowels-listen" onClick={speakCurrent}>

@@ -205,6 +205,74 @@
   font-size: 0.9rem;
 }
 
+.vc-vowel-team-board {
+  margin-top: 0.35rem;
+  width: 100%;
+  max-width: 28rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 3px solid #ffffff;
+  background: #fffdf7;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+  display: grid;
+  gap: 0.7rem;
+}
+
+.vc-vowel-team-kicker {
+  margin: 0;
+  color: #1a1a2e;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vc-vowel-team-heading {
+  margin: 0;
+  color: #2f3b52;
+  font-size: 1.35rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.vc-vowel-team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.vc-vowel-team-card {
+  border: 2px solid #2f3b52;
+  border-radius: 0.55rem;
+  background: #ffffff;
+  padding: 0.45rem 0.25rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.vc-vowel-team-chunk {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.vc-vowel-team-word {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .vc-vowel-team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .vowels-listen {
   appearance: none;
   border: 0;

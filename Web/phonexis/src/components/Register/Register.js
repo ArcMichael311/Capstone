@@ -8,6 +8,8 @@ export default function Register({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState(null);
 
   const handleSubmit = async (event) => {
@@ -103,7 +105,21 @@ export default function Register({ onNavigate, onSuccess }) {
           <span className="register-field-label">Password *</span>
           <span className="register-field-box">
             <span className="register-field-icon" aria-hidden="true">🔒</span>
-            <input type="password" name="password" aria-label="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              aria-label="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="register-password-toggle"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </span>
         </label>
 
@@ -111,7 +127,21 @@ export default function Register({ onNavigate, onSuccess }) {
           <span className="register-field-label">Confirm Password *</span>
           <span className="register-field-box">
             <span className="register-field-icon" aria-hidden="true">🔒</span>
-            <input type="password" name="confirmPassword" aria-label="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              name="confirmPassword"
+              aria-label="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="register-password-toggle"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+            >
+              {showConfirmPassword ? 'Hide' : 'Show'}
+            </button>
           </span>
         </label>
 
