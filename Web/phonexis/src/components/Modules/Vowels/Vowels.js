@@ -64,14 +64,6 @@ const vowelTeamBoards = {
   ],
 };
 
-const pretestActivityDeck = [
-  { letter: 'A', prompt: '_pple', icon: '🍎', choices: ['A', 'E', 'I', 'O', 'U'] },
-  { letter: 'E', prompt: '_lephant', icon: '🐘', choices: ['A', 'E', 'I', 'O', 'U'] },
-  { letter: 'I', prompt: '_ce cream', icon: '🍦', choices: ['A', 'E', 'I', 'O', 'U'] },
-  { letter: 'O', prompt: '_ctopus', icon: '🐙', choices: ['A', 'E', 'I', 'O', 'U'] },
-  { letter: 'U', prompt: '_mbrella', icon: '☂️', choices: ['A', 'E', 'I', 'O', 'U'] },
-];
-
 const videos = [
   {
     id: 1,
@@ -99,10 +91,17 @@ const videos = [
 export default function Vowels({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange }) {
   const [mode, setMode] = useState('learning');
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
-  const [pretestIndex, setPretestIndex] = useState(0);
-  const [pretestChoice, setPretestChoice] = useState('');
-  const [pretestResult, setPretestResult] = useState(null);
-  const [pretestMessage, setPretestMessage] = useState('Choose the correct answer.');
+  const [teacherActivityTitle, setTeacherActivityTitle] = useState('Vowel team word sort');
+  const [teacherActivityFocus, setTeacherActivityFocus] = useState('A, E, I, O, U');
+  const [teacherActivityInstructions, setTeacherActivityInstructions] = useState('Ask students to sort picture cards by vowel sound and read each word aloud.');
+  const [teacherActivities, setTeacherActivities] = useState([
+    {
+      id: 1,
+      title: 'Missing vowel challenge',
+      focus: 'A and E',
+      instructions: 'Students fill in missing vowels to complete each word, then read the word to the class.',
+    },
+  ]);
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
@@ -112,7 +111,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
 
   const selectedItem = vowels.find((item) => item.letter === selectedLetter) ?? vowels[0];
   const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
-  const currentPretest = pretestActivityDeck[pretestIndex];
   const allVideosWatched = videosWatched.length === videos.length;
 
   const speakText = (text, message) => {
@@ -128,19 +126,46 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     setFeedback(message);
   };
 
-  const resetPretest = () => {
-    setPretestIndex(0);
-    setPretestChoice('');
-    setPretestResult(null);
-    setPretestMessage('Choose the correct answer.');
-  };
-
   const handleModeChange = (nextMode) => {
     setMode(nextMode);
     if (nextMode === 'lesson') {
       setFeedback('Choose a vowel to hear its sound.');
+      return;
     }
-    resetPretest();
+
+    if (nextMode === 'pretest') {
+      setFeedback('Teacher activity panel: create vowel tasks for students.');
+      return;
+    }
+
+    if (!allVideosWatched) {
+      setFeedback('Watch all videos to unlock Lesson and Pretest.');
+    }
+  };
+
+  const handleAddPretestActivity = () => {
+    const title = teacherActivityTitle.trim();
+    const focus = teacherActivityFocus.trim();
+    const instructions = teacherActivityInstructions.trim();
+
+    if (!title || !focus || !instructions) {
+      setFeedback('Complete title, focus vowels, and instructions before adding an activity.');
+      return;
+    }
+
+    const nextActivity = {
+      id: Date.now(),
+      title,
+      focus,
+      instructions,
+    };
+
+    setTeacherActivities((current) => [nextActivity, ...current]);
+    setFeedback('Teacher activity added for the vowel pretest section.');
+
+    if (typeof onComplete === 'function') {
+      onComplete();
+    }
   };
 
   const handleVideoWatched = (videoId) => {
@@ -179,39 +204,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
 
   const speakCurrent = () => {
     speakText(`${selectedItem.letter}, ${selectedItem.sound}`, `Speaking ${selectedItem.letter} sound.`);
-  };
-
-  const handlePretestCheck = () => {
-    if (!pretestChoice) {
-      setPretestResult('wrong');
-      setPretestMessage('Wrong answer. Choose a letter first.');
-      return;
-    }
-
-    if (pretestChoice !== currentPretest.letter) {
-      setPretestResult('wrong');
-      setPretestMessage('Wrong answer. Try again.');
-      return;
-    }
-
-    setPretestResult('correct');
-    setPretestMessage('Correct!');
-  };
-
-  const handleNextPretestQuestion = () => {
-    const nextIndex = pretestIndex + 1;
-
-    if (nextIndex >= pretestActivityDeck.length) {
-      if (typeof onComplete === 'function') {
-        onComplete();
-      }
-      return;
-    }
-
-    setPretestIndex(nextIndex);
-    setPretestChoice('');
-    setPretestResult(null);
-    setPretestMessage('Choose the correct answer.');
   };
 
   return (
@@ -311,7 +303,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             <>
               <div className="learning-header">
                 <h3>Learning Materials</h3>
-                <p>Watch all videos to unlock Lesson and Pretest modes</p>
+                <p>Watch all videos to unlock Lesson and Pretest mode</p>
               </div>
 
               <div className="videos-grid">
@@ -351,7 +343,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                 </p>
                 {allVideosWatched && (
                   <p className="progress-unlocked">
-                    ✓ Lesson and Pretest modes unlocked! Click the Lesson or Pretest tab to proceed.
+                    ✓ Lesson and Pretest mode unlocked! Click the Lesson or Pretest tab to proceed.
                   </p>
                 )}
               </div>
@@ -417,65 +409,59 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
         </div>
       ) : mode === 'pretest' ? (
         <div className="pretest-stage">
-          <div className="pretest-column pretest-main-column">
+          <div className="pretest-teacher-panel-stage">
             <div className="pretest-header">
-              <h3>Pretest: Fill in the Missing Vowel</h3>
-              <p>Complete the word by adding the correct vowel</p>
+              <h3>Pretest Teacher Activity</h3>
+              <p>Create vowel activities to give students before assessment.</p>
             </div>
 
-            <div className="pretest-card">
-              <span className="pretest-card-icon" aria-hidden="true">
-                {currentPretest.icon}
-              </span>
-              <p className="pretest-word">{currentPretest.prompt}</p>
+            <div className="pretest-teacher-panel-form">
+              <label className="pretest-teacher-field">
+                <span>Activity title</span>
+                <input
+                  type="text"
+                  value={teacherActivityTitle}
+                  onChange={(event) => setTeacherActivityTitle(event.target.value)}
+                  placeholder="Example: Vowel sound matching"
+                />
+              </label>
 
-              <div className="pretest-answer-row" aria-label="Answer selection">
-                <div className="pretest-letter-box" aria-label="Missing letter answer">
-                  <span>{pretestChoice || '\u00A0'}</span>
-                </div>
+              <label className="pretest-teacher-field">
+                <span>Focus vowels</span>
+                <input
+                  type="text"
+                  value={teacherActivityFocus}
+                  onChange={(event) => setTeacherActivityFocus(event.target.value)}
+                  placeholder="Example: A, E, I"
+                />
+              </label>
 
-                <div className="pretest-actions">
-                  <button type="button" className="pretest-check" onClick={handlePretestCheck}>
-                    ✓ CHECK ANSWER
-                  </button>
-                </div>
-              </div>
+              <label className="pretest-teacher-field">
+                <span>Student instructions</span>
+                <textarea
+                  value={teacherActivityInstructions}
+                  onChange={(event) => setTeacherActivityInstructions(event.target.value)}
+                  rows={4}
+                  placeholder="Write clear vowel activity instructions for students."
+                />
+              </label>
 
-              <div className="pretest-choice-row" role="group" aria-label="Vowel options">
-                {currentPretest.choices.map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    className={choice === pretestChoice ? 'pretest-choice active' : 'pretest-choice'}
-                    onClick={() => {
-                      setPretestChoice(choice);
-                      setPretestResult(null);
-                      setPretestMessage('Choose the correct answer.');
-                    }}
-                  >
-                    {choice}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className={pretestResult === 'correct' ? 'pretest-result correct' : 'pretest-result wrong'} aria-live="polite">
-              {pretestResult ? pretestMessage : ''}
-            </div>
-
-            {pretestResult === 'correct' ? (
-              <button type="button" className="pretest-next" onClick={handleNextPretestQuestion}>
-                NEXT QUESTION
+              <button type="button" className="pretest-teacher-create" onClick={handleAddPretestActivity}>
+                + ADD ACTIVITY
               </button>
-            ) : null}
+            </div>
 
-            <div className="pretest-dots" aria-label="Pretest progress">
-              {pretestActivityDeck.map((item, index) => (
-                <span key={item.letter || item.letters} className={index === pretestIndex ? 'pretest-dot active' : 'pretest-dot'} />
+            <div className="pretest-teacher-activity-list" aria-label="Vowel teacher activity list">
+              {teacherActivities.map((activity) => (
+                <article key={activity.id} className="pretest-teacher-activity-item">
+                  <h4>{activity.title}</h4>
+                  <p className="pretest-teacher-activity-focus">Focus: {activity.focus}</p>
+                  <p className="pretest-teacher-activity-instructions">{activity.instructions}</p>
+                </article>
               ))}
             </div>
 
-            <p className="game-feedback">{pretestResult ? '' : pretestMessage}</p>
+            <p className="game-feedback">{feedback}</p>
           </div>
         </div>
       ) : mode === 'vowelrush' ? (
