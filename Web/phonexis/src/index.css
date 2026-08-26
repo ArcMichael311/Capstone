@@ -1,13 +1,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* Scenic outdoor background inspired by the reference image */
-  background: linear-gradient(to bottom, 
-    #1E90FF 0%,        /* Sky blue */
-    #87CEEB 40%,       /* Light sky blue */
-    #98FF98 70%,       /* Light green for grass */
-    #7CB342 100%       /* Grass green */
-  );
+  background: #ffffff;
   background-attachment: fixed;
   position: relative;
   color: #2C3E50;

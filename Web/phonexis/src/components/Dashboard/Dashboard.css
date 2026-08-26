@@ -312,9 +312,13 @@
 
 .dashboard-card-copy p {
   margin: 0;
-  color: #2C3E50;
+  color: #000000;
   line-height: 1.6;
   font-size: 0.95rem;
+}
+
+[data-theme='dark'] .dashboard-card-copy p {
+  color: #ffffff;
 }
 
 .dashboard-card-progress {

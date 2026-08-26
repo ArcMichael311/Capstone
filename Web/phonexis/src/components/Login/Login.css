@@ -11,12 +11,27 @@
   border-radius: 2rem;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 255, 240, 0.95));
   backdrop-filter: blur(10px);
-  border: 3px solid #FFD700;
+  border: 3px solid transparent;
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 255, 240, 0.95)), conic-gradient(from var(--login-rgb-angle), #ff3cac, #ffdd00, #00f5a0, #2b86c5, #784ba0, #ff3cac);
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
   box-shadow: 0 12px 40px rgba(77, 150, 255, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.1);
   display: grid;
   justify-items: center;
   gap: 1.5rem;
-  animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), rgbBorderLights 4s linear infinite;
+}
+
+@property --login-rgb-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rgbBorderLights {
+  to {
+    --login-rgb-angle: 360deg;
+  }
 }
 
 @keyframes popIn {

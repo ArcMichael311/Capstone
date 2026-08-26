@@ -2,7 +2,7 @@ import './Profile.css';
 import { useEffect, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
 
-export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout }) {
+export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout, theme = 'light', onThemeChange }) {
   const [activeTab, setActiveTab] = useState('info');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -13,6 +13,13 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
   const [musicVolume, setMusicVolume] = useState(50);
 
   useEffect(() => {
+    const syncVolume = (event) => {
+      const nextVolume = Number(event?.detail);
+      if (!Number.isNaN(nextVolume)) {
+        setMusicVolume(Math.round(Math.min(Math.max(nextVolume, 0), 1) * 100));
+      }
+    };
+
     try {
       const storedVolume = localStorage.getItem('phonexis_music_volume');
       if (storedVolume !== null) {
@@ -24,7 +31,10 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
     } catch (storageError) {
       // ignore storage errors
     }
-  }, []);
+
+    window.addEventListener('phonexis:music-volume-change', syncVolume);
+    return () => window.removeEventListener('phonexis:music-volume-change', syncVolume);
+  }, [])
 
   const handleMusicVolumeChange = (event) => {
     const nextVolume = Number(event.target.value);
@@ -298,6 +308,33 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
                 <strong className="profile-volume-value">{musicVolume}%</strong>
               </div>
             </label>
+          </div>
+
+          <div className="profile-settings-section profile-background-section">
+            <div className="profile-settings-header">
+              <span className="profile-settings-icon" aria-hidden="true">🖼️</span>
+              <div>
+                <h3>Background</h3>
+                <p>Choose a white or black background</p>
+              </div>
+            </div>
+
+            <div className="profile-background-options" role="group" aria-label="Background color">
+              <button
+                type="button"
+                className={`profile-background-btn ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => onThemeChange?.('light')}
+              >
+                White
+              </button>
+              <button
+                type="button"
+                className={`profile-background-btn profile-background-btn-dark ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => onThemeChange?.('dark')}
+              >
+                Black
+              </button>
+            </div>
           </div>
 
           <div className="profile-sign-out-section">
