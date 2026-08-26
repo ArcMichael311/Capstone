@@ -787,6 +787,108 @@
   width: 100%;
 }
 
+.pretest-teacher-panel-stage {
+  width: min(100%, 44rem);
+  display: grid;
+  gap: 1rem;
+  margin: 0 auto;
+}
+
+.pretest-teacher-panel-form {
+  display: grid;
+  gap: 0.85rem;
+  border: 2px solid #d4af37;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.pretest-teacher-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pretest-teacher-field span {
+  color: #d4af37;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pretest-teacher-field input,
+.pretest-teacher-field textarea {
+  width: 100%;
+  border: 2px solid rgba(212, 175, 55, 0.45);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e8e8e8;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.pretest-teacher-field textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.pretest-teacher-create {
+  appearance: none;
+  justify-self: start;
+  border: 2px solid #d4af37;
+  background: #d4af37;
+  color: #1a1a2e;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pretest-teacher-create:hover {
+  background: #e8c44a;
+  transform: translateY(-2px);
+}
+
+.pretest-teacher-activity-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.pretest-teacher-activity-item {
+  border: 2px solid rgba(212, 175, 55, 0.45);
+  border-radius: 0.9rem;
+  padding: 0.9rem;
+  background: rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pretest-teacher-activity-item h4 {
+  margin: 0;
+  color: #e8e8e8;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pretest-teacher-activity-focus {
+  margin: 0;
+  color: #d4af37;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.pretest-teacher-activity-instructions {
+  margin: 0;
+  color: #b0b0b0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .pretest-split {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
   align-items: center;

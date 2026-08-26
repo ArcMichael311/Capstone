@@ -214,6 +214,279 @@
   min-height: 1.2rem;
 }
 
+.teacher-panel-stage {
+  width: min(100%, 44rem);
+  display: grid;
+  gap: 1rem;
+  margin: 0 auto;
+}
+
+.teacher-panel-header {
+  display: grid;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.teacher-panel-header h3 {
+  margin: 0;
+  color: #37d4a3;
+  font-size: 1.35rem;
+}
+
+.teacher-panel-header p {
+  margin: 0;
+  color: #b0b0b0;
+  font-size: 0.92rem;
+}
+
+.teacher-panel-form {
+  display: grid;
+  gap: 0.85rem;
+  border: 2px solid #37d4a3;
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.teacher-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.teacher-field span {
+  color: #37d4a3;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.teacher-field input,
+.teacher-field textarea {
+  width: 100%;
+  border: 2px solid rgba(55, 212, 163, 0.4);
+  background: rgba(0, 0, 0, 0.45);
+  color: #e8e8e8;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.92rem;
+}
+
+.teacher-field textarea {
+  resize: vertical;
+  min-height: 5.5rem;
+}
+
+.teacher-create {
+  appearance: none;
+  justify-self: start;
+  border: 2px solid #37d4a3;
+  background: #37d4a3;
+  color: #0d3e3e;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1.1rem;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.teacher-create:hover {
+  background: #4ae8bf;
+  transform: translateY(-2px);
+}
+
+.teacher-activity-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.teacher-activity-item {
+  border: 2px solid rgba(55, 212, 163, 0.4);
+  border-radius: 0.9rem;
+  padding: 0.9rem;
+  background: rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 0.35rem;
+}
+
+.teacher-activity-item h4 {
+  margin: 0;
+  color: #e8e8e8;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.teacher-activity-focus {
+  margin: 0;
+  color: #37d4a3;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.teacher-activity-instructions {
+  margin: 0;
+  color: #b0b0b0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.teacher-activity-stage {
+  display: grid;
+  gap: 1.5rem;
+  place-items: center;
+  width: 100%;
+}
+
+.teacher-activity-header {
+  display: grid;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.teacher-activity-header h3 {
+  margin: 0;
+  color: #37d4a3;
+  font-size: 1.35rem;
+}
+
+.teacher-activity-header p {
+  margin: 0;
+  color: #b0b0b0;
+  font-size: 0.92rem;
+}
+
+.teacher-activity-card {
+  width: min(100%, 34rem);
+  border-radius: 1.2rem;
+  border: 2px solid #37d4a3;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  place-items: center;
+}
+
+.teacher-activity-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.teacher-activity-word {
+  margin: 0;
+  color: #e8e8e8;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.teacher-answer-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.teacher-letter-box {
+  width: 4.2rem;
+  height: 4.2rem;
+  border: 2px solid #37d4a3;
+  border-radius: 0.85rem;
+  display: grid;
+  place-items: center;
+  color: #37d4a3;
+  font-size: 1.9rem;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.teacher-check,
+.teacher-next {
+  appearance: none;
+  border: 2px solid #37d4a3;
+  background: #37d4a3;
+  color: #0d3e3e;
+  border-radius: 0.8rem;
+  padding: 0.75rem 1.2rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.teacher-check:hover,
+.teacher-next:hover {
+  background: #4ae8bf;
+  transform: translateY(-2px);
+}
+
+.teacher-choice-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.teacher-choice {
+  appearance: none;
+  width: 3rem;
+  height: 3rem;
+  border: 2px solid #37d4a3;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.4);
+  color: #37d4a3;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.teacher-choice:hover {
+  background: rgba(55, 212, 163, 0.2);
+}
+
+.teacher-choice.active {
+  background: #37d4a3;
+  color: #0d3e3e;
+}
+
+.teacher-result {
+  min-height: 1.3rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.teacher-result.correct {
+  color: #7ed321;
+}
+
+.teacher-result.wrong {
+  color: #ff6b6b;
+}
+
+.teacher-dots {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.teacher-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: rgba(55, 212, 163, 0.3);
+}
+
+.teacher-dot.active {
+  background: #37d4a3;
+  box-shadow: 0 0 8px rgba(55, 212, 163, 0.6);
+}
+
 /* Learning Materials Styles */
 .learning-materials {
   display: grid;
