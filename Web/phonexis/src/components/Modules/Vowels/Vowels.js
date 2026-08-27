@@ -382,19 +382,19 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
               </span>
               <p className="vowels-object-word">{selectedItem.word}</p>
               <p className="vowels-object-sound">Sound: "{selectedItem.sound}"</p>
+            </div>
 
-              <div className="vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
-                <p className="vowel-team-kicker">I can read</p>
-                <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Teams</h4>
+            <div className="vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
+              <p className="vowel-team-kicker">I can read</p>
+              <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Teams</h4>
 
-                <div className="vowel-team-grid">
-                  {selectedPairs.map((item) => (
-                    <div key={`${selectedItem.letter}-${item.team}`} className="vowel-team-card">
-                      <span className="vowel-team-chunk">{item.team}</span>
-                      <span className="vowel-team-word">{item.word}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="vowel-team-grid">
+                {selectedPairs.map((item) => (
+                  <div key={`${selectedItem.letter}-${item.team}`} className="vowel-team-card">
+                    <span className="vowel-team-chunk">{item.team}</span>
+                    <span className="vowel-team-word">{item.word}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
