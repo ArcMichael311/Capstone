@@ -8,6 +8,7 @@
   background: #ffffff;
   --app-surface: rgba(255, 255, 255, 0.94);
   --app-text: #2C3E50;
+  --app-background: #ffffff;
 }
 
 .app-shell-authenticated {
@@ -21,6 +22,7 @@
   color: #edf6f9;
   --app-surface: rgba(31, 43, 54, 0.96);
   --app-text: #edf6f9;
+  --app-background: #000000;
 }
 
 .app-preferences {

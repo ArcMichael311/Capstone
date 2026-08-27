@@ -4,7 +4,7 @@
   min-height: 38rem;
   padding: 2rem;
   border-radius: 2rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 255, 240, 0.95));
+  background: var(--app-background, #ffffff);
   border: 3px solid #FFD700;
   min-height: 40rem;
   box-shadow: 0 12px 40px rgba(77, 150, 255, 0.15), 0 20px 60px rgba(0, 0, 0, 0.1);
