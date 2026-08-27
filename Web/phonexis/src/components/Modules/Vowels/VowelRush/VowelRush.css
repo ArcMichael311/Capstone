@@ -5,10 +5,7 @@
   display: grid;
   place-items: center;
   padding: clamp(0.75rem, 2vw, 1.5rem);
-  background:
-    radial-gradient(circle at top, rgba(255, 199, 79, 0.14), transparent 38%),
-    radial-gradient(circle at bottom right, rgba(126, 211, 33, 0.08), transparent 26%),
-    linear-gradient(160deg, rgba(14, 18, 33, 0.98), rgba(10, 12, 22, 0.98));
+  background: var(--app-background, #ffffff);
   backdrop-filter: blur(10px);
 }
 
