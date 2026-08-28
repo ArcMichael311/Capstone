@@ -10,6 +10,27 @@
   color: #f7fbff;
   box-shadow: 8px 0 24px rgba(16, 42, 67, 0.14);
 }
+.app-sidebar.sidebar-hidden { display: none; }
+.sidebar-toggle {
+  position: fixed;
+  top: 1rem;
+  left: 15.25rem;
+  z-index: 21;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: #ffcf56;
+  color: #102a43;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+  line-height: 1;
+  transition: left 180ms ease;
+}
+.sidebar-toggle:has(+ .app-sidebar.sidebar-hidden) { left: 0.75rem; }
+.sidebar-toggle:hover { background: #ffe08a; }
+.sidebar-toggle:focus-visible { outline: 3px solid #8fd3ff; outline-offset: 2px; }
 
 .sidebar-brand {
   display: flex;
@@ -58,7 +79,11 @@
 .sidebar-section { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.14); }
 .sidebar-section-title { margin: 0 0 0.55rem; padding: 0 0.75rem; color: #8fd3ff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
 .sidebar-back-link { padding: 0.4rem 0.75rem; color: #b8d2e5; font-size: 0.8rem; }
-.sidebar-sub-link { display: block; padding: 0.55rem 0.75rem 0.55rem 2rem; border-left: 2px solid transparent; color: #d9eaf5; font-size: 0.88rem; }
+.sidebar-sub-link { display: grid; align-items: center; padding: 0.55rem 0.75rem 0.55rem 2rem; border-left: 2px solid transparent; color: #d9eaf5; font-size: 0.88rem; }
+.sidebar-module-list .sidebar-sub-link { grid-template-columns: minmax(0, 1fr) 4.5rem; }
+.sidebar-section:not(.sidebar-module-list) .sidebar-sub-link:has(.sidebar-pretest-check) { grid-template-columns: minmax(0, 1fr) 2.5rem 3.5rem; white-space: nowrap; }
+.sidebar-module-progress, .sidebar-pretest-check, .sidebar-pretest-score { font-weight: 800; text-align: right; }
+.sidebar-pretest-check { text-align: center; }
 .sidebar-sub-link:hover, .sidebar-sub-link.active { border-left-color: #ffcf56; background: rgba(255, 255, 255, 0.08); color: #fff; }
 .sidebar-account { margin-top: 1.5rem; }
 .sidebar-back-link { display: flex; align-items: center; gap: 0.5rem; }
@@ -67,6 +92,8 @@
 
 @media (max-width: 760px) {
   .app-sidebar { position: relative; width: 100%; min-height: auto; padding: 0.8rem; }
+  .app-sidebar.sidebar-hidden { display: none; }
+  .sidebar-toggle { top: 0.75rem; left: auto; right: 0.75rem; }
   .sidebar-brand { padding-bottom: 0.8rem; }
   .sidebar-navigation { overflow: visible; }
   .sidebar-section { margin-top: 0.6rem; }

@@ -20,6 +20,11 @@
   min-width: 0;
   margin-left: 16rem;
   flex: 1;
+  transition: margin-left 180ms ease;
+}
+
+.app-authenticated-content.sidebar-collapsed {
+  margin-left: 0;
 }
 
 [data-theme='dark'] .app-shell,

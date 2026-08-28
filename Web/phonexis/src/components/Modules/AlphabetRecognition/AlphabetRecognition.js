@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './AlphabetRecognition.css';
 import AlphaQuest from './AlphaQuest';
 
@@ -31,7 +31,7 @@ const alphabet = [
   { letter: 'Z', word: 'Zebra', icon: '🦓' },
 ];
 
-export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], initialSection = null }) {
+export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], alphabetScores = {}, initialSection = null, onNavigate }) {
   const [selectedLetter, setSelectedLetter] = useState(alphabet[0]);
   const [feedback, setFeedback] = useState('Choose a letter to see its sample object.');
   const [mode, setMode] = useState('learning'); // 'learning' or 'pretest'
@@ -44,18 +44,6 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const [wrongPromptLetters, setWrongPromptLetters] = useState([]); // Track spoken letters answered incorrectly
   const [completedPromptLetters, setCompletedPromptLetters] = useState([]); // Track spoken letters that should not be replayed
   const [showAlphaQuest, setShowAlphaQuest] = useState(false); // Track if AlphaQuest is active
-  const pretestLevels = [
-    { key: 'easy', label: 'Easy', rangeLabel: 'A-M', className: 'easy-level' },
-    { key: 'medium', label: 'Medium', rangeLabel: 'N-Z', className: 'medium-level' },
-    { key: 'hard', label: 'Hard', rangeLabel: 'A-Z', className: 'hard-level' },
-  ];
-
-  useEffect(() => {
-    if (['easy', 'medium', 'hard'].includes(initialSection)) {
-      resetPretestState(initialSection);
-    }
-  }, [initialSection]);
-
   const letters = useMemo(() => alphabet.map((item) => item.letter), []);
   const selectedIndex = letters.indexOf(selectedLetter.letter);
 
@@ -123,7 +111,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     return null;
   };
 
-  const resetPretestState = (diff) => {
+  const resetPretestState = useCallback((diff) => {
     setMode('pretest');
     setDifficulty(diff);
     setPretestScore(0);
@@ -133,14 +121,31 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setCompletedPromptLetters([]);
     setHasListened(false);
 
-    const range = getDifficultyRange(diff);
-    setCurrentPretestLetter(pickNextPretestLetter(range, [], [], []));
+    const range = diff === 'easy'
+      ? alphabet.slice(0, 13).map((item) => item.letter)
+      : diff === 'medium'
+        ? alphabet.slice(13).map((item) => item.letter)
+        : alphabet.map((item) => item.letter);
+    setCurrentPretestLetter(range[Math.floor(Math.random() * range.length)]);
     setFeedback('Press listen to hear the first letter.');
-  };
+  }, []);
 
-  const startPretest = (diff) => {
-    resetPretestState(diff);
-  };
+  useEffect(() => {
+    if (initialSection === 'alphaquest') {
+      if (!showAlphaQuest) {
+        setShowAlphaQuest(true);
+        setMode('learning');
+      }
+      return;
+    }
+
+    if (showAlphaQuest) {
+      setShowAlphaQuest(false);
+    }
+    if (['easy', 'medium', 'hard'].includes(initialSection) && (mode !== 'pretest' || difficulty !== initialSection)) {
+      resetPretestState(initialSection);
+    }
+  }, [difficulty, initialSection, mode, resetPretestState, showAlphaQuest]);
 
   const playPretestAudio = (letter) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -194,7 +199,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
         }
 
         if (typeof onPretestComplete === 'function') {
-          onPretestComplete(difficulty);
+          onPretestComplete(difficulty, nextScore, maxAttempts);
         }
       }, 1500);
       return;
@@ -263,40 +268,6 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
             ))}
           </div>
 
-          <div className="pretest-level-grid">
-            {pretestLevels.map((level) => {
-              const isCompleted = completedModes.includes(level.key);
-
-              return (
-                <button
-                  key={level.key}
-                  type="button"
-                  className={`alphabet-complete-button pretest-level-button ${level.className}${isCompleted ? ' completed' : ''}`}
-                  onClick={() => startPretest(level.key)}
-                >
-                  <span className="pretest-level-icon" aria-hidden="true">
-                    {level.key === 'easy' ? '🟢' : level.key === 'medium' ? '🟠' : '🔴'}
-                  </span>
-                  <span className="pretest-level-copy">
-                    <strong>{level.label}</strong>
-                    <span>{level.rangeLabel}</span>
-                  </span>
-                  {isCompleted ? <span className="pretest-level-badge">Completed</span> : null}
-                </button>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop: '2rem' }}>
-            <button
-              type="button"
-              className="alphabet-complete-button"
-              onClick={() => setShowAlphaQuest(true)}
-              style={{ padding: '1.5rem', fontSize: '1.1rem', fontWeight: 700, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', width: '100%', maxWidth: '800px' }}
-            >
-              ⚔️ AlphaQuest - Battle Game
-            </button>
-          </div>
         </div>
       ) : mode === 'pretest' ? (
         <div className="alphabet-stage">
@@ -350,7 +321,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
       ) : null}
 
       {showAlphaQuest && (
-        <AlphaQuest onClose={() => setShowAlphaQuest(false)} />
+        <AlphaQuest onClose={() => onNavigate?.('alphabet', 'learning')} />
       )}
     </div>
   );

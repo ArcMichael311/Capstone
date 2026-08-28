@@ -33,14 +33,32 @@ const moduleSections = {
   ],
 };
 
-export default function Sidebar({ activeView, activeSection, currentUser, onNavigate, onLogout }) {
+const modules = [
+  { key: 'alphabet', label: 'Alphabet Recognition' },
+  { key: 'vowels', label: 'Vowels' },
+  { key: 'consonants', label: 'Consonants' },
+  { key: 'cvc', label: 'CVC Words' },
+];
+
+export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {} }) {
   const displayName = [currentUser?.firstname || currentUser?.user_metadata?.firstname, currentUser?.lastname || currentUser?.user_metadata?.lastname]
     .filter(Boolean)
     .join(' ') || currentUser?.email?.split('@')[0] || 'Learner';
   const sections = moduleSections[activeView] || [];
+  const progressByModule = { alphabet: alphabetProgress, vowels: vowelsProgress, consonants: consonantsProgress, cvc: cvcProgress };
 
   return (
-    <aside className="app-sidebar" aria-label="Main navigation">
+    <>
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={onToggle}
+        aria-label={isOpen ? 'Hide sidebar' : 'Show sidebar'}
+        title={isOpen ? 'Hide sidebar' : 'Show sidebar'}
+      >
+        {isOpen ? '<' : '>'}
+      </button>
+      <aside className={isOpen ? 'app-sidebar' : 'app-sidebar sidebar-hidden'} aria-label="Main navigation">
       <div className="sidebar-brand">
         <span className="sidebar-brand-mark" aria-hidden="true">P</span>
         <div>
@@ -54,22 +72,48 @@ export default function Sidebar({ activeView, activeSection, currentUser, onNavi
           <img src={dashboardIcon} alt="" /> Dashboard
         </button>
 
+        <div className="sidebar-section sidebar-module-list">
+          {modules.map((module) => (
+            <button
+              key={module.key}
+              type="button"
+              className={activeView === module.key ? 'sidebar-sub-link active' : 'sidebar-sub-link'}
+              onClick={() => onSelectModule?.(module.key)}
+            >
+              <span>{module.label}</span>
+              <strong className="sidebar-module-progress">{progressByModule[module.key]}%</strong>
+            </button>
+          ))}
+        </div>
+
         {sections.length > 0 && (
           <div className="sidebar-section">
             <p className="sidebar-section-title">{activeView === 'alphabet' ? 'Alphabet Recognition' : activeView === 'cvc' ? 'CVC Words' : activeView.charAt(0).toUpperCase() + activeView.slice(1)}</p>
             <button type="button" className="sidebar-back-link" onClick={() => onNavigate('dashboard')}>
               <img src={returnIcon} alt="" /> Return to dashboard
             </button>
-            {sections.map((section) => (
-              <button
-                key={section.key}
-                type="button"
-                className={activeSection === section.key ? 'sidebar-sub-link active' : 'sidebar-sub-link'}
-                onClick={() => onNavigate(activeView, section.key)}
-              >
-                {section.label}
-              </button>
-            ))}
+            {sections.map((section) => {
+              const isAlphabetLevel = activeView === 'alphabet' && ['easy', 'medium', 'hard'].includes(section.key);
+              const score = alphabetScores[section.key];
+              const isPassed = score && score.score === score.total;
+
+              return (
+                <button
+                  key={section.key}
+                  type="button"
+                  className={activeSection === section.key ? 'sidebar-sub-link active' : 'sidebar-sub-link'}
+                  onClick={() => onNavigate(activeView, section.key)}
+                >
+                  {isAlphabetLevel ? (
+                    <>
+                      <span>{section.label}</span>
+                      <strong className="sidebar-pretest-check">{isPassed ? '✓' : ''}</strong>
+                      <strong className="sidebar-pretest-score">{score ? `${score.score}/${score.total}` : ''}</strong>
+                    </>
+                  ) : section.label}
+                </button>
+              );
+            })}
           </div>
         )}
 
@@ -86,6 +130,7 @@ export default function Sidebar({ activeView, activeSection, currentUser, onNavi
       <button type="button" className="sidebar-logout" onClick={onLogout}>
         <img src={logoutIcon} alt="" /> Logout
       </button>
-    </aside>
+      </aside>
+    </>
   );
 }
