@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './AlphabetRecognition.css';
 import AlphaQuest from './AlphaQuest';
 
@@ -31,7 +31,7 @@ const alphabet = [
   { letter: 'Z', word: 'Zebra', icon: '🦓' },
 ];
 
-export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [] }) {
+export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], initialSection = null }) {
   const [selectedLetter, setSelectedLetter] = useState(alphabet[0]);
   const [feedback, setFeedback] = useState('Choose a letter to see its sample object.');
   const [mode, setMode] = useState('learning'); // 'learning' or 'pretest'
@@ -49,6 +49,12 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     { key: 'medium', label: 'Medium', rangeLabel: 'N-Z', className: 'medium-level' },
     { key: 'hard', label: 'Hard', rangeLabel: 'A-Z', className: 'hard-level' },
   ];
+
+  useEffect(() => {
+    if (['easy', 'medium', 'hard'].includes(initialSection)) {
+      resetPretestState(initialSection);
+    }
+  }, [initialSection]);
 
   const letters = useMemo(() => alphabet.map((item) => item.letter), []);
   const selectedIndex = letters.indexOf(selectedLetter.letter);
@@ -208,9 +214,6 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
         <p className="module-detail-label">
           {mode === 'learning' ? 'Alphabet Recognition' : `Pretest - ${difficulty?.toUpperCase()}`}
         </p>
-        <button type="button" className="module-back secondary" onClick={onBack}>
-          ← Return to learning path
-        </button>
       </div>
 
       {mode === 'learning' ? (
