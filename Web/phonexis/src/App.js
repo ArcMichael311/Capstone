@@ -13,7 +13,7 @@ import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
 import Admin from './components/Admin/Admin';
 import Teacher from './components/Teacher/Teacher';
-import { getPathForView, getViewFromPath } from './router/Routing';
+import Routing from './router/Routing';
 import {
   supabase,
   fetchBackendUsers,
@@ -26,13 +26,11 @@ import {
 function App() {
   const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
+  const [activeView, setActiveView] = useState('login');
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
-  const [theme, setTheme] = useState('light');
-  const [isSoundSettingsOpen, setIsSoundSettingsOpen] = useState(false);
   const [activeModule, setActiveModule] = useState('alphabet');
   const [currentUser, setCurrentUser] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
@@ -50,22 +48,6 @@ function App() {
   useEffect(() => {
     activeViewRef.current = activeView;
   }, [activeView]);
-
-  useEffect(() => {
-    const nextPath = getPathForView(activeView);
-    if (window.location.pathname !== nextPath) {
-      window.history.replaceState({ view: activeView }, '', nextPath);
-    }
-  }, [activeView]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      setActiveView(getViewFromPath(window.location.pathname));
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
 
   const mapAuthUserToProfile = useCallback((user) => {
     if (!user) {
@@ -176,10 +158,6 @@ function App() {
       setNavigationHistory((history) => [...history, activeViewRef.current]);
     }
 
-    const nextPath = getPathForView(nextView);
-    if (window.location.pathname !== nextPath) {
-      window.history.pushState({ view: nextView }, '', nextPath);
-    }
     setActiveView(nextView);
   }, [isAuthenticated]);
 
@@ -208,11 +186,6 @@ function App() {
           setMusicVolume(Math.min(Math.max(parsedVolume, 0), 1));
         }
       }
-
-      const storedTheme = localStorage.getItem('phonexis_theme');
-      if (storedTheme === 'dark' || storedTheme === 'light') {
-        setTheme(storedTheme);
-      }
     } catch (error) {
       // ignore storage errors
     }
@@ -233,51 +206,6 @@ function App() {
       window.removeEventListener('phonexis:music-volume-change', handleMusicVolumeChange);
     };
   }, []);
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem('phonexis_theme', theme);
-  }, [theme]);
-
-  const handleGlobalVolumeChange = (event) => {
-    const nextVolume = Math.min(Math.max(Number(event.target.value) / 100, 0), 1);
-    setMusicVolume(nextVolume);
-    localStorage.setItem('phonexis_music_volume', String(nextVolume));
-    window.dispatchEvent(new CustomEvent('phonexis:music-volume-change', { detail: nextVolume }));
-  };
-
-  const renderPreferences = () => (
-    <aside className="app-preferences" aria-label="Sound and theme settings">
-      <div className="app-preferences-buttons">
-        <button
-          type="button"
-          className="app-toggle-button selected"
-          onClick={() => setIsSoundSettingsOpen((isOpen) => !isOpen)}
-          aria-expanded={isSoundSettingsOpen}
-          aria-controls="global-volume-control"
-        >
-          {musicVolume > 0 ? '🔊 Sound' : '🔇 Volume: 0%'}
-        </button>
-        <button type="button" className="app-toggle-button selected" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
-          {theme === 'light' ? '☀️ Light' : '🌙 Dark'}
-        </button>
-      </div>
-      {isSoundSettingsOpen && (
-        <label className="app-volume-control" id="global-volume-control">
-          <span>Volume</span>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={Math.round(musicVolume * 100)}
-            onChange={handleGlobalVolumeChange}
-            aria-label="Background music volume"
-          />
-          <output>{Math.round(musicVolume * 100)}%</output>
-        </label>
-      )}
-    </aside>
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -572,20 +500,6 @@ function App() {
       }
     };
 
-    const playAudioSafely = () => {
-      if (!audioRef.current) {
-        return Promise.resolve();
-      }
-
-      return audioRef.current.play().catch((err) => {
-        console.log('Audio autoplay prevented. User interaction required:', err);
-      });
-    };
-
-    const handleFirstInteraction = () => {
-      void playAudioSafely();
-    };
-
     if (!audioRef.current) {
       audioRef.current = new Audio('/background-music/Children\'s Music  Happy Upbeat Music (Instrumental Music For Kids).mp3');
       audioRef.current.loop = true;
@@ -593,22 +507,17 @@ function App() {
 
     audioRef.current.volume = musicVolume;
 
-    const shouldPlayBackgroundMusic = ['login', 'register', 'dashboard', 'profile'].includes(activeView);
-
-    if (shouldPlayBackgroundMusic) {
-      void playAudioSafely();
-      window.addEventListener('pointerdown', handleFirstInteraction, { once: true });
-      window.addEventListener('keydown', handleFirstInteraction, { once: true });
-      window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+    // Play music when user is authenticated (on dashboard)
+    if (isAuthenticated && activeView === 'dashboard') {
+      audioRef.current.play().catch(err => {
+        console.log('Audio autoplay prevented. User interaction required:', err);
+      });
     } else {
-      // Pause music on views that should stay silent
+      // Pause music when not on dashboard or not authenticated
       pauseAudioSafely();
     }
 
     return () => {
-      window.removeEventListener('pointerdown', handleFirstInteraction);
-      window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
       // Cleanup on unmount
       pauseAudioSafely();
     };
@@ -913,8 +822,6 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             onLogout={handleLogout}
-            theme={theme}
-            onThemeChange={setTheme}
           />
         );
       case 'admin':
@@ -961,17 +868,32 @@ function App() {
 
   if (!isAuthenticated) {
     return (
-      <div className="app-shell">
-        <div className="app-orb app-orb-left" aria-hidden="true" />
-        <div className="app-orb app-orb-right" aria-hidden="true" />
-        {['login', 'register'].includes(activeView) ? renderPreferences() : null}
+      <Routing
+        activeView={activeView}
+        isAuthenticated={isAuthenticated}
+        currentUser={currentUser}
+        onNavigate={navigateTo}
+      >
+        <div className="app-shell">
+          <div className="app-orb app-orb-left" aria-hidden="true" />
+          <div className="app-orb app-orb-right" aria-hidden="true" />
 
-        <main className="app-main app-auth-main app-login-main">{renderView()}</main>
-      </div>
+          <main className="app-main app-auth-main app-login-main">{renderView()}</main>
+        </div>
+      </Routing>
     );
   }
 
-  return <div className="app-shell app-shell-authenticated">{renderView()}</div>;
+  return (
+    <Routing
+      activeView={activeView}
+      isAuthenticated={isAuthenticated}
+      currentUser={currentUser}
+      onNavigate={navigateTo}
+    >
+      <div className="app-shell app-shell-authenticated">{renderView()}</div>
+    </Routing>
+  );
 }
 
 export default App;

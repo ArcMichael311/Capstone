@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Consonants.css';
+import WordBlast from './WordBlast';
 
 const consonants = [
   { letter: 'B', word: 'Ball', icon: '⚽' },
@@ -300,6 +301,16 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
         >
           Game
         </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'wordblast'}
+          className={`mode-pill${mode === 'wordblast' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
+          onClick={() => handleModeChange('wordblast')}
+          disabled={!allVideosWatched}
+        >
+          WordBlast
+        </button>
       </div>
 
       {mode === 'learning' ? (
@@ -478,6 +489,8 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
             ))}
           </div>
         </div>
+      ) : mode === 'wordblast' ? (
+        <WordBlast />
       ) : (
         <div className="teacher-activity-stage">
           <div className="teacher-activity-header">
