@@ -494,44 +494,50 @@ function App() {
     void syncBackendProgress();
   }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
-  // Background music effect
+  // Keep one music instance playing across authenticated views.
   useEffect(() => {
-    const pauseAudioSafely = () => {
-      if (!audioRef.current) {
-        return;
-      }
-
-      try {
-        audioRef.current.pause();
-      } catch (error) {
-        if (error?.name !== 'NotImplementedError') {
-          throw error;
-        }
-      }
-    };
-
     if (!audioRef.current) {
       audioRef.current = new Audio('/background-music/Children\'s Music  Happy Upbeat Music (Instrumental Music For Kids).mp3');
       audioRef.current.loop = true;
     }
 
-    audioRef.current.volume = musicVolume;
+    const audio = audioRef.current;
+    audio.volume = musicVolume;
 
-    // Play music when user is authenticated (on dashboard)
-    if (isAuthenticated && activeView === 'dashboard') {
-      audioRef.current.play().catch(err => {
-        console.log('Audio autoplay prevented. User interaction required:', err);
+    const playAudio = () => {
+      if (!isAuthenticated) {
+        return;
+      }
+
+      audio.play().catch(() => {
+        // Browsers may require a user gesture before starting audio.
       });
+    };
+
+    const stopAudio = () => {
+      audio.pause();
+    };
+
+    if (isAuthenticated) {
+      playAudio();
+      window.addEventListener('pointerdown', playAudio, { once: true });
+      window.addEventListener('keydown', playAudio, { once: true });
     } else {
-      // Pause music when not on dashboard or not authenticated
-      pauseAudioSafely();
+      stopAudio();
     }
 
     return () => {
-      // Cleanup on unmount
-      pauseAudioSafely();
+      window.removeEventListener('pointerdown', playAudio);
+      window.removeEventListener('keydown', playAudio);
+      if (!isAuthenticated) stopAudio();
     };
-  }, [isAuthenticated, activeView, musicVolume]);
+  }, [isAuthenticated, musicVolume]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume;
+    }
+  }, [musicVolume]);
 
   // Module progress is driven by the user's completed steps.
   const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));

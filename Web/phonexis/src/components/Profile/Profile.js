@@ -289,7 +289,7 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
               <span className="profile-settings-icon" aria-hidden="true">🎵</span>
               <div>
                 <h3>Music Volume</h3>
-                <p>Adjust the dashboard background music level</p>
+                <p>Adjust the background music level</p>
               </div>
             </div>
 
