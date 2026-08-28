@@ -490,7 +490,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
           </div>
         </div>
       ) : mode === 'wordblast' ? (
-        <WordBlast />
+        <WordBlast onClose={() => handleModeChange('learning')} />
       ) : (
         <div className="teacher-activity-stage">
           <div className="teacher-activity-header">
