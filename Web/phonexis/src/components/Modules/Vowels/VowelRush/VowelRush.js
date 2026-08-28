@@ -55,34 +55,6 @@ const getPlayerFace = (hearts) => {
   return '😭';
 };
 
-const playTone = (frequency, duration = 120, waveType = 'sine') => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) {
-    return;
-  }
-
-  const audioContext = new AudioContextClass();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-
-  oscillator.type = waveType;
-  oscillator.frequency.value = frequency;
-  gainNode.gain.value = 0.05;
-
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.start();
-
-  window.setTimeout(() => {
-    oscillator.stop();
-    audioContext.close();
-  }, duration);
-};
-
 const moveBasket = (currentLane, direction) => {
   const nextLane = currentLane + direction;
   if (nextLane < 0) return 0;
@@ -344,7 +316,6 @@ export default function VowelRush({ onClose }) {
       setStreak(nextStreak);
       setStatusMessage('⭐ +1 Point');
       pulseEffect('correct');
-      playTone(880, 120, 'sine');
 
       if (nextStreak >= 5) {
         const nextHearts = Math.min(heartsRef.current + 1, 3);
@@ -354,7 +325,6 @@ export default function VowelRush({ onClose }) {
         setStreak(0);
         setStatusMessage('🔥 COMBO x5  ❤️ +1 Heart');
         handleCombo();
-        playTone(1040, 150, 'triangle');
       }
     } else if (caught && basketMatches && !star.isVowel) {
       const nextHearts = heartsRef.current - 1;
@@ -365,7 +335,6 @@ export default function VowelRush({ onClose }) {
       setStreak(0);
       setStatusMessage('💔 -1 Heart');
       pulseEffect('wrong');
-      playTone(190, 160, 'sawtooth');
 
       if (nextHearts <= 0) {
         finishGame('gameover', '💀 GAME OVER 💀');

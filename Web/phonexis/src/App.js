@@ -531,7 +531,8 @@ function App() {
     audio.volume = musicVolume;
 
     const playAudio = () => {
-      if (!isAuthenticated) {
+      if (!isAuthenticated || audio.volume === 0) {
+        audio.pause();
         return;
       }
 
@@ -544,7 +545,7 @@ function App() {
       audio.pause();
     };
 
-    if (isAuthenticated) {
+    if (isAuthenticated && musicVolume > 0) {
       playAudio();
       window.addEventListener('pointerdown', playAudio, { once: true });
       window.addEventListener('keydown', playAudio, { once: true });
@@ -557,11 +558,14 @@ function App() {
       window.removeEventListener('keydown', playAudio);
       if (!isAuthenticated) stopAudio();
     };
-  }, [isAuthenticated, musicVolume]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume;
+      if (musicVolume === 0) {
+        audioRef.current.pause();
+      }
     }
   }, [musicVolume]);
 
