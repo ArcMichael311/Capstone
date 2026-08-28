@@ -13,7 +13,8 @@ import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
 import Admin from './components/Admin/Admin';
 import Teacher from './components/Teacher/Teacher';
-import Routing, { getViewFromPath } from './router/Routing';
+import Sidebar from './components/Sidebar/Sidebar';
+import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
 import {
   supabase,
   fetchBackendUsers,
@@ -27,6 +28,7 @@ function App() {
   const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
+  const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
@@ -149,7 +151,7 @@ function App() {
     return 'dashboard';
   }, []);
 
-  const navigateTo = useCallback((nextView) => {
+  const navigateTo = useCallback((nextView, nextSection = null) => {
     if (!nextView) {
       return;
     }
@@ -159,6 +161,7 @@ function App() {
     }
 
     setActiveView(nextView);
+    setActiveSection(nextSection);
   }, [isAuthenticated]);
 
   const goBack = useCallback((fallbackView = 'dashboard') => {
@@ -567,6 +570,7 @@ function App() {
 
     setActiveModule(moduleKey);
     setActiveView(moduleKey);
+    setActiveSection('learning');
   };
 
   const handleVowelsComplete = () => {
@@ -690,6 +694,7 @@ function App() {
             onProgressUpdate={handleAlphabetModeComplete}
             onBack={() => goBack('dashboard')}
             completedModes={completedAlphabetModes}
+            initialSection={activeSection}
           />
         );
       case 'cvc':
@@ -720,6 +725,7 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
+            initialType={activeSection || 'learning'}
           />
         );
       case 'vowels':
@@ -750,6 +756,7 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
+            initialMode={activeSection || 'learning'}
           />
         );
       case 'consonants':
@@ -781,6 +788,7 @@ function App() {
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}
+            initialMode={activeSection || 'learning'}
           />
         );
       case 'modules':
@@ -822,6 +830,7 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             onLogout={handleLogout}
+            initialTab={activeSection || 'info'}
           />
         );
       case 'admin':
@@ -887,11 +896,21 @@ function App() {
   return (
     <Routing
       activeView={activeView}
+      activeSection={activeSection}
       isAuthenticated={isAuthenticated}
       currentUser={currentUser}
       onNavigate={navigateTo}
     >
-      <div className="app-shell app-shell-authenticated">{renderView()}</div>
+      <div className="app-shell app-shell-authenticated">
+        <Sidebar
+          activeView={activeView}
+          activeSection={activeSection}
+          currentUser={currentUser}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+        />
+        <main className="app-authenticated-content">{renderView()}</main>
+      </div>
     </Routing>
   );
 }
