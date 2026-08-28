@@ -16,6 +16,10 @@
 .wordblast-kicker { margin: 0 0 0.25rem; color: var(--wb-yellow); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
 .wordblast h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.8rem); }
 .wordblast-header p:last-child { margin: 0.2rem 0 0; color: rgba(255, 255, 255, 0.78); }
+.wordblast-instructions { margin-top: 0.8rem; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 0.7rem; padding: 0.65rem 0.85rem; background: rgba(255, 255, 255, 0.12); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.wordblast-instructions:hover { background: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
+.wordblast-close { border: 0; padding: 0.65rem 0; background: transparent; color: var(--wb-ink); font: inherit; font-weight: 800; cursor: pointer; }
+.wordblast-close:hover { color: var(--wb-mint); }
 .wordblast-score { min-width: 5rem; padding-left: 0.8rem; border-left: 2px solid var(--wb-mint); }
 .wordblast-score span, .wordblast-score strong { display: block; }
 .wordblast-score span { color: rgba(255, 255, 255, 0.7); font-size: 0.7rem; text-transform: uppercase; }

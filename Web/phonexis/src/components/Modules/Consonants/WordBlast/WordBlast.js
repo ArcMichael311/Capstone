@@ -176,7 +176,7 @@ const getBlankPositions = (word, config) => {
 
 const firstBlankPosition = getBlankPositions(wordDeck[0].word, levelConfig[1])[0];
 
-export default function WordBlast() {
+export default function WordBlast({ onClose }) {
   const [roundIndex, setRoundIndex] = useState(0);
   const [choices, setChoices] = useState(() => createChoices(wordDeck[0].word[firstBlankPosition], levelConfig[1].maxTiles));
   const [blankIndex, setBlankIndex] = useState(0);
@@ -187,14 +187,26 @@ export default function WordBlast() {
   const [eliminatedChoice, setEliminatedChoice] = useState(null);
   const [message, setMessage] = useState('Listen to the word, then blast its missing consonant.');
   const [gameOver, setGameOver] = useState(false);
+  const [isReadingInstructions, setIsReadingInstructions] = useState(false);
   const nextRoundTimer = useRef(null);
 
   const round = wordDeck[roundIndex % wordDeck.length];
   const level = Math.floor(roundIndex / 5) + 1;
   const config = levelConfig[Math.min(level, 4)];
   const blankPositions = getBlankPositions(round.word, config);
+  const instructionText = 'Welcome to Word Blast. Listen to the word. Choose the missing consonant from the letter blocks. Correct answers give you ten points. Wrong answers remove one heart. You can use ten points for a hint or to restore one heart.';
 
-  useEffect(() => () => window.clearTimeout(nextRoundTimer.current), []);
+  const stopSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsReadingInstructions(false);
+  };
+
+  useEffect(() => () => {
+    window.clearTimeout(nextRoundTimer.current);
+    stopSpeech();
+  }, []);
 
   const speakWord = () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -207,6 +219,28 @@ export default function WordBlast() {
     utterance.rate = 0.8;
     window.speechSynthesis.speak(utterance);
     setMessage('Now choose the missing consonant sound you heard.');
+  };
+
+  const speakInstructions = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setMessage('Speech is not available. Please ask for help reading the instructions.');
+      return;
+    }
+
+    if (isReadingInstructions) {
+      stopSpeech();
+      setMessage('Stopped reading the WordBlast instructions.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(instructionText);
+    utterance.rate = 0.8;
+    utterance.onend = () => setIsReadingInstructions(false);
+    utterance.onerror = () => setIsReadingInstructions(false);
+    window.speechSynthesis.speak(utterance);
+    setIsReadingInstructions(true);
+    setMessage('Reading the WordBlast instructions.');
   };
 
   const goToNextRound = () => {
@@ -300,9 +334,21 @@ export default function WordBlast() {
           <p className="wordblast-kicker">Listening + spelling challenge</p>
           <h2>WordBlast</h2>
           <p>Listen. Think. Blast the Word!</p>
+          <button type="button" className="wordblast-instructions" onClick={speakInstructions} aria-pressed={isReadingInstructions}>
+            {isReadingInstructions ? '⏹ Stop Reading' : '🔊 Read Instructions Aloud'}
+          </button>
         </div>
         <div className="wordblast-score"><span>Points</span><strong>{score}</strong></div>
       </header>
+
+      {typeof onClose === 'function' ? (
+        <button type="button" className="wordblast-close" onClick={() => {
+          stopSpeech();
+          onClose();
+        }}>
+          ← Return to Consonants
+        </button>
+      ) : null}
 
       <div className="wordblast-progress">
         <span>Round {roundIndex + 1} <b>Level {Math.min(level, 4)}: {config.label}</b></span>

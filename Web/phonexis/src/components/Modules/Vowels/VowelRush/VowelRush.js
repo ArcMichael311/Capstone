@@ -103,6 +103,7 @@ export default function VowelRush({ onClose }) {
   const [effectState, setEffectState] = useState('');
   const [comboFlash, setComboFlash] = useState(false);
   const [finalMessage, setFinalMessage] = useState('');
+  const [isReadingInstructions, setIsReadingInstructions] = useState(false);
 
   const starTimerRef = useRef(null);
   const effectTimerRef = useRef(null);
@@ -115,10 +116,18 @@ export default function VowelRush({ onClose }) {
   const basketLaneRef = useRef(2);
   const selectedDifficultyRef = useRef('beginner');
 
+  const stopSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsReadingInstructions(false);
+  };
+
   const currentMode = useMemo(() => difficultyModes[selectedDifficulty], [selectedDifficulty]);
   const playerFace = getPlayerFace(hearts);
   const heartsDisplay = '❤️'.repeat(Math.max(0, hearts));
   const roundGoal = currentMode.totalStars === null ? '∞' : currentMode.totalStars;
+  const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, and U. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel gives one point. Catching a consonant removes one heart. Catch five vowels in a row to gain one heart.';
 
   const clearTimers = () => {
     if (starTimerRef.current) {
@@ -137,7 +146,10 @@ export default function VowelRush({ onClose }) {
     }
   };
 
-  useEffect(() => () => clearTimers(), []);
+  useEffect(() => () => {
+    clearTimers();
+    stopSpeech();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -243,12 +255,35 @@ export default function VowelRush({ onClose }) {
     starTimerRef.current = window.setTimeout(spawnStar, 300);
   };
 
+  const speakInstructions = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setStatusMessage('Speech is not available. Please ask for help reading the rules.');
+      return;
+    }
+
+    if (isReadingInstructions) {
+      stopSpeech();
+      setStatusMessage('Stopped reading the Vowel Rush instructions.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(instructionText);
+    utterance.rate = 0.8;
+    utterance.onend = () => setIsReadingInstructions(false);
+    utterance.onerror = () => setIsReadingInstructions(false);
+    window.speechSynthesis.speak(utterance);
+    setIsReadingInstructions(true);
+    setStatusMessage('Reading the Vowel Rush instructions.');
+  };
+
   const openDifficultyScreen = () => {
     setScreen('difficulty');
     setStatusMessage('Choose a difficulty mode to begin.');
   };
 
   const returnToMainMenu = () => {
+    stopSpeech();
     resetRunState();
     setSelectedDifficulty('beginner');
     selectedDifficultyRef.current = 'beginner';
@@ -381,6 +416,10 @@ export default function VowelRush({ onClose }) {
         <div className="rush-rule">💔 Catching a consonant removes 1 heart.</div>
         <div className="rush-rule">🔥 Catch 5 vowels in a row to gain 1 heart.</div>
       </div>
+
+      <button type="button" className="rush-listen-btn" onClick={speakInstructions} aria-pressed={isReadingInstructions}>
+        {isReadingInstructions ? '⏹ Stop Reading' : '🔊 Read Instructions Aloud'}
+      </button>
 
       <button type="button" className="rush-primary-btn" onClick={openDifficultyScreen}>
         Start Game
@@ -543,7 +582,10 @@ export default function VowelRush({ onClose }) {
         <div className="rush-topbar">
           <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
           {typeof onClose === 'function' ? (
-            <button type="button" className="rush-secondary-btn" onClick={onClose}>
+            <button type="button" className="rush-secondary-btn" onClick={() => {
+              stopSpeech();
+              onClose();
+            }}>
               ← Return to Vowels
             </button>
           ) : null}
