@@ -4,6 +4,7 @@ import profileIcon from './Sidebar Icons/Profile.png';
 import settingsIcon from './Sidebar Icons/Settings.png';
 import logoutIcon from './Sidebar Icons/Logout.png';
 import returnIcon from './Sidebar Icons/Return.png';
+import hideSidebarIcon from './Sidebar Icons/Hide sidebar.png';
 
 const moduleSections = {
   alphabet: [
@@ -56,7 +57,7 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
         aria-label={isOpen ? 'Hide sidebar' : 'Show sidebar'}
         title={isOpen ? 'Hide sidebar' : 'Show sidebar'}
       >
-        {isOpen ? '<' : '>'}
+        <img className={isOpen ? 'sidebar-toggle-icon' : 'sidebar-toggle-icon sidebar-toggle-icon-reversed'} src={hideSidebarIcon} alt="" />
       </button>
       <aside className={isOpen ? 'app-sidebar' : 'app-sidebar sidebar-hidden'} aria-label="Main navigation">
       <div className="sidebar-brand">
