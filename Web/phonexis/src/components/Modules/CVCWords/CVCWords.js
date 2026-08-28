@@ -139,8 +139,8 @@ const wordBuildingDeck = [
 
 const getRandomBuildingWord = () => wordBuildingDeck[Math.floor(Math.random() * wordBuildingDeck.length)];
 
-export default function CVCWords({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange }) {
-  const [activeType, setActiveType] = useState('learning');
+export default function CVCWords({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
+  const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
   const [selectedWord, setSelectedWord] = useState(wordSelection[0]);
   const [selectionIndex, setSelectionIndex] = useState(0);
@@ -160,6 +160,10 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
   }, [initialVideosWatched]);
 
   const allVideosWatched = videosWatched.length === videos.length;
+
+  useEffect(() => {
+    setActiveType(initialType);
+  }, [initialType]);
 
   const pickRandomBuildingWord = (excludeTarget) => {
     const availableWords = wordBuildingDeck.filter((item) => item.target !== excludeTarget);
@@ -548,9 +552,6 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
   return (
     <div className="module-detail cvc-detail">
       <div className="cvc-topbar">
-        <button type="button" className="cvc-back" onClick={onBack}>
-          ← RETURN TO LEARNING PATH
-        </button>
       </div>
 
       <div className="cvc-tabs" role="tablist" aria-label="CVC lesson types">

@@ -60,9 +60,6 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
     || user?.user_metadata?.name
     || emailName
     || 'Learner';
-  const isStudentUser = String(user?.role || user?.user_metadata?.role || '').toLowerCase() === 'student';
-  const hasClassroom = !!String(classroom || '').trim();
-
   return (
     <section className="dashboard-shell">
       <header className="dashboard-topbar">
@@ -77,11 +74,6 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
         </div>
 
         <div className="dashboard-topbar-actions">
-          {isStudentUser && (
-            <button type="button" className="dashboard-join-class" onClick={onJoinClass}>
-              {hasClassroom ? '🎒 JOIN ANOTHER CLASS' : '🎒 JOIN CLASS'}
-            </button>
-          )}
           {user?.role === 'admin' && (
             <button type="button" className="dashboard-admin" onClick={() => onNavigate('admin')}>
               ⚙️ ADMIN
@@ -92,12 +84,6 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
               🧑‍🏫 TEACHER
             </button>
           )}
-          <button type="button" className="dashboard-profile" onClick={() => onNavigate('profile')}>
-            👤 PROFILE
-          </button>
-          <button type="button" className="dashboard-logout" onClick={onLogout}>
-            ↪ LOGOUT
-          </button>
         </div>
       </header>
 

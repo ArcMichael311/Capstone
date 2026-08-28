@@ -88,8 +88,8 @@ const videos = [
   },
 ];
 
-export default function Vowels({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange }) {
-  const [mode, setMode] = useState('learning');
+export default function Vowels({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, initialMode = 'learning' }) {
+  const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
   const [teacherActivityTitle, setTeacherActivityTitle] = useState('Vowel team word sort');
   const [teacherActivityFocus, setTeacherActivityFocus] = useState('A, E, I, O, U');
@@ -112,6 +112,10 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const selectedItem = vowels.find((item) => item.letter === selectedLetter) ?? vowels[0];
   const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
   const allVideosWatched = videosWatched.length === videos.length;
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const speakText = (text, message) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -209,9 +213,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   return (
     <div className="module-detail vowels-detail">
       <div className="vowels-topbar">
-        <button type="button" className="vowels-back" onClick={onBack}>
-          ← RETURN TO LEARNING PATH
-        </button>
       </div>
 
       <div className="vowels-switch" role="tablist" aria-label="Vowels modes">
