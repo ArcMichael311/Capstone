@@ -33,6 +33,14 @@ function App() {
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const storedTheme = localStorage.getItem('phonexis_theme');
+      return storedTheme === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+      return 'light';
+    }
+  });
   const [activeModule, setActiveModule] = useState('alphabet');
   const [currentUser, setCurrentUser] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
@@ -211,6 +219,24 @@ function App() {
       window.removeEventListener('phonexis:music-volume-change', handleMusicVolumeChange);
     };
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+
+    try {
+      localStorage.setItem('phonexis_theme', theme);
+    } catch (error) {
+      // ignore storage errors
+    }
+  }, [theme]);
+
+  const handleThemeChange = (nextTheme) => {
+    if (nextTheme !== 'light' && nextTheme !== 'dark') {
+      return;
+    }
+
+    setTheme(nextTheme);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -853,6 +879,8 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
             initialTab={activeSection || 'info'}
           />
         );
