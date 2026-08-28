@@ -2,8 +2,12 @@ import './Profile.css';
 import { useEffect, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
 
-export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout, theme = 'light', onThemeChange }) {
-  const [activeTab, setActiveTab] = useState('info');
+export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout, theme = 'light', onThemeChange, initialTab = 'info' }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -139,10 +143,6 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
 
   return (
     <section className="profile-shell">
-      <button type="button" className="profile-back" onClick={() => (typeof onBack === 'function' ? onBack() : onNavigate('dashboard'))}>
-        ← RETURN
-      </button>
-
       <div className="profile-header">
         <div className="profile-header-content">
           <div className="profile-header-avatar" aria-hidden="true">
