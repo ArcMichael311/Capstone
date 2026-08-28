@@ -528,10 +528,9 @@ function App() {
     }
 
     const audio = audioRef.current;
-    audio.volume = musicVolume;
 
     const playAudio = () => {
-      if (!isAuthenticated || audio.volume === 0) {
+      if (!isAuthenticated || audio.volume <= 0) {
         audio.pause();
         return;
       }
@@ -545,7 +544,7 @@ function App() {
       audio.pause();
     };
 
-    if (isAuthenticated && musicVolume > 0) {
+    if (isAuthenticated && audio.volume > 0) {
       playAudio();
       window.addEventListener('pointerdown', playAudio, { once: true });
       window.addEventListener('keydown', playAudio, { once: true });
@@ -565,9 +564,13 @@ function App() {
       audioRef.current.volume = musicVolume;
       if (musicVolume === 0) {
         audioRef.current.pause();
+      } else if (isAuthenticated) {
+        audioRef.current.play().catch(() => {
+          // Browsers may require a user gesture before starting audio.
+        });
       }
     }
-  }, [musicVolume]);
+  }, [isAuthenticated, musicVolume]);
 
   // Module progress is driven by the user's completed steps.
   const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));
