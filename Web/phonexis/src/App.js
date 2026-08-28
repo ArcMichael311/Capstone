@@ -13,7 +13,7 @@ import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
 import Admin from './components/Admin/Admin';
 import Teacher from './components/Teacher/Teacher';
-import Routing from './router/Routing';
+import Routing, { getViewFromPath } from './router/Routing';
 import {
   supabase,
   fetchBackendUsers,
@@ -26,7 +26,7 @@ import {
 function App() {
   const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeView, setActiveView] = useState('login');
+  const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');

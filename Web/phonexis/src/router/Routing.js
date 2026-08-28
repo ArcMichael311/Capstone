@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 export const routes = {
   login: '/login',
   register: '/register',
@@ -24,6 +26,26 @@ export function getPathForView(view) {
   return routes[view] || routes.login;
 }
 
-export default function Routing({ children }) {
+export default function Routing({ children, activeView, onNavigate }) {
+  useEffect(() => {
+    const handlePopState = () => {
+      onNavigate?.(getViewFromPath(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [onNavigate]);
+
+  useEffect(() => {
+    if (!activeView) {
+      return;
+    }
+
+    const nextPath = getPathForView(activeView);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+  }, [activeView]);
+
   return children;
 }
