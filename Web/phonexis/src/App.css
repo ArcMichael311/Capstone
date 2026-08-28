@@ -16,6 +16,12 @@
   color: #2C3E50;
 }
 
+.app-authenticated-content {
+  min-width: 0;
+  margin-left: 16rem;
+  flex: 1;
+}
+
 [data-theme='dark'] .app-shell,
 [data-theme='dark'] .app-shell-authenticated {
   background: #000000;
@@ -23,6 +29,12 @@
   --app-surface: rgba(31, 43, 54, 0.96);
   --app-text: #edf6f9;
   --app-background: #000000;
+}
+
+@media (max-width: 760px) {
+  .app-authenticated-content {
+    margin-left: 0;
+  }
 }
 
 .app-preferences {
