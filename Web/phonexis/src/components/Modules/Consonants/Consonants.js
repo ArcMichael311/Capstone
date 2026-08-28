@@ -79,8 +79,8 @@ const teacherActivityDeck = [
   { letter: 'S', prompt: '_un', icon: '☀️', choices: ['S', 'T', 'W', 'Z'] },
 ];
 
-export default function Consonants({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false }) {
-  const [mode, setMode] = useState('learning');
+export default function Consonants({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
+  const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(consonants[0].letter);
   const [feedback, setFeedback] = useState('Choose a consonant to hear the object name.');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
@@ -105,6 +105,10 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
   const videosWatched = Array.isArray(initialVideosWatched) ? initialVideosWatched : [];
   const allVideosWatched = videosWatched.length === videos.length;
   const currentTeacherActivity = teacherActivityDeck[teacherIndex];
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   useEffect(() => {
     if (!allVideosWatched || isCompleted || completionNotified || typeof onComplete !== 'function') {
@@ -257,9 +261,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
   return (
     <div className="module-detail consonants-detail">
       <div className="consonants-topbar">
-        <button type="button" className="consonants-back" onClick={onBack}>
-          ← RETURN TO LEARNING PATH
-        </button>
       </div>
 
       <div className="consonants-switch" role="tablist" aria-label="Consonants modes">
