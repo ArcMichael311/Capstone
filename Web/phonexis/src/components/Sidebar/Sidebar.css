@@ -31,6 +31,14 @@
 .sidebar-toggle:has(+ .app-sidebar.sidebar-hidden) { left: 0.75rem; }
 .sidebar-toggle:hover { background: #ffe08a; }
 .sidebar-toggle:focus-visible { outline: 3px solid #8fd3ff; outline-offset: 2px; }
+.sidebar-toggle-icon {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  margin: auto;
+  object-fit: contain;
+}
+.sidebar-toggle-icon-reversed { transform: rotate(180deg); }
 
 .sidebar-brand {
   display: flex;
