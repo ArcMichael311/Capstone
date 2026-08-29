@@ -205,6 +205,14 @@ export default function AlphaQuest({ onClose }) {
     }, 500);
   };
 
+  const returnToMenu = () => {
+    setGameState('menu');
+    setDifficulty(null);
+    setCurrentLetter(null);
+    setCurrentBoss(null);
+    setRewardMessage('');
+  };
+
   // Handle keyboard input
   const handleLetterPress = useCallback(
     (letter) => {
@@ -336,8 +344,8 @@ export default function AlphaQuest({ onClose }) {
               <p className="game-difficulty">{DIFFICULTY_MODES[difficulty].name}</p>
             </div>
             <div className="game-score">Score: {score}</div>
-            <button type="button" className="alpha-quest-quit-btn" onClick={onClose}>
-              ← Quit
+            <button type="button" className="alpha-quest-quit-btn" onClick={returnToMenu}>
+              ← Return
             </button>
           </div>
 

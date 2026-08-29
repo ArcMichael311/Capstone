@@ -33,11 +33,20 @@ function App() {
   const audioRef = useRef(null);
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
+  const [theme, setTheme] = useState(() => {
+    try {
+      const storedTheme = localStorage.getItem('phonexis_theme');
+      return storedTheme === 'dark' ? 'dark' : 'light';
+    } catch (error) {
+      return 'light';
+    }
+  });
   const [activeModule, setActiveModule] = useState('alphabet');
   const [currentUser, setCurrentUser] = useState(null);
   const [resetEmail, setResetEmail] = useState(null);
   const [completedPretests, setCompletedPretests] = useState([]);
   const [completedAlphabetModes, setCompletedAlphabetModes] = useState([]); // Track easy, medium, hard
+  const [alphabetScores, setAlphabetScores] = useState({});
   const [vowelsCompleted, setVowelsCompleted] = useState(false);
   const [consonantsCompleted, setConsonantsCompleted] = useState(false);
   const [cvcCompleted, setCvcCompleted] = useState(false);
@@ -46,6 +55,7 @@ function App() {
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
   const [isProgressHydrated, setIsProgressHydrated] = useState(false);
   const [backendUserId, setBackendUserId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     activeViewRef.current = activeView;
@@ -211,6 +221,24 @@ function App() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+
+    try {
+      localStorage.setItem('phonexis_theme', theme);
+    } catch (error) {
+      // ignore storage errors
+    }
+  }, [theme]);
+
+  const handleThemeChange = (nextTheme) => {
+    if (nextTheme !== 'light' && nextTheme !== 'dark') {
+      return;
+    }
+
+    setTheme(nextTheme);
+  };
+
+  useEffect(() => {
     let cancelled = false;
 
     const restoreSession = async () => {
@@ -298,6 +326,9 @@ function App() {
 
     setCompletedPretests(nextCompletedPretests);
     setCompletedAlphabetModes(nextCompletedAlphabetModes);
+    if (Object.prototype.hasOwnProperty.call(snapshot, 'alphabetScores')) {
+      setAlphabetScores(snapshot.alphabetScores || {});
+    }
     setVowelsCompleted(!!snapshot.vowelsCompleted);
     setConsonantsCompleted(!!snapshot.consonantsCompleted);
     setCvcCompleted(!!snapshot.cvcCompleted);
@@ -336,6 +367,7 @@ function App() {
   const resetProgressState = useCallback(() => {
     setCompletedPretests([]);
     setCompletedAlphabetModes([]);
+    setAlphabetScores({});
     setVowelsCompleted(false);
     setConsonantsCompleted(false);
     setCvcCompleted(false);
@@ -444,6 +476,7 @@ function App() {
       const payload = JSON.stringify({
         completedPretests,
         completedAlphabetModes,
+        alphabetScores,
         vowelsCompleted,
         consonantsCompleted,
         cvcCompleted,
@@ -485,58 +518,79 @@ function App() {
     };
 
     void syncBackendProgress();
-  }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
+  }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
-  // Background music effect
+  // Keep one music instance playing across authenticated views.
   useEffect(() => {
-    const pauseAudioSafely = () => {
-      if (!audioRef.current) {
-        return;
-      }
-
-      try {
-        audioRef.current.pause();
-      } catch (error) {
-        if (error?.name !== 'NotImplementedError') {
-          throw error;
-        }
-      }
-    };
-
     if (!audioRef.current) {
       audioRef.current = new Audio('/background-music/Children\'s Music  Happy Upbeat Music (Instrumental Music For Kids).mp3');
       audioRef.current.loop = true;
     }
 
-    audioRef.current.volume = musicVolume;
+    const audio = audioRef.current;
 
-    // Play music when user is authenticated (on dashboard)
-    if (isAuthenticated && activeView === 'dashboard') {
-      audioRef.current.play().catch(err => {
-        console.log('Audio autoplay prevented. User interaction required:', err);
+    const playAudio = () => {
+      if (!isAuthenticated || audio.volume <= 0) {
+        audio.pause();
+        return;
+      }
+
+      audio.play().catch(() => {
+        // Browsers may require a user gesture before starting audio.
       });
+    };
+
+    const stopAudio = () => {
+      audio.pause();
+    };
+
+    if (isAuthenticated && audio.volume > 0) {
+      playAudio();
+      window.addEventListener('pointerdown', playAudio, { once: true });
+      window.addEventListener('keydown', playAudio, { once: true });
     } else {
-      // Pause music when not on dashboard or not authenticated
-      pauseAudioSafely();
+      stopAudio();
     }
 
     return () => {
-      // Cleanup on unmount
-      pauseAudioSafely();
+      window.removeEventListener('pointerdown', playAudio);
+      window.removeEventListener('keydown', playAudio);
+      if (!isAuthenticated) stopAudio();
     };
-  }, [isAuthenticated, activeView, musicVolume]);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume;
+      if (musicVolume === 0) {
+        audioRef.current.pause();
+      } else if (isAuthenticated) {
+        audioRef.current.play().catch(() => {
+          // Browsers may require a user gesture before starting audio.
+        });
+      }
+    }
+  }, [isAuthenticated, musicVolume]);
 
   // Module progress is driven by the user's completed steps.
-  const alphabetProgress = Math.round((completedAlphabetModes.length / 3) * 100);
-  const vowelsProgress = vowelsCompleted ? 100 : Math.round((vowelsWatchedVideos.length / 3) * 100);
-  const consonantsProgress = consonantsCompleted ? 100 : Math.round((consonantsWatchedVideos.length / 6) * 100);
-  const cvcProgress = cvcCompleted || cvcWatchedVideos.length > 0 ? 100 : 0;
+  const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));
+  const vowelsProgress = vowelsCompleted ? 100 : Math.min(100, Math.round((vowelsWatchedVideos.length / 3) * 100));
+  const consonantsProgress = consonantsCompleted ? 100 : Math.min(100, Math.round((consonantsWatchedVideos.length / 6) * 100));
+  const cvcProgress = cvcCompleted ? 100 : Math.min(100, Math.round((cvcWatchedVideos.length / 1) * 100));
   const overallProgress = Math.round((alphabetProgress + vowelsProgress + consonantsProgress + cvcProgress) / 4);
   const vowelsUnlocked = alphabetProgress >= 100;
   const consonantsUnlocked = vowelsProgress >= 100;
   const cvcUnlocked = consonantsProgress >= 100;
 
-  const handlePretestComplete = (difficulty) => {
+  const handlePretestComplete = (difficulty, score, total) => {
+    setAlphabetScores((currentScores) => ({
+      ...currentScores,
+      [difficulty]: { score, total },
+    }));
+    if (score !== total) {
+      return;
+    }
+
     setCompletedPretests((currentPretests) => {
       if (currentPretests.includes(difficulty)) {
         return currentPretests;
@@ -694,7 +748,9 @@ function App() {
             onProgressUpdate={handleAlphabetModeComplete}
             onBack={() => goBack('dashboard')}
             completedModes={completedAlphabetModes}
+            alphabetScores={alphabetScores}
             initialSection={activeSection}
+            onNavigate={navigateTo}
           />
         );
       case 'cvc':
@@ -830,6 +886,8 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
             initialTab={activeSection || 'info'}
           />
         );
@@ -903,13 +961,21 @@ function App() {
     >
       <div className="app-shell app-shell-authenticated">
         <Sidebar
+          isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
           activeView={activeView}
           activeSection={activeSection}
           currentUser={currentUser}
           onNavigate={navigateTo}
+          onSelectModule={openModule}
+          alphabetProgress={alphabetProgress}
+          vowelsProgress={vowelsProgress}
+          consonantsProgress={consonantsProgress}
+          cvcProgress={cvcProgress}
+          alphabetScores={alphabetScores}
           onLogout={handleLogout}
         />
-        <main className="app-authenticated-content">{renderView()}</main>
+        <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
       </div>
     </Routing>
   );

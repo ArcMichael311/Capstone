@@ -554,22 +554,6 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
       <div className="cvc-topbar">
       </div>
 
-      <div className="cvc-tabs" role="tablist" aria-label="CVC lesson types">
-        {cvcTypes.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={activeType === item.id}
-            className={activeType === item.id ? 'cvc-tab active' : `cvc-tab${item.id !== 'learning' && !allVideosWatched ? ' locked' : ''}`}
-            onClick={() => handleTypeChange(item.id)}
-            disabled={item.id !== 'learning' && !allVideosWatched}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
       {activeType === 'learning' ? renderLearningMaterials() : null}
       {activeType === 'families' ? renderFamilies() : null}
       {activeType === 'selection' ? renderSelection() : null}

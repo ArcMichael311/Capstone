@@ -215,55 +215,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
       <div className="vowels-topbar">
       </div>
 
-      <div className="vowels-switch" role="tablist" aria-label="Vowels modes">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'learning'}
-          className={mode === 'learning' ? 'mode-pill active' : 'mode-pill'}
-          onClick={() => handleModeChange('learning')}
-        >
-          Learning Materials
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'lesson'}
-          className={`mode-pill${mode === 'lesson' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => {
-            if (allVideosWatched) {
-              handleModeChange('lesson');
-            }
-          }}
-          disabled={!allVideosWatched}
-        >
-          Lesson
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'pretest'}
-          className={`mode-pill${mode === 'pretest' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => {
-            if (allVideosWatched) {
-              handleModeChange('pretest');
-            }
-          }}
-          disabled={!allVideosWatched}
-        >
-          Pretest
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'vowelrush'}
-          className={`mode-pill${mode === 'vowelrush' ? ' active' : ''}`}
-          onClick={() => handleModeChange('vowelrush')}
-        >
-          VowelRush
-        </button>
-      </div>
-
       {mode === 'learning' ? (
         <div className="learning-materials">
           {currentVideoIndex !== null ? (
