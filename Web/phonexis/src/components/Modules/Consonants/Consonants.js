@@ -263,57 +263,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
       <div className="consonants-topbar">
       </div>
 
-      <div className="consonants-switch" role="tablist" aria-label="Consonants modes">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'learning'}
-          className={mode === 'learning' ? 'mode-pill active' : 'mode-pill'}
-          onClick={() => handleModeChange('learning')}
-        >
-          Learning Materials
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'explore'}
-          className={`mode-pill${mode === 'explore' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => handleModeChange('explore')}
-          disabled={!allVideosWatched}
-        >
-          Explore
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'teacher'}
-          className={`mode-pill${mode === 'teacher' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => handleModeChange('teacher')}
-        >
-          Teacher Activity
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'game'}
-          className={`mode-pill${mode === 'game' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => handleModeChange('game')}
-          disabled={!allVideosWatched}
-        >
-          Game
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'wordblast'}
-          className={`mode-pill${mode === 'wordblast' ? ' active' : ''}${!allVideosWatched ? ' locked' : ''}`}
-          onClick={() => handleModeChange('wordblast')}
-          disabled={!allVideosWatched}
-        >
-          WordBlast
-        </button>
-      </div>
-
       {mode === 'learning' ? (
         <div className="learning-materials">
           {currentVideoIndex !== null ? (
