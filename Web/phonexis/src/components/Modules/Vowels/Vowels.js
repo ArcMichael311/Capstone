@@ -143,7 +143,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     }
 
     if (!allVideosWatched) {
-      setFeedback('Watch all videos to unlock Lesson and Pretest.');
+      setFeedback('Watch all videos to unlock Lesson and Teacher Activity.');
     }
   };
 
@@ -210,6 +210,41 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     speakText(`${selectedItem.letter}, ${selectedItem.sound}`, `Speaking ${selectedItem.letter} sound.`);
   };
 
+  const getPairLetters = (team, word) => {
+    const lowercaseTeam = team.toLowerCase();
+    const pairLetters = [...lowercaseTeam].filter((letter) => /[aeiou]/.test(letter));
+
+    if (pairLetters.length >= 2) {
+      return pairLetters.join('');
+    }
+
+    const wordLetters = [...word.toLowerCase()].filter((letter) => /[aeiou]/.test(letter));
+    return wordLetters.slice(0, 2).join('');
+  };
+
+  const renderHighlightedWord = (word, pairLetters) => {
+    const letters = [...word];
+    const highlightIndices = [];
+    const pair = pairLetters.toLowerCase();
+    let pairIndex = 0;
+
+    for (let i = 0; i < letters.length && pairIndex < pair.length; i += 1) {
+      if (letters[i].toLowerCase() === pair[pairIndex]) {
+        highlightIndices.push(i);
+        pairIndex += 1;
+      }
+    }
+
+    return letters.map((letter, index) => {
+      const isHighlighted = highlightIndices.includes(index);
+      return (
+        <span key={`${letter}-${index}`} className={isHighlighted ? 'vowel-pair-highlight' : 'vowel-pair-letter'}>
+          {letter}
+        </span>
+      );
+    });
+  };
+
   return (
     <div className="module-detail vowels-detail">
       <div className="vowels-topbar">
@@ -254,8 +289,8 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
           ) : (
             <>
               <div className="learning-header">
-                <h3>Learning Materials</h3>
-                <p>Watch all videos to unlock Lesson and Pretest mode</p>
+                <h3>Learning Video Materials</h3>
+                <p>Watch all videos to unlock Basics of the Vowels and Teacher Activity</p>
               </div>
 
               <div className="videos-grid">
@@ -295,7 +330,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                 </p>
                 {allVideosWatched && (
                   <p className="progress-unlocked">
-                    ✓ Lesson and Pretest mode unlocked! Click the Lesson or Pretest tab to proceed.
+                    ✓ Basics of the Vowels and Teacher Activity unlocked! Click the Lesson or Teacher Activity tab to proceed.
                   </p>
                 )}
               </div>
@@ -305,7 +340,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
       ) : mode === 'lesson' ? (
         <div className="lesson-stage">
           <div className="lesson-header">
-            <h3>Vowel Sounds Lesson</h3>
+            <h3>Basics of the Vowels</h3>
             <p>Click on a vowel to hear its sound</p>
           </div>
 
@@ -337,16 +372,26 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             </div>
 
             <div className="vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
-              <p className="vowel-team-kicker">I can read</p>
-              <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Teams</h4>
+              <p className="vowel-team-kicker">Pair Vowels</p>
+              <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Pairs</h4>
 
               <div className="vowel-team-grid">
-                {selectedPairs.map((item) => (
-                  <div key={`${selectedItem.letter}-${item.team}`} className="vowel-team-card">
-                    <span className="vowel-team-chunk">{item.team}</span>
-                    <span className="vowel-team-word">{item.word}</span>
-                  </div>
-                ))}
+                {selectedPairs.map((item) => {
+                  const pairLetters = getPairLetters(item.team, item.word);
+
+                  return (
+                    <button
+                      key={`${selectedItem.letter}-${item.team}`}
+                      type="button"
+                      className="vowel-team-card"
+                      onClick={() => speakText(item.word, `Listening to ${item.word}.`)}
+                      aria-label={`Listen to the word ${item.word}`}
+                    >
+                      <span className="vowel-team-chunk">{item.team}</span>
+                      <span className="vowel-team-word">{renderHighlightedWord(item.word, pairLetters)}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

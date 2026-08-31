@@ -225,7 +225,7 @@
   background: #23c16b;
 }
 
-.cvc-family-chips,
+.cvc-family-grid,
 .cvc-letter-choices,
 .cvc-word-row {
   display: flex;
@@ -235,34 +235,98 @@
   width: min(100%, 34rem);
 }
 
-.cvc-family-chip {
+.cvc-family-stage {
+  width: min(100%, 78rem);
+}
+
+.cvc-family-grid {
+  width: min(100%, 78rem);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.95rem;
+  align-items: stretch;
+}
+
+.cvc-family-card {
   appearance: none;
-  border: 2px solid rgba(102, 126, 234, 0.3);
-  min-width: 3.5rem;
-  min-height: 2.8rem;
+  border: 3px solid #f0b63b;
   border-radius: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.95);
-  color: #667eea;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
+  padding: 0.7rem 0.65rem 1rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 238, 226, 0.95));
+  color: #111827;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 0.45rem;
+  min-height: 15rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.cvc-family-chip:hover {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+.cvc-family-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.1rem;
+  height: 0.7rem;
+  border-radius: 0 0 0.9rem 0.9rem;
+  background: var(--family-accent);
 }
 
-.cvc-family-chip.active {
-  color: #ffffff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #764ba2;
-  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.3);
+.cvc-family-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(17, 24, 39, 0.12);
+}
+
+.cvc-family-card.active {
+  border-color: #d99a00;
+  box-shadow: 0 16px 30px rgba(217, 154, 0, 0.2);
+}
+
+.cvc-family-label {
+  display: inline-block;
+  width: 100%;
+  font-size: clamp(2.8rem, 3.3vw, 4rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: #0f172a;
+  margin-top: 0.1rem;
+  text-align: center;
+}
+
+.cvc-family-word-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.12rem 0.45rem;
+  width: 100%;
+  justify-items: center;
+  text-align: center;
+  margin-top: 0.15rem;
+}
+
+.cvc-family-word {
+  display: inline-block;
+  min-width: 2.8rem;
+  color: #111827;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 0.08rem 0.15rem;
+  border-radius: 0.3rem;
+}
+
+.cvc-family-word.active {
+  background: rgba(17, 24, 39, 0.08);
+  color: #0b1220;
+}
+
+.cvc-family-footer {
+  display: none;
 }
 
 .cvc-word-card {

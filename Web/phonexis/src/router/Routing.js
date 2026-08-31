@@ -21,7 +21,7 @@ const viewsByPath = Object.fromEntries(Object.entries(routes).map(([view, path])
 const sectionsByView = {
   alphabet: ['easy', 'medium', 'hard', 'alphaquest'],
   vowels: ['learning', 'lesson', 'pretest', 'vowelrush'],
-  consonants: ['learning', 'explore', 'teacher', 'game', 'wordblast'],
+  consonants: ['learning', 'explore', 'teacher', 'wordblast'],
   cvc: ['learning', 'families', 'selection', 'building'],
   profile: ['info', 'settings'],
 };
