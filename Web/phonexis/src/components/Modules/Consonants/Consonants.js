@@ -133,8 +133,8 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
   };
 
   const handleModeChange = (nextMode) => {
-    if ((nextMode === 'explore' || nextMode === 'game') && !allVideosWatched) {
-      setFeedback('Watch all learning materials to unlock Explore and Game.');
+    if (nextMode === 'explore' && !allVideosWatched) {
+      setFeedback('Watch all learning video materials to unlock Explore Consonants.');
       return;
     }
 
@@ -149,19 +149,10 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
       return;
     }
 
-    if (nextMode === 'game') {
-      setTeacherIndex(0);
-      setTeacherChoice('');
-      setTeacherResult(null);
-      setTeacherMessage('Pick the correct starting consonant.');
-      setFeedback('Game mode: choose the missing consonant to complete the word.');
-      return;
-    }
-
     if (!allVideosWatched) {
-      setFeedback('Watch all learning materials to unlock Explore and Game.');
+      setFeedback('Watch all learning video materials to unlock Explore Consonants.');
     } else {
-      setFeedback('Learning materials review mode.');
+      setFeedback('Learning video materials review mode.');
     }
   };
 
@@ -302,8 +293,8 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
           ) : (
             <>
               <div className="learning-header">
-                <h3>Learning Materials</h3>
-                <p>Watch all 6 videos to unlock Explore mode</p>
+                <h3>Learning Video Materials</h3>
+                <p>Watch all 6 videos to unlock Explore Consonants</p>
               </div>
 
               <div className="videos-grid">
@@ -343,7 +334,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
                 </p>
                 {allVideosWatched && (
                   <p className="progress-unlocked">
-                    ✓ Explore mode unlocked! Click the Explore tab to continue.
+                    ✓ Explore Consonants unlocked! Click the Explore Consonants tab to continue.
                   </p>
                 )}
               </div>

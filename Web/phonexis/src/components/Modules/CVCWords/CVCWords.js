@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import './CVCWords.css';
 
 const cvcTypes = [
-  { id: 'learning', label: 'Learning Materials' },
+  { id: 'learning', label: 'Learning Video Materials' },
   { id: 'families', label: 'Word Families' },
   { id: 'selection', label: 'Word Selection' },
   { id: 'building', label: 'Word Building' },
@@ -20,14 +20,27 @@ const videos = [
 
 const wordFamilies = [
   {
-    family: '-at',
-    icon: '🐱',
+    family: '-ab',
+    icon: '🚙',
     words: [
-      { word: 'cat', icon: '🐱', description: 'A funny pet that says meow' },
-      { word: 'bat', icon: '🦇', description: 'A night flyer with tiny wings' },
-      { word: 'hat', icon: '🎩', description: 'Something you wear on your head' },
-      { word: 'mat', icon: '🧶', description: 'A soft pad on the floor' },
-      { word: 'rat', icon: '🐭', description: 'A small mouse-like animal' },
+      { word: 'cab', icon: '🚕', description: 'A taxi for carrying people' },
+      { word: 'jab', icon: '🪓', description: 'A quick poke or hit' },
+      { word: 'dab', icon: '🎨', description: 'A quick touch or stroke' },
+      { word: 'tab', icon: '📑', description: 'A small label or flap' },
+      { word: 'gab', icon: '💬', description: 'A talk or chat' },
+      { word: 'nab', icon: '🖐️', description: 'To grab quickly' },
+    ],
+  },
+  {
+    family: '-ag',
+    icon: '👜',
+    words: [
+      { word: 'bag', icon: '👜', description: 'A container for carrying items' },
+      { word: 'tag', icon: '🏷️', description: 'A label attached to something' },
+      { word: 'wag', icon: '🐕', description: 'A side-to-side movement' },
+      { word: 'nag', icon: '🗣️', description: 'To keep complaining' },
+      { word: 'rag', icon: '🧼', description: 'A cloth used for cleaning' },
+      { word: 'lag', icon: '🕒', description: 'A delay in moving' },
     ],
   },
   {
@@ -39,17 +52,91 @@ const wordFamilies = [
       { word: 'pan', icon: '🍳', description: 'Used for cooking food' },
       { word: 'can', icon: '🥫', description: 'A metal container' },
       { word: 'van', icon: '🚐', description: 'A vehicle for carrying people' },
+      { word: 'ran', icon: '🏃', description: 'Moved quickly on foot' },
     ],
   },
   {
-    family: '-ig',
-    icon: '🐷',
+    family: '-at',
+    icon: '🐱',
     words: [
-      { word: 'pig', icon: '🐷', description: 'A farm animal that oinks' },
-      { word: 'big', icon: '🟣', description: 'Something large in size' },
-      { word: 'wig', icon: '💇', description: 'A head covering with hair' },
-      { word: 'dig', icon: '⛏️', description: 'To make a hole in the ground' },
-      { word: 'fig', icon: '🫐', description: 'A sweet fruit' },
+      { word: 'cat', icon: '🐱', description: 'A funny pet that says meow' },
+      { word: 'bat', icon: '🦇', description: 'A night flyer with tiny wings' },
+      { word: 'hat', icon: '🎩', description: 'Something you wear on your head' },
+      { word: 'mat', icon: '🧶', description: 'A soft pad on the floor' },
+      { word: 'rat', icon: '🐭', description: 'A small mouse-like animal' },
+      { word: 'sat', icon: '🪑', description: 'Rested in a seated position' },
+    ],
+  },
+  {
+    family: '-en',
+    icon: '🖊️',
+    words: [
+      { word: 'den', icon: '🦊', description: 'A small animal shelter' },
+      { word: 'pen', icon: '🖊️', description: 'A tool used for writing' },
+      { word: 'hen', icon: '🐔', description: 'A chicken that lays eggs' },
+      { word: 'ten', icon: '🔟', description: 'The number after nine' },
+      { word: 'men', icon: '🧑‍🤝‍🧑', description: 'More than one man' },
+      { word: 'net', icon: '🎣', description: 'A tool used to catch fish' },
+    ],
+  },
+  {
+    family: '-et',
+    icon: '✈️',
+    words: [
+      { word: 'bet', icon: '🎲', description: 'A guess about a result' },
+      { word: 'met', icon: '🤝', description: 'Reached or encountered' },
+      { word: 'get', icon: '🏃', description: 'To receive or fetch' },
+      { word: 'jet', icon: '✈️', description: 'A fast flying plane' },
+      { word: 'pet', icon: '🐶', description: 'A friendly animal kept at home' },
+      { word: 'wet', icon: '💧', description: 'Covered in water' },
+    ],
+  },
+  {
+    family: '-ip',
+    icon: '💋',
+    words: [
+      { word: 'dip', icon: '🥄', description: 'To put something down briefly' },
+      { word: 'hip', icon: '🦴', description: 'The top part of the leg' },
+      { word: 'lip', icon: '💋', description: 'The soft part around the mouth' },
+      { word: 'tip', icon: '🧭', description: 'The end or point of something' },
+      { word: 'zip', icon: '⚡', description: 'To close quickly with a fastener' },
+      { word: 'sip', icon: '🥤', description: 'To drink in a small amount' },
+    ],
+  },
+  {
+    family: '-ot',
+    icon: '🌱',
+    words: [
+      { word: 'cot', icon: '🛏️', description: 'A small bed for a baby' },
+      { word: 'dot', icon: '•', description: 'A tiny round mark' },
+      { word: 'hot', icon: '🔥', description: 'Very warm or heated' },
+      { word: 'pot', icon: '🍲', description: 'A cooking container' },
+      { word: 'lot', icon: '🎫', description: 'A group of things' },
+      { word: 'not', icon: '🚫', description: 'A word meaning no' },
+    ],
+  },
+  {
+    family: '-ug',
+    icon: '🐞',
+    words: [
+      { word: 'bug', icon: '🐞', description: 'A tiny insect' },
+      { word: 'mug', icon: '☕', description: 'A cup for hot drinks' },
+      { word: 'hug', icon: '🤗', description: 'To hold tightly' },
+      { word: 'tug', icon: '🧵', description: 'A strong pull' },
+      { word: 'rug', icon: '🧶', description: 'A soft floor covering' },
+      { word: 'dug', icon: '⛏️', description: 'Made a hole in the ground' },
+    ],
+  },
+  {
+    family: '-un',
+    icon: '☀️',
+    words: [
+      { word: 'bun', icon: '🥯', description: 'A sweet bread roll' },
+      { word: 'run', icon: '🏃', description: 'Move quickly on foot' },
+      { word: 'sun', icon: '☀️', description: 'The bright star in the sky' },
+      { word: 'fun', icon: '🎉', description: 'Something enjoyable' },
+      { word: 'nun', icon: '👩‍🦳', description: 'A religious woman' },
+      { word: 'gun', icon: '🔫', description: 'A weapon that fires bullets' },
     ],
   },
 ];
@@ -330,32 +417,43 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
   };
 
   const renderFamilies = () => (
-    <div className="cvc-stage">
-      <div className="cvc-family-chips" aria-label="Word family selector">
-        {wordFamilies.map((item) => (
+    <div className="cvc-stage cvc-family-stage">
+      <div className="cvc-family-grid" aria-label="Word family selector">
+        {wordFamilies.map((familyItem) => (
           <button
-            key={item.family}
+            key={familyItem.family}
             type="button"
-            className={item.family === selectedFamily ? 'cvc-family-chip active' : 'cvc-family-chip'}
-            onClick={() => handleFamilyPick(item.family)}
+            className={familyItem.family === selectedFamily ? 'cvc-family-card active' : 'cvc-family-card'}
+            onClick={() => handleFamilyPick(familyItem.family)}
+            style={{
+              '--family-accent': familyItem.family === '-ab' ? '#f4b942' :
+                familyItem.family === '-ag' ? '#f65a4a' :
+                familyItem.family === '-an' ? '#49b9d8' :
+                familyItem.family === '-at' ? '#f39b4a' :
+                familyItem.family === '-en' ? '#f1c65d' :
+                familyItem.family === '-et' ? '#f65a4a' :
+                familyItem.family === '-ip' ? '#eb7e3b' :
+                familyItem.family === '-ot' ? '#c88d52' :
+                familyItem.family === '-ug' ? '#e67ca7' :
+                '#f0c865',
+            }}
           >
-            {item.family}
-          </button>
-        ))}
-      </div>
-
-      <div className="cvc-word-row" aria-label="Word family cards">
-        {activeFamily.words.map((item) => (
-          <button
-            key={item.word}
-            type="button"
-            className={item.word === selectedWord.word ? 'cvc-word-card active' : 'cvc-word-card'}
-            onClick={() => handleWordPick(item)}
-          >
-            <span className="cvc-word-icon" aria-hidden="true">
-              {item.icon}
-            </span>
-            <strong>{item.word}</strong>
+            <span className="cvc-family-label">-{familyItem.family.replace('-', '')}</span>
+            <div className="cvc-family-word-list">
+              {familyItem.words.map((item) => (
+                <span
+                  key={`${familyItem.family}-${item.word}`}
+                  className={item.word === selectedWord.word && familyItem.family === selectedFamily ? 'cvc-family-word active' : 'cvc-family-word'}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleWordPick(item);
+                  }}
+                >
+                  {item.word}
+                </span>
+              ))}
+            </div>
+            <span className="cvc-family-footer">phonics practice</span>
           </button>
         ))}
       </div>
@@ -410,7 +508,7 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
       {currentVideoIndex === null ? (
         <>
           <div className="cvc-learning-header">
-            <h3>Learning Materials</h3>
+            <h3>Learning Video Materials</h3>
             <p>Watch the CVC video to unlock the activities below.</p>
           </div>
 
