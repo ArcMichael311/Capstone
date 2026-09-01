@@ -333,6 +333,54 @@
   animation: pulse 0.6s ease-out;
 }
 
+/* Voice Practice Button and Wrapper */
+.alphabet-voice-practice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.5rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4d96ff 0%, #2d76ff 100%);
+  border: 2px solid #2d76ff;
+  border-radius: 1rem;
+  box-shadow: 0 0 15px rgba(77, 150, 255, 0.5), 0 12px 30px rgba(0, 0, 0, 0.5);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.alphabet-voice-practice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 25px rgba(77, 150, 255, 0.8), 0 15px 40px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(135deg, #2d76ff 0%, #1a4bcc 100%);
+}
+
+.alphabet-voice-practice-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 0 15px rgba(77, 150, 255, 0.5), 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.alphabet-voice-practice-wrapper {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 1.5rem;
+  background: rgba(77, 150, 255, 0.05);
+  border: 2px solid rgba(77, 150, 255, 0.2);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .letter-tile.wrong {
   color: #000000;
   background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);

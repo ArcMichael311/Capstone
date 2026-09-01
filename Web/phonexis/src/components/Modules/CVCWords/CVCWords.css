@@ -692,6 +692,57 @@
   line-height: 1;
 }
 
+/* Voice Practice Styles */
+.cvc-button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.cvc-voice-practice-btn {
+  appearance: none;
+  border: 2px solid #4d96ff;
+  border-radius: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: linear-gradient(135deg, #4d96ff 0%, #2d76ff 100%);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(77, 150, 255, 0.25);
+  transition: all 0.3s ease;
+}
+
+.cvc-voice-practice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(77, 150, 255, 0.4);
+  background: linear-gradient(135deg, #2d76ff 0%, #1a4bcc 100%);
+}
+
+.cvc-voice-practice-wrapper {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(77, 150, 255, 0.05);
+  border: 2px solid rgba(77, 150, 255, 0.2);
+  width: 100%;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .cvc-video-watched-badge {
   position: absolute;
   top: 0.8rem;

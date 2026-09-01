@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import './CVCWords.css';
+import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const cvcTypes = [
   { id: 'learning', label: 'Learning Video Materials' },
@@ -241,6 +242,7 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
   const [feedback, setFeedback] = useState('Watch the learning materials video to unlock the CVC activities.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
+  const [showVoicePractice, setShowVoicePractice] = useState(false);
 
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
@@ -464,9 +466,34 @@ export default function CVCWords({ onComplete, onBack, initialVideosWatched = []
         </span>
         <h3>{selectedWord.word}</h3>
         <p>{selectedWord.description}</p>
-        <button type="button" className="cvc-action-button" onClick={() => speakWord(selectedWord.word)}>
-          Hear the Word
-        </button>
+        <div className="cvc-button-group">
+          <button type="button" className="cvc-action-button" onClick={() => speakWord(selectedWord.word)}>
+            Hear the Word
+          </button>
+          <button 
+            type="button" 
+            className="cvc-voice-practice-btn"
+            onClick={() => setShowVoicePractice(!showVoicePractice)}
+            aria-expanded={showVoicePractice}
+          >
+            🎤 Practice Pronunciation
+          </button>
+        </div>
+        {showVoicePractice && (
+          <div className="cvc-voice-practice-wrapper">
+            <VoicePractice 
+              targetWord={selectedWord.word}
+              onResult={(result) => {
+                if (result.success) {
+                  setFeedback(`Great! You pronounced "${selectedWord.word}" correctly!`);
+                } else {
+                  setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                }
+              }}
+              showTranscript={true}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
