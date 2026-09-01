@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import './AlphabetRecognition.css';
 import AlphaQuest from './AlphaQuest';
+import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const alphabet = [
   { letter: 'A', word: 'Apple', icon: '🍎' },
@@ -38,6 +39,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const [difficulty, setDifficulty] = useState(null); // 'easy', 'medium', 'hard'
   const [currentPretestLetter, setCurrentPretestLetter] = useState(null);
   const [hasListened, setHasListened] = useState(false);
+  const [showVoicePractice, setShowVoicePractice] = useState(false);
   const [pretestScore, setPretestScore] = useState(0);
   const [totalAttempts, setTotalAttempts] = useState(0); // Track total attempts (correct + wrong)
   const [correctLetters, setCorrectLetters] = useState([]); // Track correctly identified letters
@@ -243,8 +245,32 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
             <button type="button" className="alphabet-speak-button" onClick={speakLetter}>
               🔊 Listen
             </button>
+            <button 
+              type="button" 
+              className="alphabet-voice-practice-btn"
+              onClick={() => setShowVoicePractice(!showVoicePractice)}
+              aria-expanded={showVoicePractice}
+            >
+              🎤 Practice Pronunciation
+            </button>
             <p className="game-feedback">{feedback}</p>
           </div>
+
+          {showVoicePractice && (
+            <div className="alphabet-voice-practice-wrapper">
+              <VoicePractice 
+                targetWord={selectedLetter.letter}
+                onResult={(result) => {
+                  if (result.success) {
+                    setFeedback(`Great! You pronounced ${selectedLetter.letter} correctly!`);
+                  } else {
+                    setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                  }
+                }}
+                showTranscript={true}
+              />
+            </div>
+          )}
 
           <div className="alphabet-controls">
             <button type="button" className="alphabet-nav-button" onClick={() => goToRelativeLetter(-1)}>
