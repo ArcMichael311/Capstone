@@ -1,13 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './CVCWords.css';
 import VoicePractice from '../../VoicePractice/VoicePractice';
-
-const cvcTypes = [
-  { id: 'learning', label: 'Learning Video Materials' },
-  { id: 'families', label: 'Word Families' },
-  { id: 'selection', label: 'Word Selection' },
-  { id: 'building', label: 'Word Building' },
-];
 
 const videos = [
   {
@@ -271,44 +264,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     utterance.rate = 0.9;
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking ${word}.`);
-  };
-
-  const activeFamily = useMemo(
-    () => wordFamilies.find((item) => item.family === selectedFamily) ?? wordFamilies[0],
-    [selectedFamily]
-  );
-
-  const handleTypeChange = (typeId) => {
-    if (typeId !== 'learning' && !allVideosWatched) {
-      setActiveType('learning');
-      setFeedback('Watch the learning materials video to unlock the CVC activities.');
-      return;
-    }
-
-    setActiveType(typeId);
-
-    if (typeId === 'learning') {
-      setFeedback('Watch the CVC introduction video to unlock the activities.');
-      return;
-    }
-
-    if (typeId === 'families') {
-      setFeedback('Choose a family and match the words.');
-      return;
-    }
-
-    if (typeId === 'selection') {
-      setFeedback('Choose the correct word for the picture.');
-      return;
-    }
-
-    const nextBuildingWord = pickRandomBuildingWord();
-    setBuildingWord(nextBuildingWord);
-    setBuiltSlots(nextBuildingWord.slots);
-    setBuildingChoice(nextBuildingWord.choices[0]);
-    setBuildingResult(null);
-    setBuildingMessage('Choose the missing letter.');
-    setFeedback('Build the word by choosing the correct letter.');
   };
 
   const handleVideoWatched = (videoId) => {
