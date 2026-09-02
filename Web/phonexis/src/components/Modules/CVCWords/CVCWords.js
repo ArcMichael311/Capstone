@@ -227,7 +227,7 @@ const wordBuildingDeck = [
 
 const getRandomBuildingWord = () => wordBuildingDeck[Math.floor(Math.random() * wordBuildingDeck.length)];
 
-export default function CVCWords({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
+export default function CVCWords({ onComplete, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
   const [selectedWord, setSelectedWord] = useState(wordSelection[0]);
