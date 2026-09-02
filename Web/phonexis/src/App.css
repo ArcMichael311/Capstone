@@ -29,11 +29,11 @@
 
 [data-theme='dark'] .app-shell,
 [data-theme='dark'] .app-shell-authenticated {
-  background: #000000;
+  background: #0b1f3a;
   color: #edf6f9;
   --app-surface: rgba(31, 43, 54, 0.96);
   --app-text: #edf6f9;
-  --app-background: #000000;
+  --app-background: #0b1f3a;
 }
 
 @media (max-width: 760px) {
