@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useVoiceRecorder } from '../../lib/useVoiceRecorder';
 import { startPronunciationCheck } from '../../lib/pronunciationChecker';
 import './VoicePractice.css';
@@ -27,25 +27,7 @@ export default function VoicePractice({
   const { isRecording, startRecording, stopRecording, resetRecording, error: recorderError } =
     useVoiceRecorder();
 
-  // Auto-play guide on component mount if enabled
-  useEffect(() => {
-    if (autoPlayGuide) {
-      playPronunciationGuide();
-    }
-  }, [autoPlayGuide, targetWord]);
-
-  // Update recording time display
-  useEffect(() => {
-    if (!isRecording) return;
-
-    const interval = setInterval(() => {
-      setRecordingTime((prev) => prev + 1);
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isRecording]);
-
-  const playPronunciationGuide = () => {
+  const playPronunciationGuide = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setFeedback('Speech guide is not available in your browser.');
       return;
@@ -72,11 +54,29 @@ export default function VoicePractice({
 
       window.speechSynthesis.speak(utterance);
       setFeedback('Listen to the correct pronunciation...');
-    } catch (err) {
+    } catch {
       setIsSpeaking(false);
       setFeedback('Error playing pronunciation guide.');
     }
-  };
+  }, [language, targetWord]);
+
+  // Auto-play guide on component mount if enabled
+  useEffect(() => {
+    if (autoPlayGuide) {
+      playPronunciationGuide();
+    }
+  }, [autoPlayGuide, playPronunciationGuide]);
+
+  // Update recording time display
+  useEffect(() => {
+    if (!isRecording) return;
+
+    const interval = setInterval(() => {
+      setRecordingTime((prev) => prev + 1);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   const handleStartRecording = async () => {
     setRecordingTime(0);
