@@ -23,6 +23,7 @@ import {
   updateBackendModuleProgress,
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
+  isBackendUnavailableError,
 } from './lib/supabaseClient';
 
 function App() {
@@ -252,7 +253,7 @@ function App() {
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
       const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
-      if (deviceResult.error) {
+      if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
         await supabase.auth.signOut();
         return;
       }
@@ -282,7 +283,7 @@ function App() {
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
         const deviceResult = await verifySupabaseUserDevice(session.user.email);
-        if (deviceResult.error) {
+        if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
           await supabase.auth.signOut();
           return;
         }
