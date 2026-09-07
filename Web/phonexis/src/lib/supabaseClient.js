@@ -4,6 +4,28 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const backendUrl = process.env.REACT_APP_BACKEND_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080');
 
+const getDeviceId = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const storageKey = 'phonexis_device_id';
+  try {
+    const existingId = window.localStorage.getItem(storageKey);
+    if (existingId) {
+      return existingId;
+    }
+
+    const generatedId = typeof crypto?.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(storageKey, generatedId);
+    return generatedId;
+  } catch (error) {
+    return '';
+  }
+};
+
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console
   console.warn('Supabase URL or ANON KEY is not set in environment variables.');
@@ -25,6 +47,7 @@ const requestToBackend = async (path, options = {}) => {
     const response = await fetch(`${backendUrl}${path}`, {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        'X-Device-Id': getDeviceId(),
         ...(options.headers || {}),
       },
       ...options,
@@ -85,6 +108,7 @@ const syncBackendUser = async (user, password, profile = {}) => {
     email: user.email,
     password,
     role,
+    deviceId: getDeviceId(),
   };
 
   const createResult = await postToBackend('/api/auth/register', payload);
@@ -97,6 +121,7 @@ const syncBackendUser = async (user, password, profile = {}) => {
     return postToBackend('/api/auth/login', {
       email: user.email,
       password,
+      deviceId: getDeviceId(),
     });
   }
 
@@ -123,6 +148,10 @@ const syncBackendPassword = async (email, currentPassword, password) => {
 };
 
 export const syncSupabaseUserToBackend = syncBackendUser;
+export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/verify-device', {
+  email,
+  deviceId: getDeviceId(),
+});
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);

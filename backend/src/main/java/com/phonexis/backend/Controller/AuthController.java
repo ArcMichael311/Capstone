@@ -1,7 +1,6 @@
 package com.phonexis.backend.Controller;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,7 +10,6 @@ import com.phonexis.backend.Service.AuthService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"})
 public class AuthController {
 	private final AuthService authService;
 
@@ -22,13 +20,19 @@ public class AuthController {
 	@PostMapping("/register")
 	public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 		return ResponseEntity.ok(new AuthResponse(
-			authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role())
+			authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), request.deviceId())
 		));
 	}
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password())));
+		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password(), request.deviceId())));
+	}
+
+	@PostMapping("/verify-device")
+	public ResponseEntity<MessageResponse> verifyDevice(@RequestBody DeviceRequest request) {
+		authService.verifyDevice(request.email(), request.deviceId());
+		return ResponseEntity.ok(new MessageResponse("Device verified"));
 	}
 
 	@PostMapping("/forgot-password")
@@ -49,10 +53,13 @@ public class AuthController {
 		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
 	}
 
-	public record RegisterRequest(String firstname, String lastname, String email, String password, String role) {
+	public record RegisterRequest(String firstname, String lastname, String email, String password, String role, String deviceId) {
 	}
 
-	public record LoginRequest(String email, String password) {
+	public record LoginRequest(String email, String password, String deviceId) {
+	}
+
+	public record DeviceRequest(String email, String deviceId) {
 	}
 
 	public record EmailRequest(String email) {

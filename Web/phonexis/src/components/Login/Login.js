@@ -26,6 +26,12 @@ export default function Login({ onNavigate, onSuccess }) {
           role: data.user.user_metadata?.role || 'student',
         });
 
+        if (backendResult?.error) {
+          await supabase.auth.signOut();
+          setError(backendResult.error.message || 'This account is already active on another device');
+          return;
+        }
+
         const backendUser = backendResult?.data?.user;
         onSuccess(
           backendUser

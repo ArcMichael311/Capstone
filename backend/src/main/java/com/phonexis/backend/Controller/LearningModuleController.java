@@ -3,7 +3,6 @@ package com.phonexis.backend.Controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,7 +16,6 @@ import com.phonexis.backend.Service.LearningModuleService;
 
 @RestController
 @RequestMapping("/api/modules")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"})
 public class LearningModuleController {
 	private final LearningModuleService learningModuleService;
 

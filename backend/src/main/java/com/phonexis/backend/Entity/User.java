@@ -48,6 +48,9 @@ public class User {
 	@Column(name = "class_code", unique = true, length = 20)
 	private String classCode;
 
+	@Column(name = "active_device_id", length = 128)
+	private String activeDeviceId;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 
@@ -132,6 +135,14 @@ public class User {
 
 	public void setClassCode(String classCode) {
 		this.classCode = classCode;
+	}
+
+	public String getActiveDeviceId() {
+		return activeDeviceId;
+	}
+
+	public void setActiveDeviceId(String activeDeviceId) {
+		this.activeDeviceId = activeDeviceId;
 	}
 
 	@PrePersist

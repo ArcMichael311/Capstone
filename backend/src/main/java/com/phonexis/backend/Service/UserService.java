@@ -13,6 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.phonexis.backend.Entity.User;
 import com.phonexis.backend.Entity.User.Role;
+import com.phonexis.backend.Entity.Progress;
+import com.phonexis.backend.Repository.ProgressRepository;
 import com.phonexis.backend.Repository.UserRepository;
 
 @Service
@@ -24,9 +26,11 @@ public class UserService {
 	private static final Random RANDOM = new Random();
 
 	private final UserRepository userRepository;
+	private final ProgressRepository progressRepository;
 
-	public UserService(UserRepository userRepository) {
+	public UserService(UserRepository userRepository, ProgressRepository progressRepository) {
 		this.userRepository = userRepository;
+		this.progressRepository = progressRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -71,8 +75,13 @@ public class UserService {
 		user.setEmail(email);
 		user.setPasswordHash(PASSWORD_ENCODER.encode(request.password()));
 		user.setRole(resolveRole(email, request.role()));
+		user.setActiveDeviceId(normalizeDeviceId(request.deviceId()));
 
-		return toUserProfile(userRepository.save(user));
+		User savedUser = userRepository.save(user);
+		for (String moduleName : List.of("alphabet", "vowels", "consonants", "cvc")) {
+			progressRepository.save(new Progress(savedUser, moduleName));
+		}
+		return toUserProfile(savedUser);
 	}
 
 	@Transactional
@@ -171,15 +180,23 @@ public class UserService {
 		userRepository.delete(getUserEntity(id));
 	}
 
-	@Transactional(readOnly = true)
-	public UserProfile login(String email, String password) {
+	@Transactional
+	public UserProfile login(String email, String password, String deviceId) {
 		User user = getUserByEmail(email);
-		ensureAdminRole(user);
 		if (!PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
 		}
+		claimDevice(user, deviceId);
 
-		return toUserProfile(user);
+		return toUserProfile(userRepository.save(user));
+	}
+
+	@Transactional(readOnly = true)
+	public void verifyDevice(String email, String deviceId) {
+		User user = getUserByEmail(email);
+		if (!deviceMatches(user, deviceId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+		}
 	}
 
 	@Transactional
@@ -231,6 +248,29 @@ public class UserService {
 
 	private String normalizeEmail(String email) {
 		return email == null ? "" : email.trim().toLowerCase();
+	}
+
+	private String normalizeDeviceId(String deviceId) {
+		return deviceId == null ? "" : deviceId.trim();
+	}
+
+	private boolean deviceMatches(User user, String deviceId) {
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		return !normalizedDeviceId.isEmpty() && (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()
+			|| normalizedDeviceId.equals(user.getActiveDeviceId()));
+	}
+
+	private void claimDevice(User user, String deviceId) {
+		if (!deviceMatches(user, deviceId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+		}
+		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
+			String normalizedDeviceId = normalizeDeviceId(deviceId);
+			if (normalizedDeviceId.isEmpty()) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+			}
+			user.setActiveDeviceId(normalizedDeviceId);
+		}
 	}
 
 	private String normalizeOptionalValue(String value) {
@@ -316,7 +356,10 @@ public class UserService {
 		);
 	}
 
-	public record CreateUserRequest(String firstName, String lastName, String email, String password, String role) {
+	public record CreateUserRequest(String firstName, String lastName, String email, String password, String role, String deviceId) {
+		public CreateUserRequest(String firstName, String lastName, String email, String password, String role) {
+			this(firstName, lastName, email, password, role, null);
+		}
 	}
 
 	public record UpdateUserRequest(String firstName, String lastName, String email, String password, String role, String classroom, String classCode) {
