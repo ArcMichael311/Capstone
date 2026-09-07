@@ -12,7 +12,7 @@ public class AuthService {
 		this.userService = userService;
 	}
 
-	public UserService.UserProfile register(String firstname, String lastname, String email, String password, String role) {
+	public UserService.UserProfile register(String firstname, String lastname, String email, String password, String role, String deviceId) {
 		if (firstname == null || firstname.trim().isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Firstname is required");
 		}
@@ -21,11 +21,15 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lastname is required");
 		}
 
-		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, role));
+		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, role, deviceId));
 	}
 
-	public UserService.UserProfile login(String email, String password) {
-		return userService.login(email, password);
+	public UserService.UserProfile login(String email, String password, String deviceId) {
+		return userService.login(email, password, deviceId);
+	}
+
+	public void verifyDevice(String email, String deviceId) {
+		userService.verifyDevice(email, deviceId);
 	}
 
 	public void requestPasswordReset(String email) {
