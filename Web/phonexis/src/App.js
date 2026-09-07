@@ -22,6 +22,7 @@ import {
   joinBackendClass,
   updateBackendModuleProgress,
   updateBackendModuleVideos,
+  verifySupabaseUserDevice,
 } from './lib/supabaseClient';
 
 function App() {
@@ -250,6 +251,11 @@ function App() {
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
+      const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
+      if (deviceResult.error) {
+        await supabase.auth.signOut();
+        return;
+      }
       const roleAwareUser = await applyBackendRole(mappedUser);
       if (cancelled) {
         return;
@@ -275,6 +281,11 @@ function App() {
 
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
+        const deviceResult = await verifySupabaseUserDevice(session.user.email);
+        if (deviceResult.error) {
+          await supabase.auth.signOut();
+          return;
+        }
         const roleAwareUser = await applyBackendRole(mappedUser);
         if (cancelled) {
           return;
