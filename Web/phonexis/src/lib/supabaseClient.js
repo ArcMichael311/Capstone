@@ -2,14 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const backendUrl = process.env.REACT_APP_BACKEND_URL || 'https://phonexis.onrender.com';
-
-// Debug logging
-if (typeof window !== 'undefined') {
-  console.log('Frontend URL:', window.location.origin);
-  console.log('Backend URL:', backendUrl);
-  console.log('Supabase URL:', supabaseUrl);
-}
+const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
+const backendUrl = (configuredBackendUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080')).replace(/\/$/, '');
 
 const getDeviceId = () => {
   if (typeof window === 'undefined') {
@@ -90,6 +84,8 @@ const requestToBackend = async (path, options = {}) => {
     };
   }
 };
+
+export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable';
 
 const postToBackend = async (path, body) => requestToBackend(path, {
   method: 'POST',
