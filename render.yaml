@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: phonexis-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    envVars:
+      - key: FRONTEND_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: SUPABASE_DB_USER
+        sync: false
+      - key: SUPABASE_DB_PASSWORD
+        sync: false
+      - key: SUPABASE_DB_DRIVER
+        value: org.postgresql.Driver
+      - key: SUPABASE_DB_DIALECT
+        value: org.hibernate.dialect.PostgreSQLDialect
+      - key: SUPABASE_DB_DDL_AUTO
+        value: update
