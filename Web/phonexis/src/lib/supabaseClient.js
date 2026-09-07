@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const backendUrl = process.env.REACT_APP_BACKEND_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080');
+const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
+const backendUrl = (configuredBackendUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080')).replace(/\/$/, '');
 
 const getDeviceId = () => {
   if (typeof window === 'undefined') {
@@ -44,7 +45,10 @@ const readBackendError = async (response) => {
 
 const requestToBackend = async (path, options = {}) => {
   try {
-    const response = await fetch(`${backendUrl}${path}`, {
+    const url = `${backendUrl}${path}`;
+    console.log(`[Backend] ${options.method || 'GET'} ${url}`);
+    
+    const response = await fetch(url, {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
@@ -53,26 +57,35 @@ const requestToBackend = async (path, options = {}) => {
       ...options,
     });
 
+    console.log(`[Backend Response] Status: ${response.status}`);
+
     if (!response.ok) {
+      const errorMessage = await readBackendError(response);
+      console.error(`[Backend Error] ${response.status}: ${errorMessage}`);
       return {
         data: null,
-        error: { message: await readBackendError(response) },
+        error: { message: errorMessage },
       };
     }
 
     const responseText = await response.text();
+    const data = responseText ? JSON.parse(responseText) : null;
+    console.log(`[Backend Success]`, data);
 
     return {
-      data: responseText ? JSON.parse(responseText) : null,
+      data,
       error: null,
     };
   } catch (error) {
+    console.error('[Backend Exception]', error);
     return {
       data: null,
       error: { message: 'Backend unavailable' },
     };
   }
 };
+
+export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable';
 
 const postToBackend = async (path, body) => requestToBackend(path, {
   method: 'POST',

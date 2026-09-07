@@ -19,7 +19,7 @@ public class CorsConfig implements WebMvcConfigurer {
 			.allowCredentials(false);
 
 		if (frontendUrl != null && !frontendUrl.isBlank()) {
-			mapping.allowedOrigins(frontendUrl.trim());
+			mapping.allowedOriginPatterns(frontendUrl.trim());
 		}
 	}
 }
