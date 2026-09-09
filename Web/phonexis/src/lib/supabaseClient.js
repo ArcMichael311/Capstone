@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
-const backendUrl = (configuredBackendUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080')).replace(/\/$/, '');
+const backendUrl = (configuredBackendUrl || 'http://localhost:8080').replace(/\/$/, '');
 
 const getDeviceId = () => {
   if (typeof window === 'undefined') {
@@ -161,6 +161,11 @@ const syncBackendPassword = async (email, currentPassword, password) => {
 };
 
 export const syncSupabaseUserToBackend = syncBackendUser;
+export const loginBackendUser = (email, password) => postToBackend('/api/auth/login', {
+  email,
+  password,
+  deviceId: getDeviceId(),
+});
 export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/verify-device', {
   email,
   deviceId: getDeviceId(),

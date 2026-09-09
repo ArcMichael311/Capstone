@@ -1,6 +1,6 @@
 import './Login.css';
 import { useState } from 'react';
-import { isBackendUnavailableError, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { isBackendUnavailableError, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -15,7 +15,25 @@ export default function Login({ onNavigate, onSuccess }) {
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
-        setError(authError.message || 'Login failed');
+        const backendResult = await loginBackendUser(email, password);
+        if (backendResult?.error) {
+          setError(authError.message || backendResult.error.message || 'Login failed');
+          return;
+        }
+
+        const backendUser = backendResult.data?.user;
+        onSuccess({
+          ...backendUser,
+          firstname: backendUser?.firstName || backendUser?.firstname || '',
+          lastname: backendUser?.lastName || backendUser?.lastname || '',
+          user_metadata: {
+            ...(backendUser?.user_metadata || {}),
+            firstname: backendUser?.firstName || backendUser?.firstname || '',
+            lastname: backendUser?.lastName || backendUser?.lastname || '',
+            role: backendUser?.role || 'student',
+            email: backendUser?.email || email,
+          },
+        });
         return;
       }
 
