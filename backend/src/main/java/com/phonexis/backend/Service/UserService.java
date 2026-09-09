@@ -194,7 +194,7 @@ public class UserService {
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in on another device");
 		}
 	}
 
@@ -270,7 +270,7 @@ public class UserService {
 
 	private void claimDevice(User user, String deviceId) {
 		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
 		}
 		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
 			String normalizedDeviceId = normalizeDeviceId(deviceId);

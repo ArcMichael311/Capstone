@@ -25,7 +25,6 @@ import {
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
-  isBackendUnavailableError,
 } from './lib/supabaseClient';
 
 function App() {
@@ -236,8 +235,11 @@ function App() {
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
       const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
-      if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
+      if (deviceResult.error) {
         await supabase.auth.signOut();
+        if (deviceResult.error.message === 'Account is already signed in') {
+          setActiveView('login');
+        }
         return;
       }
       const roleAwareUser = await applyBackendRole(mappedUser);
@@ -266,8 +268,11 @@ function App() {
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
         const deviceResult = await verifySupabaseUserDevice(session.user.email);
-        if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
+        if (deviceResult.error) {
           await supabase.auth.signOut();
+          if (deviceResult.error.message === 'Account is already signed in') {
+            setActiveView('login');
+          }
           return;
         }
         const roleAwareUser = await applyBackendRole(mappedUser);
@@ -432,6 +437,7 @@ function App() {
 
     const loadProgress = async () => {
       resetProgressState();
+      let localSnapshot = {};
 
       const resolvedBackendUserId = await resolveBackendUserId(currentUser);
 
@@ -443,19 +449,36 @@ function App() {
         const key = getProgressKey(currentUser);
         const raw = key ? localStorage.getItem(key) : null;
         if (raw) {
-          const parsed = JSON.parse(raw);
-          applyProgressSnapshot(parsed);
-        } else {
-          applyProgressSnapshot({});
+          localSnapshot = JSON.parse(raw);
         }
       } catch (error) {
-        applyProgressSnapshot({});
+        localSnapshot = {};
       }
+
+      applyProgressSnapshot(localSnapshot);
 
       if (resolvedBackendUserId) {
         const backendResult = await fetchBackendProgress(resolvedBackendUserId);
         if (!cancelled && !backendResult.error && Array.isArray(backendResult.data)) {
-          applyProgressSnapshot(mapBackendProgressToSnapshot(backendResult.data));
+          const backendSnapshot = mapBackendProgressToSnapshot(backendResult.data);
+          const backendHasProgress = backendResult.data.some((progress) => (
+            Number(progress?.completionPercentage || 0) > 0
+            || progress?.pretestCompleted
+            || progress?.easyModeCompleted
+            || progress?.mediumModeCompleted
+            || progress?.hardModeCompleted
+            || parseVideoIds(progress?.videosWatched).length > 0
+          ));
+          const localHasProgress = localSnapshot.completedPretests?.length > 0
+            || localSnapshot.completedAlphabetModes?.length > 0
+            || localSnapshot.vowelsCompleted
+            || localSnapshot.consonantsCompleted
+            || localSnapshot.cvcCompleted
+            || localSnapshot.vowelsWatchedVideos?.length > 0
+            || localSnapshot.consonantsWatchedVideos?.length > 0
+            || localSnapshot.cvcWatchedVideos?.length > 0;
+
+          applyProgressSnapshot(!backendHasProgress && localHasProgress ? localSnapshot : backendSnapshot);
         }
       }
 
