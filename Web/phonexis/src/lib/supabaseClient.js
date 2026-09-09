@@ -121,7 +121,7 @@ const syncBackendUser = async (user, password, profile = {}) => {
     email: user.email,
     password,
     role,
-    deviceId: getDeviceId(),
+    deviceId: '',
   };
 
   const createResult = await postToBackend('/api/auth/register', payload);

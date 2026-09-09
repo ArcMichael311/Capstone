@@ -74,7 +74,7 @@ public class UserService {
 		user.setEmail(email);
 		user.setPasswordHash(PASSWORD_ENCODER.encode(request.password()));
 		user.setRole(resolveRole(email, request.role()));
-		user.setActiveDeviceId(normalizeDeviceId(request.deviceId()));
+		user.setActiveDeviceId(null);
 
 		User savedUser = userRepository.save(user);
 		for (String moduleName : List.of("alphabet", "vowels", "consonants", "cvc")) {
@@ -196,10 +196,14 @@ public class UserService {
 		return toUserProfile(user);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
-		if (!deviceMatches(user, deviceId)) {
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+		}
+		if (userRepository.claimActiveDevice(user.getId(), normalizedDeviceId) == 0) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
 		}
 	}
