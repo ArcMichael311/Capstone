@@ -31,4 +31,4 @@ services:
       - key: SUPABASE_DB_DIALECT
         value: org.hibernate.dialect.PostgreSQLDialect
       - key: SUPABASE_DB_DDL_AUTO
-        value: update
+        value: none
