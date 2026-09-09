@@ -32,6 +32,10 @@ public class AuthService {
 		userService.verifyDevice(email, deviceId);
 	}
 
+	public void logout(String email, String deviceId) {
+		userService.logout(email, deviceId);
+	}
+
 	public void requestPasswordReset(String email) {
 		String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
 		if (normalizedEmail.isEmpty()) {

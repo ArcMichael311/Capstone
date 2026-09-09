@@ -35,6 +35,12 @@ public class AuthController {
 		return ResponseEntity.ok(new MessageResponse("Device verified"));
 	}
 
+	@PostMapping("/logout")
+	public ResponseEntity<MessageResponse> logout(@RequestBody DeviceRequest request) {
+		authService.logout(request.email(), request.deviceId());
+		return ResponseEntity.ok(new MessageResponse("Device released"));
+	}
+
 	@PostMapping("/forgot-password")
 	public ResponseEntity<MessageResponse> forgotPassword(@RequestBody EmailRequest request) {
 		authService.requestPasswordReset(request.email());

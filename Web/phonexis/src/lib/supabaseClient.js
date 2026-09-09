@@ -165,6 +165,10 @@ export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/veri
   email,
   deviceId: getDeviceId(),
 });
+export const releaseSupabaseUserDevice = (email) => postToBackend('/api/auth/logout', {
+  email,
+  deviceId: getDeviceId(),
+});
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);

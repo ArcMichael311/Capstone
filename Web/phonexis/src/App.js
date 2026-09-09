@@ -24,6 +24,7 @@ import {
   updateBackendModuleProgress,
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
+  releaseSupabaseUserDevice,
   isBackendUnavailableError,
 } from './lib/supabaseClient';
 
@@ -453,7 +454,7 @@ function App() {
 
       if (resolvedBackendUserId) {
         const backendResult = await fetchBackendProgress(resolvedBackendUserId);
-        if (!cancelled && !backendResult.error && Array.isArray(backendResult.data) && backendResult.data.length > 0) {
+        if (!cancelled && !backendResult.error && Array.isArray(backendResult.data)) {
           applyProgressSnapshot(mapBackendProgressToSnapshot(backendResult.data));
         }
       }
@@ -664,6 +665,9 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      if (currentUser?.email) {
+        await releaseSupabaseUserDevice(currentUser.email);
+      }
       await supabase.auth.signOut();
     } catch (error) {
       // ignore sign-out errors and clear local state anyway
