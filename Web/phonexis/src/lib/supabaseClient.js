@@ -168,6 +168,12 @@ export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/veri
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);
+export const fetchBackendActivity = (userId) => getFromBackend(`/api/activity/user/${userId}`);
+export const recordBackendActivity = (userId, moduleName, action, details = null) => postToBackend(`/api/activity/user/${userId}`, {
+  moduleName,
+  action,
+  details,
+});
 export const fetchBackendModuleProgress = (userId, moduleName) => getFromBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}`);
 export const fetchBackendModuleGames = () => getFromBackend('/api/module-games');
 export const fetchBackendGamesByModule = (moduleKey) => getFromBackend(`/api/module-games/module/${encodeURIComponent(moduleKey)}`);

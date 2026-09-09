@@ -19,6 +19,7 @@ import {
   supabase,
   fetchBackendUsers,
   fetchBackendProgress,
+  recordBackendActivity,
   joinBackendClass,
   updateBackendModuleProgress,
   updateBackendModuleVideos,
@@ -27,7 +28,6 @@ import {
 } from './lib/supabaseClient';
 
 function App() {
-  const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
   const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
@@ -68,11 +68,9 @@ function App() {
       return null;
     }
 
-    const normalizedEmail = String(user.email || user.user_metadata?.email || '').trim().toLowerCase();
-    const isAdminEmail = normalizedEmail === ADMIN_EMAIL;
     const firstname = user.user_metadata?.firstname || user.user_metadata?.firstName || user.firstname || user.firstName || '';
     const lastname = user.user_metadata?.lastname || user.user_metadata?.lastName || user.lastname || user.lastName || '';
-    const role = isAdminEmail ? 'admin' : user.user_metadata?.role || user.role || 'student';
+    const role = user.user_metadata?.role || user.role || 'student';
 
     return {
       ...user,
@@ -94,23 +92,12 @@ function App() {
       return null;
     }
 
-    const email = String(profile.email || profile.user_metadata?.email || '').trim().toLowerCase();
-    if (!email) {
-      return profile;
-    }
-
-    if (email === ADMIN_EMAIL) {
-      return {
-        ...profile,
-        role: 'admin',
-        user_metadata: {
-          ...(profile.user_metadata || {}),
-          role: 'admin',
-        },
-      };
-    }
-
     try {
+      const email = String(profile.email || profile.user_metadata?.email || '').trim().toLowerCase();
+      if (!email) {
+        return profile;
+      }
+
       const backendUsers = await fetchBackendUsers();
       if (backendUsers.error || !Array.isArray(backendUsers.data)) {
         return profile;
@@ -146,11 +133,6 @@ function App() {
   }, []);
 
   const getLandingViewByRole = useCallback((userProfile) => {
-    const email = String(userProfile?.email || userProfile?.user_metadata?.email || '').trim().toLowerCase();
-    if (email === ADMIN_EMAIL) {
-      return 'admin';
-    }
-
     const normalizedRole = String(userProfile?.role || userProfile?.user_metadata?.role || '').toLowerCase();
     if (normalizedRole === 'admin') {
       return 'admin';
@@ -417,6 +399,14 @@ function App() {
     return matchedUser?.id ?? null;
   }, []);
 
+  const recordActivity = useCallback((moduleName, action, details = null) => {
+    if (!backendUserId) {
+      return;
+    }
+
+    void recordBackendActivity(backendUserId, moduleName, action, details);
+  }, [backendUserId]);
+
   const refreshCurrentUserFromBackend = useCallback(async () => {
     setCurrentUser((current) => current);
     if (!currentUser) {
@@ -599,6 +589,7 @@ function App() {
       ...currentScores,
       [difficulty]: { score, total },
     }));
+    recordActivity('alphabet', 'pretest_completed', `${difficulty}: ${score}/${total}`);
     if (score !== total) {
       return;
     }
@@ -613,6 +604,7 @@ function App() {
   };
 
   const handleAlphabetModeComplete = (mode) => {
+    recordActivity('alphabet', 'mode_completed', mode);
     setCompletedAlphabetModes((currentModes) => {
       if (currentModes.includes(mode)) {
         return currentModes;
@@ -637,20 +629,24 @@ function App() {
     setActiveModule(moduleKey);
     setActiveView(moduleKey);
     setActiveSection('learning');
+    recordActivity(moduleKey, 'module_opened');
   };
 
   const handleVowelsComplete = () => {
     setVowelsCompleted(true);
+    recordActivity('vowels', 'module_completed');
     setActiveView('dashboard');
   };
 
   const handleConsonantsComplete = () => {
     setConsonantsCompleted(true);
+    recordActivity('consonants', 'module_completed');
     setActiveView('dashboard');
   };
 
   const handleCvcComplete = () => {
     setCvcCompleted(true);
+    recordActivity('cvc', 'module_completed');
     setActiveView('dashboard');
   };
 
@@ -945,6 +941,8 @@ function App() {
     }
   };
 
+  const isAdminLayout = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase() === 'admin';
+
   if (!isAuthenticated) {
     return (
       <Routing
@@ -972,22 +970,24 @@ function App() {
       onNavigate={navigateTo}
     >
       <div className="app-shell app-shell-authenticated">
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
-          activeView={activeView}
-          activeSection={activeSection}
-          currentUser={currentUser}
-          onNavigate={navigateTo}
-          onSelectModule={openModule}
-          alphabetProgress={alphabetProgress}
-          vowelsProgress={vowelsProgress}
-          consonantsProgress={consonantsProgress}
-          cvcProgress={cvcProgress}
-          alphabetScores={alphabetScores}
-          onLogout={handleLogout}
-        />
-        <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
+        {!isAdminLayout && (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onSelectModule={openModule}
+            alphabetProgress={alphabetProgress}
+            vowelsProgress={vowelsProgress}
+            consonantsProgress={consonantsProgress}
+            cvcProgress={cvcProgress}
+            alphabetScores={alphabetScores}
+            onLogout={handleLogout}
+          />
+        )}
+        <main className={isAdminLayout || isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
       </div>
     </Routing>
   );

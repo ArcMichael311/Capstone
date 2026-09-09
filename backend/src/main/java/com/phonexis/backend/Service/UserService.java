@@ -22,7 +22,6 @@ public class UserService {
 	private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
-	private static final String ADMIN_EMAIL = "phonexisadmin@gmail.com";
 	private static final Random RANDOM = new Random();
 
 	private final UserRepository userRepository;
@@ -111,7 +110,7 @@ public class UserService {
 		user.setLastName(lastName);
 		user.setEmail(email);
 
-		if (request.role() != null || isAdminEmail(email)) {
+		if (request.role() != null) {
 			user.setRole(resolveRole(email, request.role()));
 		}
 
@@ -242,7 +241,6 @@ public class UserService {
 
 		User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
-		ensureAdminRole(user);
 		return user;
 	}
 
@@ -311,30 +309,11 @@ public class UserService {
 	}
 
 	private Role resolveRole(String email, String role) {
-		if (isAdminEmail(email)) {
-			return Role.ADMIN;
-		}
-
 		return normalizeRole(role);
 	}
 
-	private boolean isAdminEmail(String email) {
-		return ADMIN_EMAIL.equalsIgnoreCase(normalizeEmail(email));
-	}
-
-	private void ensureAdminRole(User user) {
-		if (user == null || !isAdminEmail(user.getEmail())) {
-			return;
-		}
-
-		if (user.getRole() != Role.ADMIN) {
-			user.setRole(Role.ADMIN);
-			userRepository.save(user);
-		}
-	}
-
 	private UserProfile toUserProfile(User user) {
-		Role effectiveRole = isAdminEmail(user.getEmail()) ? Role.ADMIN : user.getRole();
+		Role effectiveRole = user.getRole();
 		Map<String, Object> userMetadata = new LinkedHashMap<>();
 		userMetadata.put("firstName", user.getFirstName());
 		userMetadata.put("lastName", user.getLastName());

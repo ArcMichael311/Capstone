@@ -86,6 +86,8 @@ export default function Admin({ onLogout, currentUser }) {
   const totalTeachers = users.filter((u) => String(u.role || '').toLowerCase() === 'teacher').length;
   const totalAdmins = users.filter((u) => String(u.role || '').toLowerCase() === 'admin').length;
 
+  const displayRole = (role) => String(role || '').toLowerCase() === 'student' ? 'RegularUser' : String(role || 'student').replace(/^./, (letter) => letter.toUpperCase());
+
   return (
     <section className="admin-shell">
       <header className="admin-topbar">
@@ -125,7 +127,7 @@ export default function Admin({ onLogout, currentUser }) {
 
       <div className="admin-content">
         <div className="admin-content-head">
-          <h3>Accounts and Roles</h3>
+          <h3>Account Creation</h3>
           <span className="admin-management-badge">Admin Management</span>
         </div>
 
@@ -136,10 +138,10 @@ export default function Admin({ onLogout, currentUser }) {
         <table className="admin-table" aria-label="User accounts">
           <thead>
             <tr>
-              <th>ID</th>
-              <th>Name</th>
+              <th>User ID</th>
+              <th>Username</th>
               <th>Email</th>
-              <th>Role</th>
+              <th>Role Type</th>
               <th className="admin-actions-column">Action</th>
             </tr>
           </thead>
@@ -154,7 +156,7 @@ export default function Admin({ onLogout, currentUser }) {
                 <td>{u.email}</td>
                 <td>
                   <span className={`admin-role-badge admin-role-${String(u.role || '').toLowerCase()}`}>
-                    {String(u.role || 'student').toUpperCase()}
+                    {displayRole(u.role)}
                   </span>
                 </td>
                 <td>

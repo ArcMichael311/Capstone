@@ -6,6 +6,14 @@ services:
     dockerContext: ./backend
     healthCheckPath: /health
     envVars:
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_FIRST_NAME
+        sync: false
+      - key: ADMIN_LAST_NAME
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: SUPABASE_URL
