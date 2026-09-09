@@ -185,16 +185,22 @@ public class UserService {
 		if (!PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
 		}
-		claimDevice(user, deviceId);
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+		}
+		if (userRepository.claimActiveDevice(user.getId(), normalizedDeviceId) == 0) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
+		}
 
-		return toUserProfile(userRepository.save(user));
+		return toUserProfile(user);
 	}
 
 	@Transactional(readOnly = true)
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in on another device");
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
 		}
 	}
 
@@ -266,19 +272,6 @@ public class UserService {
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
 		return !normalizedDeviceId.isEmpty() && (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()
 			|| normalizedDeviceId.equals(user.getActiveDeviceId()));
-	}
-
-	private void claimDevice(User user, String deviceId) {
-		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
-		}
-		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
-			String normalizedDeviceId = normalizeDeviceId(deviceId);
-			if (normalizedDeviceId.isEmpty()) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
-			}
-			user.setActiveDeviceId(normalizedDeviceId);
-		}
 	}
 
 	private String normalizeOptionalValue(String value) {

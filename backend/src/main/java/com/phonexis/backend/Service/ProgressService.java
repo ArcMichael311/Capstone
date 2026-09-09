@@ -124,11 +124,9 @@ public class ProgressService {
 				progress.setCompletionPercentage(Math.round((completed / 3.0f) * 100));
 			}
 		} else {
-			// For other modules, completion is based on pretest completion
+			// Preserve video-based completion until the module pretest is complete.
 			if (progress.getPretestCompleted()) {
 				progress.setCompletionPercentage(100);
-			} else {
-				progress.setCompletionPercentage(0);
 			}
 		}
 

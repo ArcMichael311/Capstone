@@ -492,7 +492,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, resolveBackendUserId, resetProgressState]);
+  }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, parseVideoIds, resolveBackendUserId, resetProgressState]);
 
   useEffect(() => {
     if (!currentUser || !isProgressHydrated) return;
@@ -522,24 +522,21 @@ function App() {
     }
 
     const syncBackendProgress = async () => {
+      await updateBackendModuleProgress(backendUserId, 'alphabet', {
+        easyModeCompleted: completedAlphabetModes.includes('easy'),
+        mediumModeCompleted: completedAlphabetModes.includes('medium'),
+        hardModeCompleted: completedAlphabetModes.includes('hard'),
+      });
+
+      const syncModuleProgress = async (moduleName, videoIds, pretestCompleted) => {
+        await updateBackendModuleVideos(backendUserId, moduleName, videoIds);
+        await updateBackendModuleProgress(backendUserId, moduleName, { pretestCompleted });
+      };
+
       await Promise.all([
-        updateBackendModuleProgress(backendUserId, 'alphabet', {
-          easyModeCompleted: completedPretests.includes('easy'),
-          mediumModeCompleted: completedPretests.includes('medium'),
-          hardModeCompleted: completedPretests.includes('hard'),
-        }),
-        updateBackendModuleVideos(backendUserId, 'vowels', vowelsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'consonants', consonantsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'cvc', cvcWatchedVideos),
-        updateBackendModuleProgress(backendUserId, 'vowels', {
-          pretestCompleted: vowelsCompleted,
-        }),
-        updateBackendModuleProgress(backendUserId, 'consonants', {
-          pretestCompleted: consonantsCompleted,
-        }),
-        updateBackendModuleProgress(backendUserId, 'cvc', {
-          pretestCompleted: cvcCompleted,
-        }),
+        syncModuleProgress('vowels', vowelsWatchedVideos, vowelsCompleted),
+        syncModuleProgress('consonants', consonantsWatchedVideos, consonantsCompleted),
+        syncModuleProgress('cvc', cvcWatchedVideos, cvcCompleted),
       ]);
     };
 
