@@ -49,9 +49,12 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 const readBackendError = async (response) => {
   try {
     const payload = await response.json();
-    return payload?.message || payload?.error || 'Backend request failed';
+    return {
+      message: payload?.message || payload?.error || 'Backend request failed',
+      status: response.status,
+    };
   } catch (error) {
-    return 'Backend request failed';
+    return { message: 'Backend request failed', status: response.status };
   }
 };
 
@@ -72,11 +75,11 @@ const requestToBackend = async (path, options = {}) => {
     console.log(`[Backend Response] Status: ${response.status}`);
 
     if (!response.ok) {
-      const errorMessage = await readBackendError(response);
-      console.error(`[Backend Error] ${response.status}: ${errorMessage}`);
+      const backendError = await readBackendError(response);
+      console.error(`[Backend Error] ${response.status}: ${backendError.message}`);
       return {
         data: null,
-        error: { message: errorMessage, status: response.status },
+        error: backendError,
       };
     }
 

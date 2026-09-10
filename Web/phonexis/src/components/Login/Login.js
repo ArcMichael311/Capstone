@@ -22,7 +22,7 @@ export default function Login({ onNavigate, onSuccess }) {
       if (authError) {
         const backendResult = await loginBackendUser(email, password);
         if (backendResult?.error) {
-          setError(backendResult.error.message || authError.message || 'Login failed');
+          setError(formatLoginError(backendResult.error, authError.message));
           return;
         }
 
@@ -51,7 +51,7 @@ export default function Login({ onNavigate, onSuccess }) {
 
         if (backendResult?.error) {
           await supabase.auth.signOut();
-          setError(backendResult.error.message || 'This account is already logged in on another device.');
+          setError(formatLoginError(backendResult.error, 'Login failed'));
           return;
         }
 
@@ -83,6 +83,16 @@ export default function Login({ onNavigate, onSuccess }) {
       setError(err.message || 'Login error');
     }
   };
+
+  function formatLoginError(backendError, fallbackMessage) {
+    if (backendError?.status === 409) {
+      return 'This account is already logged in on another device.';
+    }
+    if (backendError?.status >= 500 || backendError?.message === 'Backend unavailable') {
+      return 'The login service is temporarily unavailable. Please try again after the backend redeploys.';
+    }
+    return backendError?.message || fallbackMessage || 'Login failed';
+  }
 
   return (
     <section className="login-card" aria-label="Login form">
