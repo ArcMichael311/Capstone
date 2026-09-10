@@ -4,7 +4,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.phonexis.backend.Entity.User;
@@ -22,13 +21,6 @@ public class BackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(BackendApplication.class, args);
-	}
-
-	@Bean
-	public CommandLineRunner migrateAccountSessionColumn(JdbcTemplate jdbcTemplate) {
-		return args -> jdbcTemplate.execute(
-			"ALTER TABLE public.users ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128)"
-		);
 	}
 
 	@Bean
