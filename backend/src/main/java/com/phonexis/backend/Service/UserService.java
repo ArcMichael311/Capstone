@@ -206,8 +206,10 @@ public class UserService {
 	@Transactional(readOnly = true)
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
-		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty() || user.getActiveDeviceId() == null
+			|| !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
 	}
 

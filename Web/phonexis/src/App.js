@@ -24,7 +24,6 @@ import {
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
-  isBackendUnavailableError,
 } from './lib/supabaseClient';
 
 function App() {
@@ -255,7 +254,7 @@ function App() {
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
       const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
-      if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
+      if (deviceResult.error) {
         await supabase.auth.signOut();
         return;
       }
@@ -285,7 +284,7 @@ function App() {
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
         const deviceResult = await verifySupabaseUserDevice(session.user.email);
-        if (deviceResult.error && !isBackendUnavailableError(deviceResult.error)) {
+        if (deviceResult.error) {
           await supabase.auth.signOut();
           return;
         }
@@ -734,6 +733,10 @@ function App() {
     const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
     const isAdminUser = normalizedRole === 'admin';
     const isTeacherUser = normalizedRole === 'teacher';
+
+    if (!isAdminUser && !isTeacherUser && !isProgressHydrated) {
+      return <section className="app-loading" aria-live="polite">Loading your progress...</section>;
+    }
 
     if (isAdminUser) {
       return (

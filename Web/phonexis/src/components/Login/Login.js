@@ -1,6 +1,6 @@
 import './Login.css';
 import { useState } from 'react';
-import { isBackendUnavailableError, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -44,9 +44,9 @@ export default function Login({ onNavigate, onSuccess }) {
           role: data.user.user_metadata?.role || 'student',
         });
 
-        if (backendResult?.error && !isBackendUnavailableError(backendResult.error)) {
+        if (backendResult?.error) {
           await supabase.auth.signOut();
-          setError(backendResult.error.message || 'This account is already active on another device');
+          setError(backendResult.error.message || 'This account is already logged in on another device.');
           return;
         }
 
