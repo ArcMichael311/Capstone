@@ -36,9 +36,10 @@ public class ProgressService {
 	}
 
 	@Transactional
-	public ProgressDTO updateVideosWatched(Long userId, String moduleName, List<Integer> videoIds) {
+	public ProgressDTO updateVideosWatched(Long userId, String moduleName, String deviceId, List<Integer> videoIds) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(createDefaultProgress(user, moduleName));
@@ -64,9 +65,10 @@ public class ProgressService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean canAccessLesson(Long userId, String moduleName) {
+	public boolean canAccessLesson(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -75,9 +77,10 @@ public class ProgressService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean canAccessPretest(Long userId, String moduleName) {
+	public boolean canAccessPretest(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -86,9 +89,10 @@ public class ProgressService {
 	}
 
 	@Transactional
-	public ProgressDTO updateModuleCompletion(Long userId, String moduleName, UpdateProgressRequest request) {
+	public ProgressDTO updateModuleCompletion(Long userId, String moduleName, String deviceId, UpdateProgressRequest request) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(createDefaultProgress(user, moduleName));
@@ -168,6 +172,15 @@ public class ProgressService {
 			case "cvc" -> 1;
 			default -> 0;
 		};
+	}
+
+	private void assertActiveDevice(User user, String deviceId) {
+		String activeDeviceId = user.getActiveDeviceId();
+		String requestedDeviceId = deviceId == null ? "" : deviceId.trim();
+		if (activeDeviceId == null || activeDeviceId.isBlank() || requestedDeviceId.isEmpty()
+			|| !activeDeviceId.equals(requestedDeviceId)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This device is not authorized for the account");
+		}
 	}
 
 	// DTOs

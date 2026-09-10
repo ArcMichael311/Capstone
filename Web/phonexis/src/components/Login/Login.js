@@ -17,7 +17,7 @@ export default function Login({ onNavigate, onSuccess }) {
       if (authError) {
         const backendResult = await loginBackendUser(email, password);
         if (backendResult?.error) {
-          setError(authError.message || backendResult.error.message || 'Login failed');
+          setError(backendResult.error.message || authError.message || 'Login failed');
           return;
         }
 

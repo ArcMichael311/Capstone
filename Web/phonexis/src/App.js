@@ -23,6 +23,7 @@ import {
   updateBackendModuleProgress,
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
+  releaseSupabaseUserDevice,
   isBackendUnavailableError,
 } from './lib/supabaseClient';
 
@@ -668,6 +669,9 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      if (currentUser?.email) {
+        await releaseSupabaseUserDevice(currentUser.email);
+      }
       await supabase.auth.signOut();
     } catch (error) {
       // ignore sign-out errors and clear local state anyway

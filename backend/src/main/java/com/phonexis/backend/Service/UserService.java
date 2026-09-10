@@ -200,6 +200,18 @@ public class UserService {
 	}
 
 	@Transactional
+	public void releaseDevice(String email, String deviceId) {
+		User user = getUserByEmail(email);
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This device is not active for the account");
+		}
+
+		user.setActiveDeviceId(null);
+		userRepository.save(user);
+	}
+
+	@Transactional
 	public void resetPassword(String email, String password) {
 		if (password == null || password.length() < 8) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");

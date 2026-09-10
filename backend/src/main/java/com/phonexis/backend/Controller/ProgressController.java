@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phonexis.backend.Service.ProgressService;
@@ -43,9 +44,10 @@ public class ProgressController {
 	public ResponseEntity<ProgressDTO> updateVideosWatched(
 		@PathVariable Long userId,
 		@PathVariable String moduleName,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
 		@RequestBody VideoWatchedRequest request
 	) {
-		ProgressDTO progress = progressService.updateVideosWatched(userId, moduleName, request.videoIds());
+		ProgressDTO progress = progressService.updateVideosWatched(userId, moduleName, deviceId, request.videoIds());
 		return ResponseEntity.ok(progress);
 	}
 
@@ -53,27 +55,30 @@ public class ProgressController {
 	public ResponseEntity<ProgressDTO> updateModuleProgress(
 		@PathVariable Long userId,
 		@PathVariable String moduleName,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
 		@RequestBody UpdateProgressRequest request
 	) {
-		ProgressDTO progress = progressService.updateModuleCompletion(userId, moduleName, request);
+		ProgressDTO progress = progressService.updateModuleCompletion(userId, moduleName, deviceId, request);
 		return ResponseEntity.ok(progress);
 	}
 
 	@GetMapping("/user/{userId}/module/{moduleName}/can-access-lesson")
 	public ResponseEntity<AccessCheckResponse> canAccessLesson(
 		@PathVariable Long userId,
-		@PathVariable String moduleName
+		@PathVariable String moduleName,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceId
 	) {
-		boolean canAccess = progressService.canAccessLesson(userId, moduleName);
+		boolean canAccess = progressService.canAccessLesson(userId, moduleName, deviceId);
 		return ResponseEntity.ok(new AccessCheckResponse(canAccess, "User " + (canAccess ? "can" : "cannot") + " access lesson"));
 	}
 
 	@GetMapping("/user/{userId}/module/{moduleName}/can-access-pretest")
 	public ResponseEntity<AccessCheckResponse> canAccessPretest(
 		@PathVariable Long userId,
-		@PathVariable String moduleName
+		@PathVariable String moduleName,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceId
 	) {
-		boolean canAccess = progressService.canAccessPretest(userId, moduleName);
+		boolean canAccess = progressService.canAccessPretest(userId, moduleName, deviceId);
 		return ResponseEntity.ok(new AccessCheckResponse(canAccess, "User " + (canAccess ? "can" : "cannot") + " access pretest"));
 	}
 
