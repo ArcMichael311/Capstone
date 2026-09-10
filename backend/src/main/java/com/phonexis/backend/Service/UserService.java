@@ -186,7 +186,19 @@ public class UserService {
 		if (!PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
 		}
-		claimDevice(user, deviceId);
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+		}
+		if (!deviceMatches(user, normalizedDeviceId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
+		}
+		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
+			if (userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId) != 1) {
+				throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
+			}
+			user.setActiveDeviceId(normalizedDeviceId);
+		}
 
 		return toUserProfile(userRepository.save(user));
 	}

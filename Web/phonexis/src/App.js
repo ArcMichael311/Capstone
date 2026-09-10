@@ -34,6 +34,7 @@ function App() {
   const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
+  const progressSyncRef = useRef(Promise.resolve());
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [theme, setTheme] = useState(() => {
@@ -449,23 +450,22 @@ function App() {
         setBackendUserId(resolvedBackendUserId);
       }
 
-      try {
-        const key = getProgressKey(currentUser);
-        const raw = key ? localStorage.getItem(key) : null;
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          applyProgressSnapshot(parsed);
-        } else {
-          applyProgressSnapshot({});
-        }
-      } catch (error) {
-        applyProgressSnapshot({});
-      }
-
+      let backendProgressLoaded = false;
       if (resolvedBackendUserId) {
         const backendResult = await fetchBackendProgress(resolvedBackendUserId);
         if (!cancelled && !backendResult.error && Array.isArray(backendResult.data) && backendResult.data.length > 0) {
           applyProgressSnapshot(mapBackendProgressToSnapshot(backendResult.data));
+          backendProgressLoaded = true;
+        }
+      }
+
+      if (!backendProgressLoaded) {
+        try {
+          const key = getProgressKey(currentUser);
+          const raw = key ? localStorage.getItem(key) : null;
+          applyProgressSnapshot(raw ? JSON.parse(raw) : {});
+        } catch (error) {
+          applyProgressSnapshot({});
         }
       }
 
@@ -530,7 +530,7 @@ function App() {
       ]);
     };
 
-    void syncBackendProgress();
+    progressSyncRef.current = progressSyncRef.current.then(syncBackendProgress, syncBackendProgress);
   }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
   // Keep one music instance playing across authenticated views.
@@ -669,6 +669,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
+      await progressSyncRef.current;
       if (currentUser?.email) {
         await releaseSupabaseUserDevice(currentUser.email);
       }

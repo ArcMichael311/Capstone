@@ -10,9 +10,9 @@ const getDeviceId = () => {
     return '';
   }
 
-  const storageKey = 'phonexis_device_id';
+  const storageKey = 'phonexis_session_id';
   try {
-    const existingId = window.localStorage.getItem(storageKey);
+    const existingId = window.sessionStorage.getItem(storageKey);
     if (existingId) {
       return existingId;
     }
@@ -20,7 +20,7 @@ const getDeviceId = () => {
     const generatedId = typeof crypto?.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    window.localStorage.setItem(storageKey, generatedId);
+    window.sessionStorage.setItem(storageKey, generatedId);
     return generatedId;
   } catch (error) {
     return '';
