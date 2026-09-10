@@ -23,4 +23,12 @@ services:
       - key: SUPABASE_DB_DIALECT
         value: org.hibernate.dialect.PostgreSQLDialect
       - key: SUPABASE_DB_DDL_AUTO
-        value: update
+        value: none
+      - key: SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT
+        value: 30000
+      - key: SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT
+        value: 5000
+      - key: SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME
+        value: 120000
+      - key: SPRING_DATASOURCE_HIKARI_MAX_LIFETIME
+        value: 1500000
