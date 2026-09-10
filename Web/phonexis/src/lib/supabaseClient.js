@@ -87,8 +87,6 @@ const requestToBackend = async (path, options = {}) => {
   }
 };
 
-export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable' || error?.status >= 500;
-
 const postToBackend = async (path, body) => requestToBackend(path, {
   method: 'POST',
   body: JSON.stringify(body),
