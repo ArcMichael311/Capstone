@@ -4,10 +4,18 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
 const backendUrl = (configuredBackendUrl || 'https://phonexis-backend.onrender.com').replace(/\/$/, '');
+let memoryDeviceId = '';
+
+const createDeviceId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `phonexis-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
 
 const getDeviceId = () => {
   if (typeof window === 'undefined') {
-    return '';
+    return memoryDeviceId || (memoryDeviceId = createDeviceId());
   }
 
   const storageKey = 'phonexis_session_id';
@@ -18,9 +26,7 @@ const getDeviceId = () => {
       return existingId;
     }
 
-    const generatedId = typeof crypto?.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const generatedId = createDeviceId();
     window.localStorage.setItem(storageKey, generatedId);
     window.sessionStorage.setItem(storageKey, generatedId);
     return generatedId;
@@ -33,7 +39,7 @@ const getDeviceId = () => {
     } catch (storageError) {
       // Storage can be blocked by private browsing or browser policy.
     }
-    return '';
+    return memoryDeviceId || (memoryDeviceId = createDeviceId());
   }
 };
 

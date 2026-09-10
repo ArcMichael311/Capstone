@@ -33,6 +33,12 @@ public class AuthController {
 		@RequestBody LoginRequest request,
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader
 	) {
+		if (request == null || request.email() == null || request.email().isBlank()
+			|| request.password() == null || request.password().isBlank()) {
+			throw new org.springframework.web.server.ResponseStatusException(
+				org.springframework.http.HttpStatus.BAD_REQUEST, "Email and password are required");
+		}
+
 		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader))));
 	}
 
