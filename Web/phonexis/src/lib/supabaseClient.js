@@ -66,7 +66,7 @@ const requestToBackend = async (path, options = {}) => {
       console.error(`[Backend Error] ${response.status}: ${errorMessage}`);
       return {
         data: null,
-        error: { message: errorMessage },
+        error: { message: errorMessage, status: response.status },
       };
     }
 
@@ -87,7 +87,7 @@ const requestToBackend = async (path, options = {}) => {
   }
 };
 
-export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable';
+export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable' || error?.status >= 500;
 
 const postToBackend = async (path, body) => requestToBackend(path, {
   method: 'POST',
