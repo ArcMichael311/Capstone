@@ -12,17 +12,27 @@ const getDeviceId = () => {
 
   const storageKey = 'phonexis_session_id';
   try {
-    const existingId = window.sessionStorage.getItem(storageKey);
+    const existingId = window.localStorage.getItem(storageKey) || window.sessionStorage.getItem(storageKey);
     if (existingId) {
+      window.localStorage.setItem(storageKey, existingId);
       return existingId;
     }
 
     const generatedId = typeof crypto?.randomUUID === 'function'
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(storageKey, generatedId);
     window.sessionStorage.setItem(storageKey, generatedId);
     return generatedId;
   } catch (error) {
+    try {
+      const fallbackId = window.sessionStorage.getItem(storageKey);
+      if (fallbackId) {
+        return fallbackId;
+      }
+    } catch (storageError) {
+      // Storage can be blocked by private browsing or browser policy.
+    }
     return '';
   }
 };
@@ -100,8 +110,9 @@ const putToBackend = async (path, body) => requestToBackend(path, {
 });
 
 const getNameParts = (user, profile = {}) => {
-  const firstname = profile.firstname || user?.user_metadata?.firstname || user?.user_metadata?.firstName || user?.firstName || '';
-  const lastname = profile.lastname || user?.user_metadata?.lastname || user?.user_metadata?.lastName || user?.lastName || '';
+  const emailName = (user?.email || '').split('@')[0].replace(/[^a-zA-Z0-9 ]/g, ' ').trim();
+  const firstname = profile.firstname || user?.user_metadata?.firstname || user?.user_metadata?.firstName || user?.firstName || emailName || 'Student';
+  const lastname = profile.lastname || user?.user_metadata?.lastname || user?.user_metadata?.lastName || user?.lastName || 'User';
   return { firstname, lastname };
 };
 
