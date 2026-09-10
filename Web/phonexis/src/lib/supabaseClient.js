@@ -126,6 +126,7 @@ const getNameParts = (user, profile = {}) => {
 };
 
 const isConflictError = (message) => /already exists|conflict|duplicate/i.test(message || '');
+const isAccountNotFoundError = (error) => error?.status === 404 || /account not found|user not found/i.test(error?.message || '');
 
 const syncBackendUser = async (user, password, profile = {}) => {
   if (!user?.email || !password) {
@@ -143,6 +144,18 @@ const syncBackendUser = async (user, password, profile = {}) => {
     role,
     deviceId: getDeviceId(),
   };
+
+  // Existing Supabase users should authenticate through the backend first.
+  // Registration is only needed when the backend has no matching account.
+  const loginResult = await postToBackend('/api/auth/login', {
+    email: user.email,
+    password,
+    deviceId: payload.deviceId,
+  });
+
+  if (!loginResult.error || !isAccountNotFoundError(loginResult.error)) {
+    return loginResult;
+  }
 
   const createResult = await postToBackend('/api/auth/register', payload);
 
