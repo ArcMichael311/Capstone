@@ -27,7 +27,7 @@ public class BackendApplication {
 	@Bean
 	public CommandLineRunner migrateAccountSessionColumn(JdbcTemplate jdbcTemplate) {
 		return args -> jdbcTemplate.execute(
-			"ALTER TABLE users ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128)"
+			"ALTER TABLE public.users ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128)"
 		);
 	}
 

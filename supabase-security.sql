@@ -7,6 +7,10 @@ ALTER TABLE IF EXISTS public.modules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.user_activity ENABLE ROW LEVEL SECURITY;
 
+-- Required by the backend's single-device login lock.
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128);
+
 -- Do not expose application data through the Supabase REST API. The backend
 -- remains the only data access path for the application.
 REVOKE ALL ON TABLE public.module_games FROM anon, authenticated;
