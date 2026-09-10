@@ -3,6 +3,7 @@ package com.phonexis.backend.Controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,15 +19,21 @@ public class AuthController {
 	}
 
 	@PostMapping("/register")
-	public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+	public ResponseEntity<AuthResponse> register(
+		@RequestBody RegisterRequest request,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader
+	) {
 		return ResponseEntity.ok(new AuthResponse(
-			authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), request.deviceId())
+			authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), resolveDeviceId(request.deviceId(), deviceHeader))
 		));
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password(), request.deviceId())));
+	public ResponseEntity<AuthResponse> login(
+		@RequestBody LoginRequest request,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader
+	) {
+		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader))));
 	}
 
 	@PostMapping("/verify-device")
@@ -75,6 +82,10 @@ public class AuthController {
 	}
 
 	public record ChangePasswordRequest(String email, String currentPassword, String password) {
+	}
+
+	private String resolveDeviceId(String requestDeviceId, String deviceHeader) {
+		return requestDeviceId == null || requestDeviceId.isBlank() ? deviceHeader : requestDeviceId;
 	}
 
 	public record AuthResponse(com.phonexis.backend.Service.UserService.UserProfile user) {

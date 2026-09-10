@@ -27,6 +27,8 @@ const getDeviceId = () => {
   }
 };
 
+export const getSessionDeviceId = getDeviceId;
+
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console
   console.warn('Supabase URL or ANON KEY is not set in environment variables.');

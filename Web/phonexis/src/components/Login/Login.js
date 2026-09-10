@@ -1,6 +1,6 @@
 import './Login.css';
 import { useState } from 'react';
-import { loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { getSessionDeviceId, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -13,6 +13,11 @@ export default function Login({ onNavigate, onSuccess }) {
     setError(null);
 
     try {
+      if (!getSessionDeviceId()) {
+        setError('This browser cannot create a secure login session. Please enable site storage and try again.');
+        return;
+      }
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         const backendResult = await loginBackendUser(email, password);
