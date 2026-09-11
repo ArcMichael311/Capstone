@@ -1,0 +1,99 @@
+.auth-letter-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: background 350ms ease;
+  background:
+    radial-gradient(circle at 12% 15%, rgba(255, 215, 0, 0.2), transparent 23rem),
+    radial-gradient(circle at 88% 82%, rgba(77, 150, 255, 0.2), transparent 25rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fbff 52%, #fffafb 100%);
+}
+
+.auth-letter-glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.34), transparent 60%);
+  animation: authGlowDrift 12s ease-in-out infinite alternate;
+}
+
+.auth-letter {
+  position: absolute;
+  top: -12vh;
+  left: var(--letter-left);
+  color: rgba(43, 134, 197, 0.24);
+  font-size: var(--letter-size);
+  font-family: 'Comic Sans MS', 'Trebuchet MS', cursive;
+  font-weight: 900;
+  line-height: 1;
+  -webkit-text-stroke: 0.035em rgba(255, 255, 255, 0.42);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.24), 0 5px 12px rgba(77, 150, 255, 0.14);
+  animation: letterFall var(--letter-duration) linear var(--letter-delay) infinite;
+  will-change: transform, opacity;
+}
+
+.auth-letter:nth-of-type(3n) {
+  color: rgba(255, 107, 107, 0.23);
+}
+
+.auth-letter:nth-of-type(4n) {
+  color: rgba(244, 174, 0, 0.3);
+}
+
+[data-theme='dark'] .auth-letter-background {
+  background:
+    radial-gradient(circle at 12% 15%, rgba(255, 215, 0, 0.1), transparent 23rem),
+    radial-gradient(circle at 88% 82%, rgba(77, 150, 255, 0.16), transparent 25rem),
+    linear-gradient(135deg, #030405 0%, #0b1118 52%, #120b12 100%);
+}
+
+[data-theme='dark'] .auth-letter-glow {
+  background: radial-gradient(ellipse at center, rgba(77, 150, 255, 0.12), transparent 60%);
+}
+
+[data-theme='dark'] .auth-letter {
+  color: rgba(132, 202, 255, 0.48);
+  -webkit-text-stroke-color: rgba(255, 255, 255, 0.16);
+  text-shadow: 0 3px 0 rgba(255, 255, 255, 0.08), 0 3px 14px rgba(77, 150, 255, 0.3);
+}
+
+[data-theme='dark'] .auth-letter:nth-of-type(3n) {
+  color: rgba(255, 137, 137, 0.46);
+}
+
+[data-theme='dark'] .auth-letter:nth-of-type(4n) {
+  color: rgba(255, 213, 92, 0.52);
+}
+
+@keyframes letterFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(-1.5rem, -10vh, 0) rotate(var(--letter-tilt));
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(1.25rem, 55vh, 0) rotate(calc(var(--letter-tilt) * -1));
+  }
+  90% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-1rem, 118vh, 0) rotate(var(--letter-tilt));
+  }
+}
+
+@keyframes authGlowDrift {
+  from { transform: translate3d(-2%, -1%, 0) scale(0.98); }
+  to { transform: translate3d(2%, 1%, 0) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-letter,
+  .auth-letter-glow {
+    animation-play-state: paused;
+  }
+}
