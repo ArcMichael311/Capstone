@@ -117,6 +117,9 @@ public class ProgressService {
 			String videosJson = "[" + String.join(",", uniqueVideoIds.stream().map(String::valueOf).toList()) + "]";
 			progress.setVideosWatched(videosJson);
 		}
+		if (request.assessmentScores() != null) {
+			progress.setAssessmentScores(request.assessmentScores());
+		}
 
 		// Calculate completion percentage for alphabet (needs all 3 modes completed)
 		if ("alphabet".equalsIgnoreCase(moduleName)) {
@@ -195,6 +198,7 @@ public class ProgressService {
 		Boolean mediumModeCompleted,
 		Boolean hardModeCompleted,
 		Integer completionPercentage,
+		String assessmentScores,
 		java.time.LocalDateTime createdAt,
 		java.time.LocalDateTime updatedAt
 	) {
@@ -210,6 +214,7 @@ public class ProgressService {
 				progress.getMediumModeCompleted(),
 				progress.getHardModeCompleted(),
 				progress.getCompletionPercentage(),
+				progress.getAssessmentScores(),
 				progress.getCreatedAt(),
 				progress.getUpdatedAt()
 			);
@@ -221,7 +226,8 @@ public class ProgressService {
 		Boolean mediumModeCompleted,
 		Boolean hardModeCompleted,
 		Boolean pretestCompleted,
-		List<Integer> videosWatched
+		List<Integer> videosWatched,
+		String assessmentScores
 	) {
 	}
 }

@@ -51,6 +51,9 @@ public class Progress {
 	@Column(name = "hard_mode_completed", nullable = false)
 	private Boolean hardModeCompleted = false;
 
+	@Column(name = "assessment_scores", columnDefinition = "TEXT")
+	private String assessmentScores;
+
 	@Column(name = "module_completion_percentage", nullable = false)
 	private Integer completionPercentage = 0;
 
@@ -155,6 +158,14 @@ public class Progress {
 
 	public void setHardModeCompleted(Boolean hardModeCompleted) {
 		this.hardModeCompleted = hardModeCompleted;
+	}
+
+	public String getAssessmentScores() {
+		return assessmentScores;
+	}
+
+	public void setAssessmentScores(String assessmentScores) {
+		this.assessmentScores = assessmentScores;
 	}
 
 	public Integer getCompletionPercentage() {

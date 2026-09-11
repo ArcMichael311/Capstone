@@ -356,8 +356,16 @@ function App() {
     const vowelsProgress = byModule.get('vowels');
     const consonantsProgress = byModule.get('consonants');
     const cvcProgress = byModule.get('cvc');
+    let alphabetScores = {};
+    try {
+      const parsedScores = JSON.parse(alphabetProgress?.assessmentScores || '{}');
+      alphabetScores = parsedScores && typeof parsedScores === 'object' ? parsedScores : {};
+    } catch (error) {
+      alphabetScores = {};
+    }
 
     return {
+      alphabetScores,
       completedPretests: [
         alphabetProgress?.easyModeCompleted ? 'easy' : null,
         alphabetProgress?.mediumModeCompleted ? 'medium' : null,
@@ -513,6 +521,7 @@ function App() {
           easyModeCompleted: completedPretests.includes('easy'),
           mediumModeCompleted: completedPretests.includes('medium'),
           hardModeCompleted: completedPretests.includes('hard'),
+          assessmentScores: JSON.stringify(alphabetScores),
         }),
         updateBackendModuleProgress(backendUserId, 'vowels', {
           pretestCompleted: vowelsCompleted,
