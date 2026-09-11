@@ -11,7 +11,10 @@ import AlphabetRecognition from './components/Modules/AlphabetRecognition';
 import CVCWords from './components/Modules/CVCWords';
 import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
-import Admin from './components/Admin/Admin';
+import AdminSidebar from './components/Admin/AdminSidebar';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminStudents from './components/Admin/AdminStudents';
+import AdminTeachers from './components/Admin/AdminTeachers';
 import Teacher from './components/Teacher/Teacher';
 import Sidebar from './components/Sidebar/Sidebar';
 import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
@@ -58,6 +61,8 @@ function App() {
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
   const [isProgressHydrated, setIsProgressHydrated] = useState(false);
   const [backendUserId, setBackendUserId] = useState(null);
+  const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
+  const isAdminUser = normalizedRole === 'admin';
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -551,7 +556,7 @@ function App() {
     const audio = audioRef.current;
 
     const playAudio = () => {
-      if (!isAuthenticated || audio.volume <= 0) {
+      if (!isAuthenticated || isAdminUser || audio.volume <= 0) {
         audio.pause();
         return;
       }
@@ -565,7 +570,7 @@ function App() {
       audio.pause();
     };
 
-    if (isAuthenticated && audio.volume > 0) {
+    if (isAuthenticated && !isAdminUser && audio.volume > 0) {
       playAudio();
       window.addEventListener('pointerdown', playAudio, { once: true });
       window.addEventListener('keydown', playAudio, { once: true });
@@ -576,14 +581,14 @@ function App() {
     return () => {
       window.removeEventListener('pointerdown', playAudio);
       window.removeEventListener('keydown', playAudio);
-      if (!isAuthenticated) stopAudio();
+      if (!isAuthenticated || isAdminUser) stopAudio();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAdminUser]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume;
-      if (musicVolume === 0) {
+      if (musicVolume === 0 || isAdminUser) {
         audioRef.current.pause();
       } else if (isAuthenticated) {
         audioRef.current.play().catch(() => {
@@ -591,7 +596,7 @@ function App() {
         });
       }
     }
-  }, [isAuthenticated, musicVolume]);
+  }, [isAuthenticated, isAdminUser, musicVolume]);
 
   // Module progress is driven by the user's completed steps.
   const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));
@@ -739,8 +744,6 @@ function App() {
       }
     }
 
-    const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
-    const isAdminUser = normalizedRole === 'admin';
     const isTeacherUser = normalizedRole === 'teacher';
 
     if (!isAdminUser && !isTeacherUser && !isProgressHydrated) {
@@ -748,13 +751,29 @@ function App() {
     }
 
     if (isAdminUser) {
-      return (
-        <Admin
-          onNavigate={navigateTo}
-          onLogout={handleLogout}
-          currentUser={currentUser}
-        />
-      );
+      if (activeView === 'profile') {
+        return (
+          <Profile
+            onNavigate={navigateTo}
+            onBack={() => navigateTo('admin')}
+            user={currentUser}
+            onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            initialTab={activeSection || 'info'}
+          />
+        );
+      }
+
+      if (activeSection === 'students') {
+        return <AdminStudents />;
+      }
+
+      if (activeSection === 'teachers') {
+        return <AdminTeachers />;
+      }
+
+      return <AdminDashboard onNavigate={navigateTo} />;
     }
 
     if (isTeacherUser) {
@@ -920,25 +939,6 @@ function App() {
             initialTab={activeSection || 'info'}
           />
         );
-      case 'admin':
-        return (
-          <Admin
-            onNavigate={setActiveView}
-            onLogout={handleLogout}
-            onJoinClass={handleJoinClass}
-            classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
-          />
-        );
-      case 'teacher':
-        return (
-          <Teacher
-            onNavigate={setActiveView}
-            onLogout={handleLogout}
-            user={currentUser}
-            backendUserId={backendUserId}
-            onProfileRefresh={refreshCurrentUserFromBackend}
-          />
-        );
       case 'dashboard':
       default:
         return (
@@ -989,22 +989,34 @@ function App() {
       onNavigate={navigateTo}
     >
       <div className="app-shell app-shell-authenticated">
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
-          activeView={activeView}
-          activeSection={activeSection}
-          currentUser={currentUser}
-          onNavigate={navigateTo}
-          onSelectModule={openModule}
-          alphabetProgress={alphabetProgress}
-          vowelsProgress={vowelsProgress}
-          consonantsProgress={consonantsProgress}
-          cvcProgress={cvcProgress}
-          alphabetScores={alphabetScores}
-          completedAlphabetModes={completedAlphabetModes}
-          onLogout={handleLogout}
-        />
+        {isAdminUser ? (
+          <AdminSidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        ) : (
+          <Sidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onSelectModule={openModule}
+            alphabetProgress={alphabetProgress}
+            vowelsProgress={vowelsProgress}
+            consonantsProgress={consonantsProgress}
+            cvcProgress={cvcProgress}
+            alphabetScores={alphabetScores}
+            completedAlphabetModes={completedAlphabetModes}
+            onLogout={handleLogout}
+          />
+        )}
         <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
       </div>
     </Routing>
