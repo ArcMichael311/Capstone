@@ -1002,6 +1002,7 @@ function App() {
           consonantsProgress={consonantsProgress}
           cvcProgress={cvcProgress}
           alphabetScores={alphabetScores}
+          completedAlphabetModes={completedAlphabetModes}
           onLogout={handleLogout}
         />
         <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>

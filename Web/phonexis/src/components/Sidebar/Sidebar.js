@@ -40,7 +40,7 @@ const modules = [
   { key: 'cvc', label: 'CVC Words' },
 ];
 
-export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {} }) {
+export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {}, completedAlphabetModes = [] }) {
   const displayName = [currentUser?.firstname || currentUser?.user_metadata?.firstname, currentUser?.lastname || currentUser?.user_metadata?.lastname]
     .filter(Boolean)
     .join(' ') || currentUser?.email?.split('@')[0] || 'Learner';
@@ -95,7 +95,9 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
             {sections.map((section) => {
               const isAlphabetLevel = activeView === 'alphabet' && ['easy', 'medium', 'hard'].includes(section.key);
               const score = alphabetScores[section.key];
-              const isPassed = score && score.score === score.total;
+              const isPassed = completedAlphabetModes.includes(section.key) || (score && score.score === score.total);
+              const expectedTotals = { easy: 10, medium: 8, hard: 5 };
+              const displayScore = score || (isPassed ? { score: expectedTotals[section.key], total: expectedTotals[section.key] } : null);
 
               return (
                 <button
@@ -108,7 +110,7 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
                     <>
                       <span>{section.label}</span>
                       <strong className="sidebar-pretest-check">{isPassed ? '✓' : ''}</strong>
-                      <strong className="sidebar-pretest-score">{score ? `${score.score}/${score.total}` : ''}</strong>
+                      <strong className="sidebar-pretest-score">{displayScore ? `${displayScore.score}/${displayScore.total}` : ''}</strong>
                     </>
                   ) : section.label}
                 </button>
