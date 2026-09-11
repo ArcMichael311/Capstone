@@ -13,9 +13,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "progress")
+@Table(name = "progress", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "module_name" }))
 public class Progress {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

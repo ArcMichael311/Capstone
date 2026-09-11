@@ -30,7 +30,7 @@ public class ProgressService {
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		return new ProgressDTO(progress);
 	}
@@ -42,7 +42,7 @@ public class ProgressService {
 		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		// Update videos watched
 		Set<Integer> uniqueVideoIds = new LinkedHashSet<>(videoIds == null ? List.of() : videoIds);
@@ -95,7 +95,7 @@ public class ProgressService {
 		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		// Update completion flags
 		if (request.easyModeCompleted() != null) {
