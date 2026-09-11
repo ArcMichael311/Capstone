@@ -1,6 +1,6 @@
 import './Login.css';
 import { useState } from 'react';
-import { getSessionDeviceId, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ export default function Login({ onNavigate, onSuccess }) {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         const backendResult = await loginBackendUser(email, password);
-        if (backendResult?.error) {
+        if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
           setError(formatLoginError(backendResult.error, authError.message));
           return;
         }
@@ -49,7 +49,7 @@ export default function Login({ onNavigate, onSuccess }) {
           role: data.user.user_metadata?.role || 'student',
         });
 
-        if (backendResult?.error) {
+        if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
           await supabase.auth.signOut();
           setError(formatLoginError(backendResult.error, 'Login failed'));
           return;

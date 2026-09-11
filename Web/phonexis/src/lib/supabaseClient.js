@@ -4,6 +4,7 @@ const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
 const backendUrl = (configuredBackendUrl || 'https://phonexis-backend.onrender.com').replace(/\/$/, '');
+export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
 
 const createDeviceId = () => {
@@ -63,6 +64,8 @@ const readBackendError = async (response) => {
     return { message: 'Backend request failed', status: response.status };
   }
 };
+
+export const isBackendUnavailable = (error) => error?.message === 'Backend unavailable';
 
 const requestToBackend = async (path, options = {}) => {
   try {

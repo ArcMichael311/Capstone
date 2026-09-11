@@ -21,9 +21,9 @@ import {
   fetchBackendProgress,
   joinBackendClass,
   updateBackendModuleProgress,
-  updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
+  isLocalDevelopment,
 } from './lib/supabaseClient';
 
 function App() {
@@ -253,7 +253,7 @@ function App() {
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
-      const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
+      const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
         await supabase.auth.signOut();
         return;
@@ -283,7 +283,7 @@ function App() {
 
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
-        const deviceResult = await verifySupabaseUserDevice(session.user.email);
+        const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
           await supabase.auth.signOut();
           return;
@@ -514,17 +514,17 @@ function App() {
           mediumModeCompleted: completedPretests.includes('medium'),
           hardModeCompleted: completedPretests.includes('hard'),
         }),
-        updateBackendModuleVideos(backendUserId, 'vowels', vowelsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'consonants', consonantsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'cvc', cvcWatchedVideos),
         updateBackendModuleProgress(backendUserId, 'vowels', {
           pretestCompleted: vowelsCompleted,
+          videosWatched: vowelsWatchedVideos,
         }),
         updateBackendModuleProgress(backendUserId, 'consonants', {
           pretestCompleted: consonantsCompleted,
+          videosWatched: consonantsWatchedVideos,
         }),
         updateBackendModuleProgress(backendUserId, 'cvc', {
           pretestCompleted: cvcCompleted,
+          videosWatched: cvcWatchedVideos,
         }),
       ]);
     };

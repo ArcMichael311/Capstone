@@ -53,7 +53,9 @@ public class ProgressService {
 		int requiredVideos = getRequiredVideosCount(moduleName);
 		if (requiredVideos > 0) {
 			int watchedCount = Math.min(uniqueVideoIds.size(), requiredVideos);
-			progress.setCompletionPercentage(Math.round((watchedCount / (float) requiredVideos) * 100));
+			int learningCompletion = Math.round((watchedCount / (float) requiredVideos) * 100);
+			int assessmentCompletion = Boolean.TRUE.equals(progress.getPretestCompleted()) ? 100 : 0;
+			progress.setCompletionPercentage(Math.max(learningCompletion, assessmentCompletion));
 		}
 		if (requiredVideos > 0 && uniqueVideoIds.size() >= requiredVideos) {
 			progress.setLessonUnlocked(true);
@@ -128,12 +130,10 @@ public class ProgressService {
 				progress.setCompletionPercentage(Math.round((completed / 3.0f) * 100));
 			}
 		} else {
-			// For other modules, completion is based on pretest completion
-			if (progress.getPretestCompleted()) {
-				progress.setCompletionPercentage(100);
-			} else {
-				progress.setCompletionPercentage(0);
-			}
+			// Keep learning-material progress when assessment progress is updated.
+			int learningCompletion = progress.getCompletionPercentage() == null ? 0 : progress.getCompletionPercentage();
+			int assessmentCompletion = Boolean.TRUE.equals(progress.getPretestCompleted()) ? 100 : 0;
+			progress.setCompletionPercentage(Math.max(learningCompletion, assessmentCompletion));
 		}
 
 		progressRepository.save(progress);
