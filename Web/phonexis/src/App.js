@@ -24,6 +24,7 @@ import {
   updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
+  isLocalDevelopment,
 } from './lib/supabaseClient';
 
 function App() {
@@ -253,7 +254,7 @@ function App() {
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
-      const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
+      const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
         await supabase.auth.signOut();
         return;
@@ -283,7 +284,7 @@ function App() {
 
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
-        const deviceResult = await verifySupabaseUserDevice(session.user.email);
+        const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
           await supabase.auth.signOut();
           return;
