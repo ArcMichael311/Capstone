@@ -21,7 +21,6 @@ import {
   fetchBackendProgress,
   joinBackendClass,
   updateBackendModuleProgress,
-  updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
   isLocalDevelopment,
@@ -515,17 +514,17 @@ function App() {
           mediumModeCompleted: completedPretests.includes('medium'),
           hardModeCompleted: completedPretests.includes('hard'),
         }),
-        updateBackendModuleVideos(backendUserId, 'vowels', vowelsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'consonants', consonantsWatchedVideos),
-        updateBackendModuleVideos(backendUserId, 'cvc', cvcWatchedVideos),
         updateBackendModuleProgress(backendUserId, 'vowels', {
           pretestCompleted: vowelsCompleted,
+          videosWatched: vowelsWatchedVideos,
         }),
         updateBackendModuleProgress(backendUserId, 'consonants', {
           pretestCompleted: consonantsCompleted,
+          videosWatched: consonantsWatchedVideos,
         }),
         updateBackendModuleProgress(backendUserId, 'cvc', {
           pretestCompleted: cvcCompleted,
+          videosWatched: cvcWatchedVideos,
         }),
       ]);
     };
