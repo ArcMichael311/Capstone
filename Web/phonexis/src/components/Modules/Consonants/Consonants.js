@@ -70,41 +70,16 @@ const videos = [
   },
 ];
 
-const teacherActivityDeck = [
-  { letter: 'B', prompt: '_all', icon: '⚽', choices: ['B', 'C', 'D', 'F'] },
-  { letter: 'C', prompt: '_at', icon: '🐱', choices: ['B', 'C', 'H', 'M'] },
-  { letter: 'D', prompt: '_og', icon: '🐶', choices: ['D', 'G', 'J', 'T'] },
-  { letter: 'F', prompt: '_ish', icon: '🐟', choices: ['F', 'P', 'R', 'S'] },
-  { letter: 'M', prompt: '_oon', icon: '🌙', choices: ['M', 'N', 'P', 'T'] },
-  { letter: 'S', prompt: '_un', icon: '☀️', choices: ['S', 'T', 'W', 'Z'] },
-];
-
 export default function Consonants({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(consonants[0].letter);
   const [feedback, setFeedback] = useState('Choose a consonant to hear the object name.');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [completionNotified, setCompletionNotified] = useState(false);
-  const [teacherActivityTitle, setTeacherActivityTitle] = useState('Beginning consonant sorting');
-  const [teacherActivityFocus, setTeacherActivityFocus] = useState('B, C, D, F');
-  const [teacherActivityInstructions, setTeacherActivityInstructions] = useState('Give students picture cards and ask them to group cards by beginning consonant sound.');
-  const [teacherActivities, setTeacherActivities] = useState([
-    {
-      id: 1,
-      title: 'Consonant sound hunt',
-      focus: 'M, N, P, S',
-      instructions: 'Students find 2 objects per consonant sound at home or in class and say each word aloud.',
-    },
-  ]);
-  const [teacherIndex, setTeacherIndex] = useState(0);
-  const [teacherChoice, setTeacherChoice] = useState('');
-  const [teacherResult, setTeacherResult] = useState(null);
-  const [teacherMessage, setTeacherMessage] = useState('Pick the correct starting consonant.');
 
   const selectedItem = consonants.find((item) => item.letter === selectedLetter) ?? consonants[0];
   const videosWatched = Array.isArray(initialVideosWatched) ? initialVideosWatched : [];
   const allVideosWatched = videosWatched.length === videos.length;
-  const currentTeacherActivity = teacherActivityDeck[teacherIndex];
 
   useEffect(() => {
     setMode(initialMode);
@@ -144,11 +119,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
       return;
     }
 
-    if (nextMode === 'teacher') {
-      setFeedback('Teacher panel: create consonant activities for students.');
-      return;
-    }
-
     if (!allVideosWatched) {
       setFeedback('Watch all learning video materials to unlock Explore Consonants.');
     } else {
@@ -156,26 +126,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     }
   };
 
-  const handleAddTeacherActivity = () => {
-    const title = teacherActivityTitle.trim();
-    const focus = teacherActivityFocus.trim();
-    const instructions = teacherActivityInstructions.trim();
-
-    if (!title || !focus || !instructions) {
-      setFeedback('Complete title, focus consonants, and instructions before adding an activity.');
-      return;
-    }
-
-    const nextActivity = {
-      id: Date.now(),
-      title,
-      focus,
-      instructions,
-    };
-
-    setTeacherActivities((current) => [nextActivity, ...current]);
-    setFeedback('Teacher activity added. You can now share it with your students.');
-  };
 
   const handlePlayVideo = (index) => {
     setCurrentVideoIndex(index);
@@ -223,39 +173,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     speakText(selectedItem.word, `Speaking ${selectedItem.word}.`);
   };
 
-  const handleTeacherCheck = () => {
-    if (!teacherChoice) {
-      setTeacherResult('wrong');
-      setTeacherMessage('Choose a consonant first.');
-      return;
-    }
-
-    if (teacherChoice !== currentTeacherActivity.letter) {
-      setTeacherResult('wrong');
-      setTeacherMessage('Not quite. Try again.');
-      return;
-    }
-
-    setTeacherResult('correct');
-    setTeacherMessage('Great job! That is correct.');
-  };
-
-  const handleTeacherNext = () => {
-    const nextIndex = teacherIndex + 1;
-
-    if (nextIndex >= teacherActivityDeck.length) {
-      setTeacherIndex(0);
-      setTeacherChoice('');
-      setTeacherResult(null);
-      setTeacherMessage('Awesome work! You finished this activity.');
-      return;
-    }
-
-    setTeacherIndex(nextIndex);
-    setTeacherChoice('');
-    setTeacherResult(null);
-    setTeacherMessage('Pick the correct starting consonant.');
-  };
 
   return (
     <div className="module-detail consonants-detail">
@@ -406,121 +323,9 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
             <p className="game-feedback">{feedback}</p>
           </div>
         </>
-      ) : mode === 'teacher' ? (
-        <div className="teacher-panel-stage">
-          <div className="teacher-panel-header">
-            <h3>Teacher Activity</h3>
-            <p>Create and prepare consonant activities you can give to students.</p>
-          </div>
-
-          <div className="teacher-panel-form">
-            <label className="teacher-field">
-              <span>Activity title</span>
-              <input
-                type="text"
-                value={teacherActivityTitle}
-                onChange={(event) => setTeacherActivityTitle(event.target.value)}
-                placeholder="Example: Consonant sound sorting"
-              />
-            </label>
-
-            <label className="teacher-field">
-              <span>Focus consonants</span>
-              <input
-                type="text"
-                value={teacherActivityFocus}
-                onChange={(event) => setTeacherActivityFocus(event.target.value)}
-                placeholder="Example: B, C, D, F"
-              />
-            </label>
-
-            <label className="teacher-field">
-              <span>Student instructions</span>
-              <textarea
-                value={teacherActivityInstructions}
-                onChange={(event) => setTeacherActivityInstructions(event.target.value)}
-                rows={4}
-                placeholder="Write clear instructions for students."
-              />
-            </label>
-
-            <button type="button" className="teacher-create" onClick={handleAddTeacherActivity}>
-              + ADD ACTIVITY
-            </button>
-          </div>
-
-          <div className="teacher-activity-list" aria-label="Teacher activity list">
-            {teacherActivities.map((activity) => (
-              <article key={activity.id} className="teacher-activity-item">
-                <h4>{activity.title}</h4>
-                <p className="teacher-activity-focus">Focus: {activity.focus}</p>
-                <p className="teacher-activity-instructions">{activity.instructions}</p>
-              </article>
-            ))}
-          </div>
-        </div>
       ) : mode === 'wordblast' ? (
         <WordBlast onClose={() => handleModeChange('learning')} />
-      ) : (
-        <div className="teacher-activity-stage">
-          <div className="teacher-activity-header">
-            <h3>Consonant Game</h3>
-            <p>Complete each word by choosing the correct starting consonant.</p>
-          </div>
-
-          <div className="teacher-activity-card">
-            <span className="teacher-activity-icon" aria-hidden="true">
-              {currentTeacherActivity.icon}
-            </span>
-            <p className="teacher-activity-word">{currentTeacherActivity.prompt}</p>
-
-            <div className="teacher-answer-row" aria-label="Teacher activity answer">
-              <div className="teacher-letter-box" aria-label="Selected consonant">
-                <span>{teacherChoice || '\u00A0'}</span>
-              </div>
-
-              <button type="button" className="teacher-check" onClick={handleTeacherCheck}>
-                ✓ CHECK ANSWER
-              </button>
-            </div>
-
-            <div className="teacher-choice-row" role="group" aria-label="Consonant choices">
-              {currentTeacherActivity.choices.map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  className={choice === teacherChoice ? 'teacher-choice active' : 'teacher-choice'}
-                  onClick={() => {
-                    setTeacherChoice(choice);
-                    setTeacherResult(null);
-                    setTeacherMessage('Pick the correct starting consonant.');
-                  }}
-                >
-                  {choice}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={teacherResult === 'correct' ? 'teacher-result correct' : 'teacher-result wrong'} aria-live="polite">
-            {teacherResult ? teacherMessage : ''}
-          </div>
-
-          {teacherResult === 'correct' ? (
-            <button type="button" className="teacher-next" onClick={handleTeacherNext}>
-              NEXT WORD
-            </button>
-          ) : null}
-
-          <div className="teacher-dots" aria-label="Teacher activity progress">
-            {teacherActivityDeck.map((item, index) => (
-              <span key={`${item.letter}-${index}`} className={index === teacherIndex ? 'teacher-dot active' : 'teacher-dot'} />
-            ))}
-          </div>
-
-          <p className="game-feedback">{teacherResult ? '' : teacherMessage}</p>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
