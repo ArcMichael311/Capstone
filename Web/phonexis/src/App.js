@@ -810,7 +810,7 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
-            initialType={activeSection || 'learning'}
+            initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'vowels':
@@ -841,7 +841,7 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
-            initialMode={activeSection || 'learning'}
+            initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'consonants':
@@ -873,7 +873,7 @@ function App() {
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}
-            initialMode={activeSection || 'learning'}
+            initialMode={['learning', 'explore', 'wordblast'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'modules':

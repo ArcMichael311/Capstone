@@ -16,13 +16,11 @@ const moduleSections = {
   vowels: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'lesson', label: 'Basics of Vowels' },
-    { key: 'pretest', label: 'Teacher Activity' },
     { key: 'vowelrush', label: 'VowelRush' },
   ],
   consonants: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'explore', label: 'Explore Consonants' },
-    { key: 'teacher', label: 'Teacher Activity' },
     { key: 'wordblast', label: 'WordBlast' },
   ],
   cvc: [
