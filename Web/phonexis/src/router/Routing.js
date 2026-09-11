@@ -24,6 +24,7 @@ const sectionsByView = {
   consonants: ['learning', 'explore', 'teacher', 'wordblast'],
   cvc: ['learning', 'families', 'selection', 'building'],
   profile: ['info', 'settings'],
+  admin: ['students', 'teachers'],
 };
 
 export function getViewFromPath(pathname) {
