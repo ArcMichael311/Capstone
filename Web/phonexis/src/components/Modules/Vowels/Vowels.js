@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import './Vowels.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
+import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const vowels = [
   { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
@@ -64,6 +65,49 @@ const vowelTeamBoards = {
   ],
 };
 
+const vowelTeamIcons = {
+  rain: '🌧️',
+  tail: '🐒',
+  maid: '🧹',
+  bait: '🎣',
+  cake: '🎂',
+  gate: '🚪',
+  game: '🎮',
+  plane: '✈️',
+  peach: '🍑',
+  meat: '🥩',
+  bread: '🍞',
+  team: '👥',
+  sleep: '😴',
+  bean: '🫘',
+  wheel: '🛞',
+  pear: '🍐',
+  light: '💡',
+  rice: '🍚',
+  slide: '🛝',
+  time: '⏰',
+  pine: '🌲',
+  pipe: '🪈',
+  fire: '🔥',
+  kite: '🪁',
+  boat: '⛵',
+  oak: '🌳',
+  soap: '🧼',
+  road: '🛣️',
+  oar: '🚣',
+  goal: '🥅',
+  shore: '🏖️',
+  stone: '🪨',
+  blue: '🔵',
+  fruit: '🍇',
+  stew: '🍲',
+  cube: '🧊',
+  flute: '🎶',
+  tune: '🎵',
+  mule: '🫏',
+  suit: '👔',
+};
+
 const videos = [
   {
     id: 1,
@@ -94,6 +138,8 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
+  const [showDoubleVowelModal, setShowDoubleVowelModal] = useState(false);
+  const [showVoicePractice, setShowVoicePractice] = useState(false);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -170,6 +216,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const handlePick = (letter) => {
     const nextItem = vowels.find((item) => item.letter === letter) ?? vowels[0];
     setSelectedLetter(nextItem.letter);
+    setShowVoicePractice(false);
     setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };
 
@@ -376,6 +423,9 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                       aria-label={`Listen to the word ${item.word}`}
                     >
                       <span className="vowel-team-chunk">{item.team}</span>
+                      <span className="vowel-team-icon" aria-hidden="true">
+                        {vowelTeamIcons[item.word]}
+                      </span>
                       <span className="vowel-team-word">{renderHighlightedWord(item.word, pairLetters)}</span>
                     </button>
                   );
@@ -387,10 +437,81 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
               🔊 LISTEN TO SOUND
             </button>
 
-            <DoubleVowelLesson onFeedback={setFeedback} />
+            <div className="vowels-button-group">
+              <button
+                type="button"
+                className="vowels-voice-practice-btn"
+                onClick={() => setShowVoicePractice(!showVoicePractice)}
+                aria-expanded={showVoicePractice}
+              >
+                🎤 PRACTICE VOWEL SOUND
+              </button>
+            </div>
+
+            {showVoicePractice && (
+              <div className="vowels-voice-practice-wrapper">
+                <VoicePractice
+                  targetWord={selectedItem.letter}
+                  onResult={(result) => {
+                    if (result.success) {
+                      setFeedback(`Great! You pronounced the vowel "${selectedItem.letter}" correctly!`);
+                    } else {
+                      setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                    }
+                  }}
+                  showTranscript={true}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="double-vowels-open-button"
+              onClick={() => setShowDoubleVowelModal(true)}
+              aria-haspopup="dialog"
+              aria-expanded={showDoubleVowelModal}
+            >
+              ✨ EXPLORE DOUBLE VOWELS
+            </button>
 
             <p className="game-feedback">{feedback}</p>
           </div>
+
+          {showDoubleVowelModal && (
+            <div
+              className="double-vowels-modal-backdrop"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  setShowDoubleVowelModal(false);
+                }
+              }}
+            >
+              <div
+                className="double-vowels-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="double-vowels-modal-title"
+              >
+                <div className="double-vowels-modal-header">
+                  <h3 id="double-vowels-modal-title">Double Vowels</h3>
+                  <button
+                    type="button"
+                    className="double-vowels-modal-close"
+                    onClick={() => setShowDoubleVowelModal(false)}
+                    aria-label="Close double vowels"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <DoubleVowelLesson
+                  onFeedback={(message) => {
+                    setFeedback(message);
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : mode === 'vowelrush' ? (
         <div className="vowelrush-stage">

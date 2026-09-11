@@ -236,11 +236,15 @@
 }
 
 .cvc-family-stage {
-  width: min(100%, 78rem);
+  width: 100%;
+  justify-self: center;
+  box-sizing: border-box;
 }
 
 .cvc-family-grid {
   width: min(100%, 78rem);
+  justify-self: center;
+  margin-inline: auto;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.95rem;

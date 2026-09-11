@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import './Consonants.css';
 import WordBlast from './WordBlast';
+import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const consonants = [
   { letter: 'B', word: 'Ball', icon: '⚽' },
@@ -76,6 +77,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
   const [feedback, setFeedback] = useState('Choose a consonant to hear the object name.');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [completionNotified, setCompletionNotified] = useState(false);
+  const [showVoicePractice, setShowVoicePractice] = useState(false);
 
   const selectedItem = consonants.find((item) => item.letter === selectedLetter) ?? consonants[0];
   const videosWatched = Array.isArray(initialVideosWatched) ? initialVideosWatched : [];
@@ -166,6 +168,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
   const handlePick = (letter) => {
     const nextItem = consonants.find((item) => item.letter === letter) ?? consonants[0];
     setSelectedLetter(nextItem.letter);
+    setShowVoicePractice(false);
     speakText(nextItem.word, `Speaking ${nextItem.word}.`);
   };
 
@@ -316,9 +319,35 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
               <p className="consonants-object-sound">Say the object name.</p>
             </div>
 
-            <button type="button" className="consonants-listen" onClick={speakCurrent}>
-              🔊 LISTEN TO OBJECT
-            </button>
+            <div className="consonants-button-group">
+              <button type="button" className="consonants-listen" onClick={speakCurrent}>
+                🔊 LISTEN TO OBJECT
+              </button>
+              <button
+                type="button"
+                className="consonants-voice-practice-btn"
+                onClick={() => setShowVoicePractice(!showVoicePractice)}
+                aria-expanded={showVoicePractice}
+              >
+                🎤 PRACTICE PRONUNCIATION
+              </button>
+            </div>
+
+            {showVoicePractice && (
+              <div className="consonants-voice-practice-wrapper">
+                <VoicePractice
+                  targetWord={selectedItem.word}
+                  onResult={(result) => {
+                    if (result.success) {
+                      setFeedback(`Great! You pronounced "${selectedItem.word}" correctly!`);
+                    } else {
+                      setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                    }
+                  }}
+                  showTranscript={true}
+                />
+              </div>
+            )}
 
             <p className="game-feedback">{feedback}</p>
           </div>

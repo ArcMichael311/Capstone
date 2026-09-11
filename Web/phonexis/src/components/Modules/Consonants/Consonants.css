@@ -106,54 +106,60 @@
 
 .consonants-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
-  gap: 1rem;
-  width: min(100%, 28rem);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.95rem;
+  width: min(100%, 78rem);
   margin: 0 auto;
 }
 
 .consonant-tile {
   appearance: none;
-  border: 2px solid #37d4a3;
-  background: rgba(0, 0, 0, 0.3);
-  color: #37d4a3;
+  border: 3px solid #f0b63b;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 238, 226, 0.95));
+  color: #111827;
   border-radius: 1rem;
-  padding: 1rem;
+  padding: 0.7rem 0.65rem 1rem;
   font: inherit;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.2s ease;
+  min-height: 9.5rem;
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .consonant-tile:hover {
-  background: rgba(55, 212, 163, 0.15);
-  transform: translateY(-2px);
+  background: linear-gradient(180deg, #ffffff, #f5eee2);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 24px rgba(17, 24, 39, 0.12);
 }
 
 .consonant-tile.active {
-  background: #37d4a3;
-  color: #0d3e3e;
-  box-shadow: 0 0 20px rgba(55, 212, 163, 0.5);
+  border-color: #d99a00;
+  color: #111827;
+  box-shadow: 0 16px 30px rgba(217, 154, 0, 0.2);
 }
 
 .consonant-tile-letter {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: clamp(2.8rem, 3.3vw, 4rem);
+  font-weight: 900;
+  line-height: 1;
 }
 
 .consonant-tile-icon {
-  font-size: 1.5rem;
+  font-size: 2.25rem;
 }
 
 .consonants-stage {
   display: grid;
-  gap: 1.5rem;
+  gap: 0.9rem;
   place-items: center;
-  width: min(100%, 28rem);
+  width: min(100%, 34rem);
   margin: 0 auto;
+  padding: 1.2rem 1.2rem 1.35rem;
+  text-align: center;
 }
 
 .consonants-letter {
@@ -165,45 +171,92 @@
 
 .consonants-object {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.8rem;
   place-items: center;
   text-align: center;
 }
 
 .consonants-object-icon {
-  font-size: 3rem;
+  font-size: clamp(4.5rem, 9vw, 6.5rem);
+  line-height: 1;
 }
 
 .consonants-object-word {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
+  color: #b126aa;
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  line-height: 1;
+  font-weight: 800;
   color: #e8e8e8;
 }
 
 .consonants-object-sound {
   margin: 0;
-  font-size: 0.95rem;
-  color: #b0b0b0;
+  max-width: 24rem;
+  color: #4a5670;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
 
 .consonants-listen {
   appearance: none;
-  border: 2px solid #37d4a3;
-  background: #37d4a3;
-  color: #0d3e3e;
-  border-radius: 0.8rem;
-  padding: 0.8rem 1.5rem;
+  border: 0;
+  border-radius: 0.2rem;
+  padding: 0.55rem 0.9rem;
+  background: linear-gradient(90deg, #14b86a, #1e79ef);
+  color: #ffffff;
   font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 10px 22px rgba(21, 128, 210, 0.18);
 }
 
 .consonants-listen:hover {
-  background: #4ae8bf;
-  transform: scale(1.05);
+  transform: translateY(-2px);
+}
+
+.consonants-button-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.consonants-voice-practice-btn {
+  appearance: none;
+  border: 2px solid #4d96ff;
+  border-radius: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: linear-gradient(135deg, #4d96ff 0%, #2d76ff 100%);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(77, 150, 255, 0.25);
+  transition: all 0.3s ease;
+}
+
+.consonants-voice-practice-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(77, 150, 255, 0.4);
+}
+
+.consonants-voice-practice-wrapper {
+  margin-top: 0.5rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  background: rgba(77, 150, 255, 0.05);
+  border: 2px solid rgba(77, 150, 255, 0.2);
+  width: 100%;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .game-feedback {
