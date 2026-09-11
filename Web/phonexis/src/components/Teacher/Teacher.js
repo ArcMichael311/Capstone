@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Teacher.css';
 import '../Dashboard/Dashboard.css';
-import { fetchBackendProgress, fetchBackendUsers, generateBackendClassCode } from '../../lib/supabaseClient';
+import { createTeacherActivity, fetchBackendProgress, fetchBackendUsers, fetchTeacherActivities, generateBackendClassCode } from '../../lib/supabaseClient';
 
 const MODULES = [
   { key: 'alphabet', title: 'Alphabet Recognition', subtitle: 'Letter mastery leaderboard', icon: '📘', accent: 'blue' },
@@ -83,6 +83,11 @@ const hasMeaningfulProgress = (progress) => {
 export default function Teacher({ user, onLogout, backendUserId, onProfileRefresh }) {
   const [activeTab, setActiveTab] = useState('modules');
   const [selectedModule, setSelectedModule] = useState('alphabet');
+  const [activityModule, setActivityModule] = useState('vowels');
+  const [activityTitle, setActivityTitle] = useState('Vowel team word sort');
+  const [activityFocus, setActivityFocus] = useState('A, E, I, O, U');
+  const [activityInstructions, setActivityInstructions] = useState('Ask students to sort picture cards by vowel sound and read each word aloud.');
+  const [activities, setActivities] = useState({ vowels: [], consonants: [] });
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [users, setUsers] = useState([]);
   const [progressByUserId, setProgressByUserId] = useState({});
@@ -93,6 +98,30 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
   const teacherName = getDisplayName(user);
   const teacherClassKey = normalizeClassKey(user?.classroom || user?.user_metadata?.classroom || user?.user_metadata?.className);
   const teacherClassCode = user?.classCode || user?.user_metadata?.classCode || user?.classroom || user?.user_metadata?.classroom || '';
+
+  useEffect(() => {
+    if (!backendUserId) {
+      return;
+    }
+
+    const loadActivities = async () => {
+      const result = await fetchTeacherActivities(backendUserId);
+      if (result.error) {
+        setError(result.error.message || 'Failed to load teacher activities');
+        return;
+      }
+
+      const nextActivities = { vowels: [], consonants: [] };
+      (Array.isArray(result.data) ? result.data : []).forEach((activity) => {
+        if (nextActivities[activity.moduleKey]) {
+          nextActivities[activity.moduleKey].push(activity);
+        }
+      });
+      setActivities(nextActivities);
+    };
+
+    void loadActivities();
+  }, [backendUserId]);
 
   useEffect(() => {
     const loadClassData = async () => {
@@ -279,6 +308,56 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
       .join(' ');
   }, [selectedStudentProgress]);
 
+  const handleActivityModuleChange = (nextModule) => {
+    setActivityModule(nextModule);
+    if (nextModule === 'vowels') {
+      setActivityTitle('Vowel team word sort');
+      setActivityFocus('A, E, I, O, U');
+      setActivityInstructions('Ask students to sort picture cards by vowel sound and read each word aloud.');
+      return;
+    }
+
+    setActivityTitle('Beginning consonant sorting');
+    setActivityFocus('B, C, D, F');
+    setActivityInstructions('Give students picture cards and ask them to group cards by beginning consonant sound.');
+  };
+
+  const handleCreateActivity = () => {
+    const title = activityTitle.trim();
+    const focus = activityFocus.trim();
+    const instructions = activityInstructions.trim();
+    if (!title || !focus || !instructions) {
+      setError('Complete the activity title, focus, and instructions first.');
+      return;
+    }
+
+    if (!backendUserId) {
+      setError('Teacher backend account id is missing. Please log out and log in again.');
+      return;
+    }
+
+    const saveActivity = async () => {
+      const result = await createTeacherActivity(backendUserId, {
+        moduleKey: activityModule,
+        title,
+        focus,
+        instructions,
+      });
+      if (result.error) {
+        setError(result.error.message || 'Failed to save teacher activity');
+        return;
+      }
+
+      setActivities((current) => ({
+        ...current,
+        [activityModule]: [result.data, ...(current[activityModule] || [])],
+      }));
+      setError(null);
+    };
+
+    void saveActivity();
+  };
+
   return (
     <section className="teacher-shell">
       <header className="teacher-topbar">
@@ -320,6 +399,13 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
           onClick={() => setActiveTab('analytics')}
         >
           Data Analytics
+        </button>
+        <button
+          type="button"
+          className={`teacher-tab ${activeTab === 'activities' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activities')}
+        >
+          Teacher Activities
         </button>
       </section>
 
@@ -387,6 +473,54 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
             </div>
           </section>
         </>
+      )}
+
+      {activeTab === 'activities' && (
+        <section className="teacher-activities-layout" aria-label="Teacher activities">
+          <div className="teacher-activity-editor">
+            <div className="teacher-board-head">
+              <h3>Create Activity</h3>
+              <p>Prepare activities for students in your class.</p>
+            </div>
+
+            <div className="teacher-activity-module-picker" role="group" aria-label="Activity module">
+              <button type="button" className={activityModule === 'vowels' ? 'active' : ''} onClick={() => handleActivityModuleChange('vowels')}>Vowels</button>
+              <button type="button" className={activityModule === 'consonants' ? 'active' : ''} onClick={() => handleActivityModuleChange('consonants')}>Consonants</button>
+            </div>
+
+            <label className="teacher-activity-field">
+              <span>Activity title</span>
+              <input value={activityTitle} onChange={(event) => setActivityTitle(event.target.value)} />
+            </label>
+            <label className="teacher-activity-field">
+              <span>Focus</span>
+              <input value={activityFocus} onChange={(event) => setActivityFocus(event.target.value)} />
+            </label>
+            <label className="teacher-activity-field">
+              <span>Student instructions</span>
+              <textarea rows={5} value={activityInstructions} onChange={(event) => setActivityInstructions(event.target.value)} />
+            </label>
+            <button type="button" className="teacher-generate-code teacher-create-activity" onClick={handleCreateActivity}>
+              + Add Activity
+            </button>
+          </div>
+
+          <div className="teacher-activity-list-panel">
+            <div className="teacher-board-head">
+              <h3>{activityModule === 'vowels' ? 'Vowel' : 'Consonant'} Activities</h3>
+              <p>Activities prepared by this teacher.</p>
+            </div>
+            <div className="teacher-created-activities">
+              {(activities[activityModule] || []).map((activity) => (
+                <article key={activity.id} className="teacher-created-activity">
+                  <h4>{activity.title}</h4>
+                  <strong>Focus: {activity.focus}</strong>
+                  <p>{activity.instructions}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {activeTab === 'analytics' && (
