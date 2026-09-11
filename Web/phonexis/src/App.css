@@ -269,8 +269,6 @@
 }
 
 [data-theme='dark'] .teacher-tab,
-[data-theme='dark'] .admin-refresh-button,
-[data-theme='dark'] .admin-logout-button,
 [data-theme='dark'] .teacher-generate-code,
 [data-theme='dark'] .teacher-logout {
   background: #263744;
