@@ -16,4 +16,6 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
 	List<Progress> findByUser(User user);
 
 	List<Progress> findByUserAndModuleNameOrderByUpdatedAtDesc(User user, String moduleName);
+
+	void deleteByUser(User user);
 }
