@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Teacher.css';
 import '../Dashboard/Dashboard.css';
-import { createTeacherActivity, fetchBackendProgress, fetchBackendUsers, fetchTeacherActivities, generateBackendClassCode } from '../../lib/supabaseClient';
+import { createTeacherActivity, fetchBackendProgress, fetchBackendUsers, fetchTeacherActivities } from '../../lib/supabaseClient';
 
 const MODULES = [
   { key: 'alphabet', title: 'Alphabet Recognition', subtitle: 'Letter mastery leaderboard', icon: '📘', accent: 'blue' },
@@ -80,7 +80,7 @@ const hasMeaningfulProgress = (progress) => {
   );
 };
 
-export default function Teacher({ user, onLogout, backendUserId, onProfileRefresh }) {
+export default function Teacher({ user, backendUserId }) {
   const [activeTab, setActiveTab] = useState('modules');
   const [selectedModule, setSelectedModule] = useState('alphabet');
   const [activityModule, setActivityModule] = useState('vowels');
@@ -92,12 +92,10 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
   const [users, setUsers] = useState([]);
   const [progressByUserId, setProgressByUserId] = useState({});
   const [loading, setLoading] = useState(false);
-  const [generatingCode, setGeneratingCode] = useState(false);
   const [error, setError] = useState(null);
 
   const teacherName = getDisplayName(user);
   const teacherClassKey = normalizeClassKey(user?.classroom || user?.user_metadata?.classroom || user?.user_metadata?.className);
-  const teacherClassCode = user?.classCode || user?.user_metadata?.classCode || user?.classroom || user?.user_metadata?.classroom || '';
 
   useEffect(() => {
     if (!backendUserId) {
@@ -238,29 +236,6 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
 
   const selectedModuleTitle = MODULES.find((module) => module.key === selectedModule)?.title || 'Module';
 
-  const handleGenerateClassCode = async () => {
-    if (!backendUserId) {
-      setError('Teacher backend account id is missing. Please log out and log in again.');
-      return;
-    }
-
-    setGeneratingCode(true);
-    setError(null);
-
-    const result = await generateBackendClassCode(backendUserId);
-    if (result.error) {
-      setGeneratingCode(false);
-      setError(result.error.message || 'Failed to generate class code');
-      return;
-    }
-
-    if (onProfileRefresh) {
-      await onProfileRefresh();
-    }
-
-    setGeneratingCode(false);
-  };
-
   const selectedStudent = useMemo(
     () => classStudents.find((entry) => entry.id === selectedStudentId) || null,
     [classStudents, selectedStudentId]
@@ -365,15 +340,6 @@ export default function Teacher({ user, onLogout, backendUserId, onProfileRefres
           <p className="teacher-kicker">Teacher Workspace</p>
           <h2>{teacherName}&apos;s Class Leaderboards</h2>
           <p className="teacher-subtitle">Each module shows who finished first and fastest in your class.</p>
-          <p className="teacher-class-code">Class Code: <strong>{teacherClassCode || 'Not generated'}</strong></p>
-        </div>
-        <div className="teacher-top-actions">
-          <button type="button" className="teacher-generate-code" onClick={handleGenerateClassCode} disabled={generatingCode}>
-            {generatingCode ? 'Generating...' : 'Generate Class Code'}
-          </button>
-          <button type="button" className="teacher-logout" onClick={onLogout}>
-            ↪ Logout
-          </button>
         </div>
       </header>
 
