@@ -227,3 +227,39 @@ export const updateBackendUser = (userId, payload) => putToBackend(`/api/users/$
 export const deleteBackendUser = (userId) => requestToBackend(`/api/users/${userId}`, { method: 'DELETE' });
 export const generateBackendClassCode = (userId) => postToBackend(`/api/users/${userId}/generate-class-code`, {});
 export const joinBackendClass = (userId, classCode) => postToBackend(`/api/users/${userId}/join-class`, { classCode });
+
+export const fetchTeacherClasses = (teacherId) => getFromBackend(`/api/classes/teacher/${teacherId}`);
+export const createTeacherClass = (teacherId, name) => postToBackend(`/api/classes/teacher/${teacherId}`, { name });
+export const deleteTeacherClass = (classId, teacherId) => requestToBackend(`/api/classes/${classId}?teacherId=${teacherId}`, { method: 'DELETE' });
+export const fetchClassStudents = (classId) => getFromBackend(`/api/classes/${classId}/students`);
+export const addClassStudents = (classId, teacherId, emails) => postToBackend(`/api/classes/${classId}/students?teacherId=${teacherId}`, { emails });
+export const removeClassStudent = (classId, teacherId, studentId) => requestToBackend(`/api/classes/${classId}/students/${studentId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const fetchLearningMaterials = (classId) => getFromBackend(`/api/learning-materials/class/${classId}`);
+export const deleteLearningMaterial = (materialId, teacherId) => requestToBackend(`/api/learning-materials/${materialId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const uploadLearningMaterial = async (classId, teacherId, file, title) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (title) {
+    formData.append('title', title);
+  }
+
+  try {
+    const url = `${backendUrl}/api/learning-materials/class/${classId}?teacherId=${teacherId}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-Device-Id': getDeviceId() },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      return { data: null, error: await readBackendError(response) };
+    }
+
+    const responseText = await response.text();
+    return { data: responseText ? JSON.parse(responseText) : null, error: null };
+  } catch (error) {
+    return { data: null, error: { message: 'Backend unavailable' } };
+  }
+};
