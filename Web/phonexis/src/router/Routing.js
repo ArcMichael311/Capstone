@@ -25,6 +25,7 @@ const sectionsByView = {
   cvc: ['learning', 'families', 'selection', 'building'],
   profile: ['info', 'settings'],
   admin: ['students', 'teachers'],
+  teacher: ['dashboard', 'materials', 'progress'],
 };
 
 export function getViewFromPath(pathname) {

@@ -16,6 +16,7 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminStudents from './components/Admin/AdminStudents';
 import AdminTeachers from './components/Admin/AdminTeachers';
 import Teacher from './components/Teacher/Teacher';
+import TeacherSidebar from './components/Teacher/TeacherSidebar';
 import Sidebar from './components/Sidebar/Sidebar';
 import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
 import {
@@ -63,6 +64,7 @@ function App() {
   const [backendUserId, setBackendUserId] = useState(null);
   const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
   const isAdminUser = normalizedRole === 'admin';
+  const isTeacherUser = normalizedRole === 'teacher';
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -556,7 +558,7 @@ function App() {
     const audio = audioRef.current;
 
     const playAudio = () => {
-      if (!isAuthenticated || isAdminUser || audio.volume <= 0) {
+      if (!isAuthenticated || isAdminUser || isTeacherUser || audio.volume <= 0) {
         audio.pause();
         return;
       }
@@ -570,7 +572,7 @@ function App() {
       audio.pause();
     };
 
-    if (isAuthenticated && !isAdminUser && audio.volume > 0) {
+    if (isAuthenticated && !isAdminUser && !isTeacherUser && audio.volume > 0) {
       playAudio();
       window.addEventListener('pointerdown', playAudio, { once: true });
       window.addEventListener('keydown', playAudio, { once: true });
@@ -581,14 +583,14 @@ function App() {
     return () => {
       window.removeEventListener('pointerdown', playAudio);
       window.removeEventListener('keydown', playAudio);
-      if (!isAuthenticated || isAdminUser) stopAudio();
+      if (!isAuthenticated || isAdminUser || isTeacherUser) stopAudio();
     };
-  }, [isAuthenticated, isAdminUser]);
+  }, [isAuthenticated, isAdminUser, isTeacherUser]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume;
-      if (musicVolume === 0 || isAdminUser) {
+      if (musicVolume === 0 || isAdminUser || isTeacherUser) {
         audioRef.current.pause();
       } else if (isAuthenticated) {
         audioRef.current.play().catch(() => {
@@ -596,7 +598,7 @@ function App() {
         });
       }
     }
-  }, [isAuthenticated, isAdminUser, musicVolume]);
+  }, [isAuthenticated, isAdminUser, isTeacherUser, musicVolume]);
 
   // Module progress is driven by the user's completed steps.
   const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));
@@ -744,8 +746,6 @@ function App() {
       }
     }
 
-    const isTeacherUser = normalizedRole === 'teacher';
-
     if (!isAdminUser && !isTeacherUser && !isProgressHydrated) {
       return <section className="app-loading" aria-live="polite">Loading your progress...</section>;
     }
@@ -777,6 +777,20 @@ function App() {
     }
 
     if (isTeacherUser) {
+      if (activeView === 'profile') {
+        return (
+          <Profile
+            onNavigate={navigateTo}
+            onBack={() => navigateTo('teacher')}
+            user={currentUser}
+            onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            initialTab={activeSection || 'info'}
+          />
+        );
+      }
+
       return (
         <Teacher
           onNavigate={navigateTo}
@@ -784,6 +798,7 @@ function App() {
           user={currentUser}
           backendUserId={backendUserId}
           onProfileRefresh={refreshCurrentUserFromBackend}
+          activeSection={activeSection}
         />
       );
     }
@@ -991,6 +1006,16 @@ function App() {
       <div className="app-shell app-shell-authenticated">
         {isAdminUser ? (
           <AdminSidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        ) : normalizedRole === 'teacher' ? (
+          <TeacherSidebar
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
             activeView={activeView}

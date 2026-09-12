@@ -9,4 +9,6 @@ import com.phonexis.backend.Entity.User;
 
 public interface TeacherActivityRepository extends JpaRepository<TeacherActivity, Long> {
 	List<TeacherActivity> findByTeacherOrderByCreatedAtDesc(User teacher);
+
+	void deleteByTeacher(User teacher);
 }
