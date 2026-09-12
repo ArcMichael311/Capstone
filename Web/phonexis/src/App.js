@@ -31,7 +31,7 @@ import {
 } from './lib/supabaseClient';
 
 function App() {
-  const ADMIN_EMAIL = 'phonexisadmin@gmail.com';
+  const ADMIN_EMAIL = (process.env.REACT_APP_ADMIN_EMAIL || 'phonexisadmin@gmail.com').trim().toLowerCase();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
   const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
