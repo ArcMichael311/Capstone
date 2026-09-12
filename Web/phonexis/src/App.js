@@ -95,7 +95,7 @@ function App() {
         email: user.email || user.user_metadata?.email,
       },
     };
-  }, []);
+  }, [ADMIN_EMAIL]);
 
   const applyBackendRole = useCallback(async (profile) => {
     if (!profile) {
@@ -151,7 +151,7 @@ function App() {
     } catch (error) {
       return profile;
     }
-  }, []);
+  }, [ADMIN_EMAIL]);
 
   const getLandingViewByRole = useCallback((userProfile) => {
     const email = String(userProfile?.email || userProfile?.user_metadata?.email || '').trim().toLowerCase();
@@ -169,7 +169,7 @@ function App() {
     }
 
     return 'dashboard';
-  }, []);
+  }, [ADMIN_EMAIL]);
 
   const navigateTo = useCallback((nextView, nextSection = null) => {
     if (!nextView) {
