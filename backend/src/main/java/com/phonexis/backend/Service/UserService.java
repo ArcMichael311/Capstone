@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,8 +27,10 @@ public class UserService {
 	private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
-	private static final String ADMIN_EMAIL = "phonexisadmin@gmail.com";
 	private static final Random RANDOM = new Random();
+
+	@Value("${app.admin-email}")
+	private String adminEmail;
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
@@ -376,7 +379,7 @@ public class UserService {
 	}
 
 	private boolean isAdminEmail(String email) {
-		return ADMIN_EMAIL.equalsIgnoreCase(normalizeEmail(email));
+		return adminEmail.equalsIgnoreCase(normalizeEmail(email));
 	}
 
 	private void ensureAdminRole(User user) {
