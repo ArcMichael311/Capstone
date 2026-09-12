@@ -11,10 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.phonexis.backend.Entity.ClassSection;
 import com.phonexis.backend.Entity.User;
 import com.phonexis.backend.Entity.User.Role;
 import com.phonexis.backend.Entity.Progress;
+import com.phonexis.backend.Repository.ClassEnrollmentRepository;
+import com.phonexis.backend.Repository.ClassSectionRepository;
 import com.phonexis.backend.Repository.ProgressRepository;
+import com.phonexis.backend.Repository.TeacherActivityRepository;
 import com.phonexis.backend.Repository.UserRepository;
 
 @Service
@@ -27,10 +31,25 @@ public class UserService {
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
+	private final ClassSectionRepository classSectionRepository;
+	private final ClassEnrollmentRepository classEnrollmentRepository;
+	private final TeacherActivityRepository teacherActivityRepository;
+	private final LearningMaterialService learningMaterialService;
 
-	public UserService(UserRepository userRepository, ProgressRepository progressRepository) {
+	public UserService(
+		UserRepository userRepository,
+		ProgressRepository progressRepository,
+		ClassSectionRepository classSectionRepository,
+		ClassEnrollmentRepository classEnrollmentRepository,
+		TeacherActivityRepository teacherActivityRepository,
+		LearningMaterialService learningMaterialService
+	) {
 		this.userRepository = userRepository;
 		this.progressRepository = progressRepository;
+		this.classSectionRepository = classSectionRepository;
+		this.classEnrollmentRepository = classEnrollmentRepository;
+		this.teacherActivityRepository = teacherActivityRepository;
+		this.learningMaterialService = learningMaterialService;
 	}
 
 	@Transactional(readOnly = true)
@@ -177,7 +196,19 @@ public class UserService {
 
 	@Transactional
 	public void deleteUser(Long id) {
-		userRepository.delete(getUserEntity(id));
+		User user = getUserEntity(id);
+
+		progressRepository.deleteByUser(user);
+		classEnrollmentRepository.deleteByStudent(user);
+		teacherActivityRepository.deleteByTeacher(user);
+
+		for (ClassSection classSection : classSectionRepository.findByTeacherOrderByCreatedAtDesc(user)) {
+			learningMaterialService.deleteAllForClass(classSection);
+			classEnrollmentRepository.deleteByClassSection(classSection);
+			classSectionRepository.delete(classSection);
+		}
+
+		userRepository.delete(user);
 	}
 
 	@Transactional
