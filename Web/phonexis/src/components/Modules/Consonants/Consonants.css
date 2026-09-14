@@ -183,11 +183,10 @@
 
 .consonants-object-word {
   margin: 0;
-  color: #b126aa;
   font-size: clamp(2.2rem, 4vw, 3.2rem);
   line-height: 1;
   font-weight: 800;
-  color: #e8e8e8;
+  color: #000000;
 }
 
 .consonants-object-sound {

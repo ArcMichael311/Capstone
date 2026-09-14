@@ -26,8 +26,9 @@ const moduleSections = {
   cvc: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'families', label: 'Simpler CVC Words' },
-    { key: 'selection', label: 'Word Selection' },
+    { key: 'selection', label: 'CVC Word Selection' },
     { key: 'building', label: 'Word Building' },
+    { key: 'racing', label: 'Pixel Car Racing' },
   ],
 };
 

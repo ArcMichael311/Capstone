@@ -667,7 +667,6 @@ function App() {
 
   const handleCvcComplete = () => {
     setCvcCompleted(true);
-    setActiveView('dashboard');
   };
 
   const handleAuthSuccess = (userProfile) => {
@@ -844,7 +843,7 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
-            initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
+            initialType={['learning', 'families', 'selection', 'building', 'racing'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'vowels':

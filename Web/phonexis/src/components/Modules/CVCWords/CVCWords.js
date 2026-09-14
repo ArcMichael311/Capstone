@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './CVCWords.css';
 import VoicePractice from '../../VoicePractice/VoicePractice';
 
@@ -141,7 +141,28 @@ const wordSelection = [
   { word: 'pig', icon: '🐷', prompt: 'A farm animal that oinks', choices: ['Pig', 'Fig', 'Dig'], correct: 'Pig' },
   { word: 'bat', icon: '🦇', prompt: 'A night flyer with tiny wings', choices: ['Bat', 'Rat', 'Hat'], correct: 'Bat' },
   { word: 'sun', icon: '☀️', prompt: 'The bright star in the sky', choices: ['Sun', 'Run', 'Fun'], correct: 'Sun' },
+  { word: 'map', icon: '🗺️', prompt: 'A picture that shows where places are', choices: ['Map', 'Mop', 'Cap'], correct: 'Map' },
+  { word: 'hen', icon: '🐔', prompt: 'A female chicken', choices: ['Hen', 'Pen', 'Ten'], correct: 'Hen' },
+  { word: 'fox', icon: '🦊', prompt: 'A clever animal with a bushy tail', choices: ['Fox', 'Box', 'Fix'], correct: 'Fox' },
+  { word: 'jam', icon: '🍓', prompt: 'A sweet spread made from fruit', choices: ['Jam', 'Ham', 'Jet'], correct: 'Jam' },
+  { word: 'bed', icon: '🛏️', prompt: 'A place where you sleep', choices: ['Bed', 'Red', 'Bad'], correct: 'Bed' },
 ];
+
+const shuffleItems = (items) => {
+  const shuffledItems = [...items];
+
+  for (let index = shuffledItems.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffledItems[index], shuffledItems[randomIndex]] = [shuffledItems[randomIndex], shuffledItems[index]];
+  }
+
+  return shuffledItems;
+};
+
+const createSelectionDeck = () => shuffleItems(wordSelection).map((item) => ({
+  ...item,
+  choices: shuffleItems(item.choices),
+}));
 
 const wordBuildingDeck = [
   {
@@ -224,6 +245,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
   const [selectedWord, setSelectedWord] = useState(wordSelection[0]);
+  const [selectionDeck, setSelectionDeck] = useState(createSelectionDeck);
   const [selectionIndex, setSelectionIndex] = useState(0);
   const [selectionResult, setSelectionResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState('');
@@ -236,6 +258,14 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
+  const [isRaceOpen, setIsRaceOpen] = useState(false);
+  const [raceStatus, setRaceStatus] = useState('ready');
+  const [raceScore, setRaceScore] = useState(0);
+  const [racePlayerLane, setRacePlayerLane] = useState(1);
+  const [raceEnemies, setRaceEnemies] = useState([]);
+  const racePlayerLaneRef = useRef(1);
+  const raceEnemyIdRef = useRef(0);
+  const raceSpawnTickRef = useRef(0);
 
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
@@ -301,10 +331,10 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
 
   const handleWordPick = (item) => {
     setSelectedWord(item);
-    setFeedback(`${item.word} selected.`);
+    speakWord(item.word);
   };
 
-  const currentSelection = wordSelection[selectionIndex];
+  const currentSelection = selectionDeck[selectionIndex];
 
   const handleSelectionPick = (choice) => {
     if (choice !== currentSelection.correct) {
@@ -322,7 +352,14 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const handleNextSelection = () => {
     const nextIndex = selectionIndex + 1;
 
-    if (nextIndex >= wordSelection.length) {
+    if (nextIndex >= selectionDeck.length) {
+      const nextDeck = createSelectionDeck();
+      setSelectionDeck(nextDeck);
+      setSelectionIndex(0);
+      setSelectionResult(null);
+      setSelectionMessage('');
+      setFeedback('New word set ready!');
+
       if (typeof onComplete === 'function') {
         onComplete();
       }
@@ -330,7 +367,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     }
 
     setSelectionIndex(nextIndex);
-    setSelectedWord(wordSelection[nextIndex]);
+  setSelectedWord(selectionDeck[nextIndex]);
     setSelectionResult(null);
     setSelectionMessage('');
     setFeedback('');
@@ -370,6 +407,142 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     setBuildingMessage('Choose the missing letter.');
     setFeedback('Build the word by choosing the correct letter.');
   };
+
+  const moveRacePlayer = (direction) => {
+    const nextLane = Math.max(0, Math.min(2, racePlayerLaneRef.current + direction));
+    racePlayerLaneRef.current = nextLane;
+    setRacePlayerLane(nextLane);
+  };
+
+  const startRace = () => {
+    racePlayerLaneRef.current = 1;
+    raceEnemyIdRef.current = 0;
+    raceSpawnTickRef.current = 0;
+    setRacePlayerLane(1);
+    setRaceEnemies([]);
+    setRaceScore(0);
+    setRaceStatus('racing');
+  };
+
+  const closeRace = () => {
+    setIsRaceOpen(false);
+    setRaceStatus('ready');
+  };
+
+  useEffect(() => {
+    if (raceStatus !== 'racing') return undefined;
+
+    const handleRaceKeyDown = (event) => {
+      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        moveRacePlayer(-1);
+      }
+
+      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        moveRacePlayer(1);
+      }
+    };
+
+    const raceTimer = window.setInterval(() => {
+      raceSpawnTickRef.current += 1;
+
+      setRaceEnemies((currentEnemies) => {
+        const movedEnemies = currentEnemies
+          .map((enemy) => ({ ...enemy, y: enemy.y + 1.25 }))
+          .filter((enemy) => enemy.y <= 108);
+        const passedCount = currentEnemies.filter((enemy) => enemy.y > 100).length;
+        const collision = movedEnemies.some(
+          (enemy) => enemy.lane === racePlayerLaneRef.current && enemy.y >= 78 && enemy.y <= 92,
+        );
+
+        if (passedCount > 0) {
+          setRaceScore((currentScore) => currentScore + passedCount);
+        }
+
+        if (collision) {
+          setRaceStatus('gameover');
+          return [];
+        }
+
+        if (raceSpawnTickRef.current >= 18) {
+          raceSpawnTickRef.current = 0;
+          return [
+            ...movedEnemies,
+            { id: raceEnemyIdRef.current++, lane: Math.floor(Math.random() * 3), y: -12 },
+          ];
+        }
+
+        return movedEnemies;
+      });
+    }, 50);
+
+    window.addEventListener('keydown', handleRaceKeyDown);
+    return () => {
+      window.clearInterval(raceTimer);
+      window.removeEventListener('keydown', handleRaceKeyDown);
+    };
+  }, [raceStatus]);
+
+  const renderRacing = () => (
+    <div className="cvc-stage cvc-racing-stage">
+      <div className="cvc-racing-intro">
+        <p className="cvc-racing-kicker">Ice vs Fire</p>
+        <h3>Pixel Car Racing</h3>
+        <p>Drive the ice car, dodge the fire cars, and build your score.</p>
+        <button type="button" className="cvc-action-button cvc-racing-launch" onClick={() => setIsRaceOpen(true)}>
+          Open Racing Game
+        </button>
+      </div>
+
+      {isRaceOpen ? (
+        <div className="cvc-racing-modal" role="dialog" aria-modal="true" aria-labelledby="cvc-racing-title">
+          <div className="cvc-racing-modal-card">
+            <button type="button" className="cvc-racing-close" onClick={closeRace} aria-label="Close racing game">
+              ×
+            </button>
+            <div className="cvc-racing-heading">
+              <p>ICE ❄ VS FIRE 🔥</p>
+              <h3 id="cvc-racing-title">Pixel Car Racing</h3>
+              <strong>Score: {raceScore}</strong>
+            </div>
+
+            <div className="cvc-racing-track" aria-label="Pixel car racing track">
+              {raceEnemies.map((enemy) => (
+                <span
+                  key={enemy.id}
+                  className="cvc-racing-car fire-car"
+                  style={{ '--car-lane': enemy.lane, '--car-y': `${enemy.y}%` }}
+                  aria-label="Fire car"
+                >
+                  🔥
+                </span>
+              ))}
+              <span
+                className="cvc-racing-car ice-car"
+                style={{ '--car-lane': racePlayerLane }}
+                aria-label="Ice car"
+              >
+                ❄️
+              </span>
+            </div>
+
+            <p className="cvc-racing-status" aria-live="polite">
+              {raceStatus === 'gameover' ? 'Crash! Try another run.' : raceStatus === 'racing' ? 'Use ← → or A and D to move.' : 'Start your run and dodge the fire cars.'}
+            </p>
+            <div className="cvc-racing-actions">
+              <button type="button" className="cvc-action-button" onClick={startRace}>
+                {raceStatus === 'racing' ? 'Restart Race' : 'Start Race'}
+              </button>
+              <button type="button" className="cvc-racing-secondary" onClick={closeRace}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 
   const renderFamilies = () => (
     <div className="cvc-stage cvc-family-stage">
@@ -565,7 +738,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       </div>
 
       <div className="cvc-dots" aria-label="Selection progress">
-        {wordSelection.map((item, index) => (
+        {selectionDeck.map((item, index) => (
           <span key={item.word} className={index === selectionIndex ? 'cvc-dot active' : index < selectionIndex ? 'cvc-dot done' : 'cvc-dot'} />
         ))}
       </div>
@@ -636,6 +809,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       {activeType === 'families' ? renderFamilies() : null}
       {activeType === 'selection' ? renderSelection() : null}
       {activeType === 'building' ? renderBuilding() : null}
+      {activeType === 'racing' ? renderRacing() : null}
 
       <div className="cvc-feedback" aria-live="polite">
         {activeType === 'selection' || activeType === 'building' ? '' : feedback}

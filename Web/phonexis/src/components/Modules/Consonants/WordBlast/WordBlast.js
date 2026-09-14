@@ -367,7 +367,7 @@ export default function WordBlast({ onClose }) {
         <div className="wordblast-answer-side">
           <div className="wordblast-word" aria-label="Word answer pattern">
             {round.word.split('').map((letter, index) => (
-              <strong key={`${letter}-${index}`} className={blankPositions.includes(index) ? 'wordblast-blank' : 'wordblast-fixed'}>
+              <strong key={`${letter}-${index}`} className={blankPositions.includes(index) ? (filledLetters[index] ? 'wordblast-blank wordblast-filled' : 'wordblast-blank') : 'wordblast-fixed'}>
                 {blankPositions.includes(index) ? (filledLetters[index] || '?') : letter.toLowerCase()}
               </strong>
             ))}

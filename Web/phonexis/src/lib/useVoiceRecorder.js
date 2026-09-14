@@ -31,6 +31,7 @@ export function useVoiceRecorder() {
 
       mediaRecorder.start();
       setIsRecording(true);
+      return true;
     } catch (err) {
       setError(
         err.name === 'NotAllowedError'
@@ -38,6 +39,7 @@ export function useVoiceRecorder() {
           : `Recording error: ${err.message}`
       );
       setIsRecording(false);
+      return false;
     }
   }, []);
 

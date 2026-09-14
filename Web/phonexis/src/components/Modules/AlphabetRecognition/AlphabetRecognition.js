@@ -49,24 +49,24 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const letters = useMemo(() => alphabet.map((item) => item.letter), []);
   const selectedIndex = letters.indexOf(selectedLetter.letter);
 
-  const speakLetter = () => {
+  const speakLetter = (letterToSpeak = selectedLetter) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setFeedback(`Speech is not available for ${selectedLetter.letter} right now.`);
+      setFeedback(`Speech is not available for ${letterToSpeak.letter} right now.`);
       return;
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(selectedLetter.letter);
+    const utterance = new SpeechSynthesisUtterance(`${letterToSpeak.letter}. ${letterToSpeak.word}.`);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     window.speechSynthesis.speak(utterance);
-    setFeedback(`Speaking ${selectedLetter.letter}.`);
+    setFeedback(`Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
   };
 
   const handlePick = (letter) => {
     const nextSelected = alphabet.find((item) => item.letter === letter) ?? alphabet[0];
     setSelectedLetter(nextSelected);
-    setFeedback(`Selected ${nextSelected.letter} - ${nextSelected.word}.`);
+    speakLetter(nextSelected);
   };
 
   const goToRelativeLetter = (offset) => {
