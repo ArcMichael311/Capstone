@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './VowelRush.css';
+import { doubleVowelExamples } from '../DoubleVowelLesson/doubleVowelData';
 
 const vowelLetters = new Set(['A', 'E', 'I', 'O', 'U']);
+const vowelTeams = doubleVowelExamples.map(({ letters }) => letters.toUpperCase());
 const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const laneCount = 6;
 
@@ -34,7 +36,7 @@ const difficultyModes = {
 
 const createRandomStar = () => {
   const isVowel = Math.random() < 0.55;
-  const vowels = ['A', 'E', 'I', 'O', 'U'];
+  const vowels = [...vowelLetters, ...vowelTeams];
   const consonants = letterPool.filter((letter) => !vowelLetters.has(letter));
   const letter = isVowel
     ? vowels[Math.floor(Math.random() * vowels.length)]
@@ -99,7 +101,7 @@ export default function VowelRush({ onClose }) {
   const playerFace = getPlayerFace(hearts);
   const heartsDisplay = '❤️'.repeat(Math.max(0, hearts));
   const roundGoal = currentMode.totalStars === null ? '∞' : currentMode.totalStars;
-  const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, and U. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel gives one point. Catching a consonant removes one heart. Catch five vowels in a row to gain one heart.';
+  const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, U, and double vowel pairs like EE, OO, AI, OA, AY, AA, and II. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel or vowel pair gives one point. Catching a consonant removes one heart. Catch five vowel stars in a row to gain one heart.';
 
   const clearTimers = () => {
     if (starTimerRef.current) {
@@ -379,7 +381,8 @@ export default function VowelRush({ onClose }) {
       </div>
 
       <div className="rush-instructions-list" aria-label="Vowel Rush rules">
-        <div className="rush-rule">🎯 Catch the vowel stars: A, E, I, O, U.</div>
+        <div className="rush-rule">🎯 Catch the vowel stars: A, E, I, O, U, plus double vowels and pairs.</div>
+        <div className="rush-rule">✨ Double vowels and pairs include: EE, OO, AI, OA, AY, AA, II.</div>
         <div className="rush-rule">🚀 Move the rocket with ➡️, ⬅️, A, or D.</div>
         <div className="rush-rule">⭐ Catching a vowel gives 1 point.</div>
         <div className="rush-rule">💔 Catching a consonant removes 1 heart.</div>
