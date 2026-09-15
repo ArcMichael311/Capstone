@@ -62,6 +62,11 @@
   font-size: 3rem;
 }
 
+.login-copy {
+  width: 100%;
+  text-align: center;
+}
+
 .login-copy h2 {
   margin: 0;
   color: #FF6B6B;
