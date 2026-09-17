@@ -241,6 +241,38 @@ const wordBuildingDeck = [
 
 const getRandomBuildingWord = () => wordBuildingDeck[Math.floor(Math.random() * wordBuildingDeck.length)];
 
+const createBalloonSet = (word, builtSlots = [], previousLanes = {}, round = 0) => {
+  const remainingTargetLetters = word.target
+    .toUpperCase()
+    .split('')
+    .filter((_, index) => !builtSlots[index]);
+  const targetLetter = remainingTargetLetters.length > 0
+    ? remainingTargetLetters[Math.floor(Math.random() * remainingTargetLetters.length)]
+    : null;
+  const distractorPool = word.choices.filter((letter) => !remainingTargetLetters.includes(letter));
+  const distractorCount = 4;
+  const distractors = Array.from({ length: distractorCount }, (_, index) => (
+    distractorPool[index % distractorPool.length]
+  ));
+  const letters = shuffleItems(targetLetter ? [targetLetter, ...distractors] : distractors);
+  const availableLanes = shuffleItems([0, 1, 2, 3, 4]);
+
+  return letters.map((letter, index) => {
+    const previousLane = previousLanes[letter];
+    const laneOptions = availableLanes.filter((lane) => lane !== previousLane);
+    const lane = laneOptions.length > 0 ? laneOptions[0] : availableLanes[0];
+    availableLanes.splice(availableLanes.indexOf(lane), 1);
+    previousLanes[letter] = lane;
+
+    return {
+      id: `${word.target}-${round}-${index}-${letter}`,
+      letter,
+      lane,
+      delay: `${(index % 5) * 0.35}s`,
+    };
+  });
+};
+
 export default function CVCWords({ onComplete, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
@@ -250,23 +282,23 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const [selectionResult, setSelectionResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState('');
   const [buildingWord, setBuildingWord] = useState(getRandomBuildingWord());
-  const [builtSlots, setBuiltSlots] = useState(buildingWord.slots);
-  const [buildingChoice, setBuildingChoice] = useState(buildingWord.choices[0]);
-  const [buildingResult, setBuildingResult] = useState(null);
-  const [buildingMessage, setBuildingMessage] = useState('Choose the missing letter.');
+  const [builtSlots, setBuiltSlots] = useState(['', '', '']);
+  const balloonLaneHistoryRef = useRef({});
+  const balloonRoundRef = useRef(0);
+  const [balloons, setBalloons] = useState(() => createBalloonSet(buildingWord, [], balloonLaneHistoryRef.current));
+  const [balloonHearts, setBalloonHearts] = useState(4);
+  const [balloonStreak, setBalloonStreak] = useState(0);
+  const [balloonShield, setBalloonShield] = useState(false);
+  const [balloonRewards, setBalloonRewards] = useState([]);
+  const [balloonStatus, setBalloonStatus] = useState('Pop the balloons in order to spell the word.');
+  const [balloonGameOver, setBalloonGameOver] = useState(false);
+  const [poppedBalloons, setPoppedBalloons] = useState({});
   const [feedback, setFeedback] = useState('Watch the learning materials video to unlock the CVC activities.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
-  const [isRaceOpen, setIsRaceOpen] = useState(false);
-  const [raceStatus, setRaceStatus] = useState('ready');
-  const [raceScore, setRaceScore] = useState(0);
-  const [racePlayerLane, setRacePlayerLane] = useState(1);
-  const [raceEnemies, setRaceEnemies] = useState([]);
-  const racePlayerLaneRef = useRef(1);
-  const raceEnemyIdRef = useRef(0);
-  const raceSpawnTickRef = useRef(0);
-
+  const [isReadingInstructions, setIsReadingInstructions] = useState(false);
+  const [isReadingHint, setIsReadingHint] = useState(false);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -293,6 +325,73 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking ${word}.`);
   };
+
+  const speakBalloonInstructions = () => {
+    const instructions = 'Listen carefully. Pop the one balloon with a letter from the word. You can choose the letters in any order. Wrong balloons take away one heart.';
+
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setBalloonStatus('Speech is not available. Please ask for help reading the instructions.');
+      return;
+    }
+
+    if (isReadingInstructions) {
+      stopSpeech();
+      setBalloonStatus('Stopped reading the game instructions.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(instructions);
+    utterance.rate = 0.85;
+    utterance.onend = () => setIsReadingInstructions(false);
+    utterance.onerror = () => setIsReadingInstructions(false);
+    window.speechSynthesis.speak(utterance);
+    setIsReadingInstructions(true);
+    setBalloonStatus('Speaking the game instructions.');
+  };
+
+  const speakBalloonHint = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setBalloonStatus('Speech is not available. Please ask for help reading the hint.');
+      return;
+    }
+
+    if (isReadingHint) {
+      stopSpeech();
+      setBalloonStatus('Stopped reading the hint.');
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(buildingWord.description);
+    utterance.rate = 0.85;
+    utterance.onend = () => setIsReadingHint(false);
+    utterance.onerror = () => setIsReadingHint(false);
+    window.speechSynthesis.speak(utterance);
+    setIsReadingHint(true);
+    setBalloonStatus('Speaking the word hint.');
+  };
+
+  const stopSpeech = () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsReadingInstructions(false);
+    setIsReadingHint(false);
+  };
+
+  useEffect(() => {
+    if (activeType !== 'building') {
+      stopSpeech();
+    }
+  }, [activeType]);
+
+  useEffect(() => () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsReadingInstructions(false);
+  }, []);
 
   const handleVideoWatched = (videoId) => {
     setVideosWatched((currentVideos) => {
@@ -373,176 +472,137 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     setFeedback('');
   };
 
-  const handleBuildLetter = (letter) => {
-    setBuildingChoice(letter);
-    setBuildingResult(null);
-    setBuildingMessage('Choose the missing letter.');
-    setFeedback(`Letter ${letter} selected.`);
-  };
-
-  const handleCheckBuild = () => {
-    const blankIndex = buildingWord.slots.findIndex((slot) => slot === '');
-    const nextSlots = [...buildingWord.slots];
-    nextSlots[blankIndex] = buildingChoice;
-    setBuiltSlots(nextSlots);
-
-    if (nextSlots.join('').toLowerCase() === buildingWord.target) {
-      setBuildingResult('correct');
-      setBuildingMessage('Correct!');
-      setFeedback('Correct!');
-      return;
-    }
-
-    setBuildingResult('wrong');
-    setBuildingMessage('Wrong answer. Try again.');
-    setFeedback('Try again.');
-  };
-
   const handleNextBuildingWord = () => {
     const nextBuildingWord = pickRandomBuildingWord(buildingWord.target);
     setBuildingWord(nextBuildingWord);
-    setBuiltSlots(nextBuildingWord.slots);
-    setBuildingChoice(nextBuildingWord.choices[0]);
-    setBuildingResult(null);
-    setBuildingMessage('Choose the missing letter.');
-    setFeedback('Build the word by choosing the correct letter.');
+    setBuiltSlots(['', '', '']);
+    balloonLaneHistoryRef.current = {};
+    balloonRoundRef.current += 1;
+    setBalloons(createBalloonSet(nextBuildingWord, [], balloonLaneHistoryRef.current, balloonRoundRef.current));
+    setBalloonGameOver(false);
+    setPoppedBalloons({});
+    setBalloonStatus('Pop the balloons in order to spell the word.');
   };
 
-  const moveRacePlayer = (direction) => {
-    const nextLane = Math.max(0, Math.min(2, racePlayerLaneRef.current + direction));
-    racePlayerLaneRef.current = nextLane;
-    setRacePlayerLane(nextLane);
+  const awardBalloonReward = () => {
+    const rewardTypes = ['shield', 'heal', 'reveal'];
+    const reward = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
+    setBalloonRewards((currentRewards) => [...currentRewards, reward]);
+    setBalloonStatus(`Streak reward: ${reward === 'shield' ? 'Shield' : reward === 'heal' ? 'Extra heart' : 'Reveal letter'} earned!`);
   };
 
-  const startRace = () => {
-    racePlayerLaneRef.current = 1;
-    raceEnemyIdRef.current = 0;
-    raceSpawnTickRef.current = 0;
-    setRacePlayerLane(1);
-    setRaceEnemies([]);
-    setRaceScore(0);
-    setRaceStatus('racing');
+  const claimBalloonReward = (reward) => {
+    setBalloonRewards((currentRewards) => {
+      const rewardIndex = currentRewards.indexOf(reward);
+      if (rewardIndex === -1) return currentRewards;
+      return currentRewards.filter((_, index) => index !== rewardIndex);
+    });
+
+    if (reward === 'shield') {
+      setBalloonShield(true);
+      setBalloonStatus('Shield ready: one wrong balloon will not cost a heart.');
+      return;
+    }
+
+    if (reward === 'heal') {
+      setBalloonHearts((currentHearts) => Math.min(4, currentHearts + 1));
+      setBalloonStatus('Heart restored!');
+      return;
+    }
+
+    const nextIndex = builtSlots.findIndex((slot) => !slot);
+    if (nextIndex === -1) return;
+    const nextSlots = [...builtSlots];
+    nextSlots[nextIndex] = buildingWord.target[nextIndex].toUpperCase();
+    setBuiltSlots(nextSlots);
+    setBalloonStatus('The next letter was revealed!');
   };
 
-  const closeRace = () => {
-    setIsRaceOpen(false);
-    setRaceStatus('ready');
-  };
+  const handleBalloonClick = (balloon) => {
+    if (balloonGameOver || builtSlots.every(Boolean) || poppedBalloons[balloon.id]) return;
 
-  useEffect(() => {
-    if (raceStatus !== 'racing') return undefined;
+    const targetIndex = buildingWord.target
+      .toUpperCase()
+      .split('')
+      .findIndex((letter, index) => letter === balloon.letter && !builtSlots[index]);
+    if (targetIndex !== -1) {
+      const nextSlots = [...builtSlots];
+      nextSlots[targetIndex] = balloon.letter;
+      const nextStreak = balloonStreak + 1;
+      setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'correct' }));
+      setBuiltSlots(nextSlots);
+      setBalloonStreak(nextStreak);
+      setBalloonStatus(nextSlots.every(Boolean) ? 'Correct! Word complete!' : 'Correct!');
+      window.setTimeout(() => {
+        setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
+        setPoppedBalloons((currentPopped) => {
+          const nextPopped = { ...currentPopped };
+          delete nextPopped[balloon.id];
+          return nextPopped;
+        });
+      }, 400);
+      if (nextStreak > 0 && nextStreak % 3 === 0) awardBalloonReward();
+      return;
+    }
 
-    const handleRaceKeyDown = (event) => {
-      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'a') {
-        event.preventDefault();
-        moveRacePlayer(-1);
+    if (balloonShield) {
+      setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'wrong' }));
+      setBalloonShield(false);
+      setBalloonStatus('Wrong balloon! Shield blocked it.');
+      window.setTimeout(() => {
+        setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
+        setPoppedBalloons((currentPopped) => {
+          const nextPopped = { ...currentPopped };
+          delete nextPopped[balloon.id];
+          return nextPopped;
+        });
+      }, 400);
+      return;
+    }
+
+    setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'wrong' }));
+    setBalloonHearts((currentHearts) => {
+      const nextHearts = currentHearts - 1;
+      if (nextHearts <= 0) {
+        setBalloonGameOver(true);
+        setBalloonStatus('Out of hearts. Try the word again.');
+      } else {
+        setBalloonStatus('Wrong! That letter is not in the word.');
       }
-
-      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'd') {
-        event.preventDefault();
-        moveRacePlayer(1);
-      }
-    };
-
-    const raceTimer = window.setInterval(() => {
-      raceSpawnTickRef.current += 1;
-
-      setRaceEnemies((currentEnemies) => {
-        const movedEnemies = currentEnemies
-          .map((enemy) => ({ ...enemy, y: enemy.y + 1.25 }))
-          .filter((enemy) => enemy.y <= 108);
-        const passedCount = currentEnemies.filter((enemy) => enemy.y > 100).length;
-        const collision = movedEnemies.some(
-          (enemy) => enemy.lane === racePlayerLaneRef.current && enemy.y >= 78 && enemy.y <= 92,
-        );
-
-        if (passedCount > 0) {
-          setRaceScore((currentScore) => currentScore + passedCount);
-        }
-
-        if (collision) {
-          setRaceStatus('gameover');
-          return [];
-        }
-
-        if (raceSpawnTickRef.current >= 18) {
-          raceSpawnTickRef.current = 0;
-          return [
-            ...movedEnemies,
-            { id: raceEnemyIdRef.current++, lane: Math.floor(Math.random() * 3), y: -12 },
-          ];
-        }
-
-        return movedEnemies;
+      return nextHearts;
+    });
+    setBalloonStreak(0);
+    window.setTimeout(() => {
+      setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
+      setPoppedBalloons((currentPopped) => {
+        const nextPopped = { ...currentPopped };
+        delete nextPopped[balloon.id];
+        return nextPopped;
       });
-    }, 50);
+    }, 400);
+  };
 
-    window.addEventListener('keydown', handleRaceKeyDown);
-    return () => {
-      window.clearInterval(raceTimer);
-      window.removeEventListener('keydown', handleRaceKeyDown);
-    };
-  }, [raceStatus]);
+  const handleBalloonCycle = () => {
+    if (balloonGameOver || builtSlots.every(Boolean)) return;
 
-  const renderRacing = () => (
-    <div className="cvc-stage cvc-racing-stage">
-      <div className="cvc-racing-intro">
-        <p className="cvc-racing-kicker">Ice vs Fire</p>
-        <h3>Pixel Car Racing</h3>
-        <p>Drive the ice car, dodge the fire cars, and build your score.</p>
-        <button type="button" className="cvc-action-button cvc-racing-launch" onClick={() => setIsRaceOpen(true)}>
-          Open Racing Game
-        </button>
-      </div>
+    balloonRoundRef.current += 1;
+    setBalloons(createBalloonSet(buildingWord, builtSlots, balloonLaneHistoryRef.current, balloonRoundRef.current));
+    setBalloonStatus('New balloons are here! Find the one letter from the word.');
+  };
 
-      {isRaceOpen ? (
-        <div className="cvc-racing-modal" role="dialog" aria-modal="true" aria-labelledby="cvc-racing-title">
-          <div className="cvc-racing-modal-card">
-            <button type="button" className="cvc-racing-close" onClick={closeRace} aria-label="Close racing game">
-              ×
-            </button>
-            <div className="cvc-racing-heading">
-              <p>ICE ❄ VS FIRE 🔥</p>
-              <h3 id="cvc-racing-title">Pixel Car Racing</h3>
-              <strong>Score: {raceScore}</strong>
-            </div>
-
-            <div className="cvc-racing-track" aria-label="Pixel car racing track">
-              {raceEnemies.map((enemy) => (
-                <span
-                  key={enemy.id}
-                  className="cvc-racing-car fire-car"
-                  style={{ '--car-lane': enemy.lane, '--car-y': `${enemy.y}%` }}
-                  aria-label="Fire car"
-                >
-                  🔥
-                </span>
-              ))}
-              <span
-                className="cvc-racing-car ice-car"
-                style={{ '--car-lane': racePlayerLane }}
-                aria-label="Ice car"
-              >
-                ❄️
-              </span>
-            </div>
-
-            <p className="cvc-racing-status" aria-live="polite">
-              {raceStatus === 'gameover' ? 'Crash! Try another run.' : raceStatus === 'racing' ? 'Use ← → or A and D to move.' : 'Start your run and dodge the fire cars.'}
-            </p>
-            <div className="cvc-racing-actions">
-              <button type="button" className="cvc-action-button" onClick={startRace}>
-                {raceStatus === 'racing' ? 'Restart Race' : 'Start Race'}
-              </button>
-              <button type="button" className="cvc-racing-secondary" onClick={closeRace}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+  const restartBalloonGame = () => {
+    setBalloonHearts(4);
+    setBalloonStreak(0);
+    setBalloonShield(false);
+    setBalloonRewards([]);
+    setBalloonGameOver(false);
+    setBuiltSlots(['', '', '']);
+    setPoppedBalloons({});
+    balloonLaneHistoryRef.current = {};
+    balloonRoundRef.current += 1;
+    setBalloons(createBalloonSet(buildingWord, [], balloonLaneHistoryRef.current, balloonRoundRef.current));
+    setBalloonStatus('Pop the balloons in order to spell the word.');
+  };
 
   const renderFamilies = () => (
     <div className="cvc-stage cvc-family-stage">
@@ -746,57 +806,77 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   );
 
   const renderBuilding = () => (
-    <div className="cvc-stage">
-      <div className="cvc-building-shell">
-        <div className="cvc-building-hint" aria-label="Word clue">
-          <span className="cvc-building-hint-label">Object clue</span>
-          <span className="cvc-building-hint-icon" aria-hidden="true">
-            {buildingWord.icon}
-          </span>
-          <p>{buildingWord.description}</p>
-        </div>
-
-        <span className="cvc-centered-icon" aria-hidden="true">
-          {buildingWord.icon}
-        </span>
-        <h3>Word Building</h3>
-        <p>{buildingWord.prompt}</p>
-
-        <div className="cvc-build-word" aria-label="Built word">
-          {builtSlots.map((slot, index) => (
-            <div key={`${index}-${slot}`} className={slot ? 'cvc-build-slot filled' : 'cvc-build-slot'}>
-              {slot || '_'}
-            </div>
-          ))}
-        </div>
-
-        <div className="cvc-letter-choices" aria-label="Letter choices">
-          {buildingWord.choices.map((letter) => (
-            <button
-              key={letter}
-              type="button"
-              className={letter === buildingChoice ? 'cvc-letter-choice active' : 'cvc-letter-choice'}
-              onClick={() => handleBuildLetter(letter)}
-            >
-              {letter}
-            </button>
-          ))}
-        </div>
-
-        <button type="button" className="cvc-action-button" onClick={handleCheckBuild}>
-          Check Word
-        </button>
-
-        {buildingResult === 'correct' ? (
-          <button type="button" className="cvc-action-button cvc-next-button" onClick={handleNextBuildingWord}>
-            Next Word
+    <div className="cvc-stage cvc-balloon-stage">
+      <div className="cvc-balloon-header">
+        <div className="cvc-balloon-hint">
+          <span className="cvc-building-hint-label">Balloon spelling</span>
+          <h3>{buildingWord.icon} Pop the CVC word</h3>
+          <div className="cvc-building-hint-icon" aria-hidden="true">{buildingWord.icon}</div>
+          <p className="cvc-balloon-hint-sentence">{buildingWord.description}</p>
+          <button type="button" className="cvc-instructions-button" onClick={speakBalloonHint}>
+            {isReadingHint ? '⏹ Stop Hint' : '🔊 Hear Hint'}
           </button>
-        ) : null}
-
-        <div className={buildingResult === 'correct' ? 'cvc-selection-message correct' : 'cvc-selection-message wrong'} aria-live="polite">
-          {buildingMessage}
+          <p className="cvc-balloon-instructions">
+            Click the one balloon letter from the word. You can choose letters in any order.
+          </p>
+          <button type="button" className="cvc-instructions-button" onClick={speakBalloonInstructions}>
+            {isReadingInstructions ? '⏹ Stop Instructions' : '🔊 Hear Instructions'}
+          </button>
+        </div>
+        <div className="cvc-balloon-stats" aria-label="Game status">
+          <strong>{'♥'.repeat(balloonHearts)}{'♡'.repeat(4 - balloonHearts)}</strong>
+          <span>Streak {balloonStreak}</span>
+          {balloonShield ? <span className="cvc-shield-badge">🛡 Shield ready</span> : null}
         </div>
       </div>
+
+      <div className="cvc-build-word" aria-label="Word progress">
+        {builtSlots.map((slot, index) => (
+          <div key={`${index}-${slot}`} className={slot ? 'cvc-build-slot filled' : 'cvc-build-slot'}>{slot || '_'}</div>
+        ))}
+      </div>
+
+      <div className="cvc-balloon-sky" aria-label="Letter balloons" onAnimationIteration={handleBalloonCycle}>
+        {balloons.map((balloon) => (
+          <button
+            key={balloon.id}
+            type="button"
+            className={`cvc-balloon${poppedBalloons[balloon.id] ? ` popped ${poppedBalloons[balloon.id]}` : ''}`}
+            style={{ '--balloon-lane': balloon.lane, '--balloon-delay': balloon.delay }}
+            onClick={() => handleBalloonClick(balloon)}
+            disabled={balloonGameOver || builtSlots.every(Boolean)}
+            aria-label={`Letter ${balloon.letter}`}
+          >
+            {balloon.letter}
+          </button>
+        ))}
+      </div>
+
+      <div className="cvc-balloon-message" aria-live="polite">{balloonStatus}</div>
+      <div className="cvc-reward-tray" aria-label="Streak rewards">
+        <span>Rewards:</span>
+        {['shield', 'heal', 'reveal'].map((reward) => {
+          const count = balloonRewards.filter((item) => item === reward).length;
+          return (
+            <button key={reward} type="button" disabled={!count || balloonGameOver} onClick={() => claimBalloonReward(reward)}>
+              {reward === 'shield' ? '🛡 Shield' : reward === 'heal' ? '♥ Heal' : '✨ Reveal'} {count ? `(${count})` : ''}
+            </button>
+          );
+        })}
+      </div>
+
+      {builtSlots.every(Boolean) ? <button type="button" className="cvc-action-button" onClick={handleNextBuildingWord}>Next Word</button> : null}
+
+      {balloonGameOver ? (
+        <div className="cvc-game-over-modal" role="dialog" aria-modal="true" aria-labelledby="cvc-game-over-title">
+          <div className="cvc-game-over-card">
+            <div className="cvc-game-over-icon" aria-hidden="true">💔</div>
+            <h3 id="cvc-game-over-title">Game Over</h3>
+            <p>You ran out of hearts. Try the word again!</p>
+            <button type="button" className="cvc-action-button" onClick={restartBalloonGame}>Try Again</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -809,7 +889,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       {activeType === 'families' ? renderFamilies() : null}
       {activeType === 'selection' ? renderSelection() : null}
       {activeType === 'building' ? renderBuilding() : null}
-      {activeType === 'racing' ? renderRacing() : null}
 
       <div className="cvc-feedback" aria-live="polite">
         {activeType === 'selection' || activeType === 'building' ? '' : feedback}
