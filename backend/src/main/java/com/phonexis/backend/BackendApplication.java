@@ -27,10 +27,10 @@ public class BackendApplication {
 	public CommandLineRunner createAdminIfMissing(UserRepository userRepository) {
 		return args -> {
 			try {
-				final String adminEmail = getEnvOrDefault("ADMIN_EMAIL", "phonexisadmin@gmail.com");
-				final String adminPassword = getEnvOrDefault("ADMIN_PASSWORD", "phonexisadmin5");
-				final String adminFirstName = getEnvOrDefault("ADMIN_FIRST_NAME", "Phonexis");
-				final String adminLastName = getEnvOrDefault("ADMIN_LAST_NAME", "Admin");
+				final String adminEmail = System.getenv("ADMIN_EMAIL");
+				final String adminPassword = System.getenv("ADMIN_PASSWORD");
+				final String adminFirstName = getEnvOrDefault("ADMIN_FIRST_NAME", "Admin");
+				final String adminLastName = getEnvOrDefault("ADMIN_LAST_NAME", "User");
 				final String supabaseUrl = getEnvOrDefault("SUPABASE_URL", getEnvOrDefault("REACT_APP_SUPABASE_URL", ""));
 				final String supabaseServiceKey = getEnvOrDefault("SUPABASE_SERVICE_ROLE_KEY", "");
 
