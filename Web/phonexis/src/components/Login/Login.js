@@ -1,5 +1,6 @@
 import './Login.css';
 import { useState } from 'react';
+import logo from './logoB.png';
 import { getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
 
@@ -100,7 +101,7 @@ export default function Login({ onNavigate, onSuccess }) {
       <AuthLetterBackground />
       <section className="login-card" aria-label="Login form">
       <div className="login-badge" aria-hidden="true">
-        <span>📖</span>
+        <img src={logo} alt="Phonics Learning logo" className="login-logo" />
       </div>
 
       <div className="login-copy">
