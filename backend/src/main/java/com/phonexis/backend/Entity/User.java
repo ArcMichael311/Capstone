@@ -51,6 +51,9 @@ public class User {
 	@Column(name = "active_device_id", length = 128)
 	private String activeDeviceId;
 
+	@Column(name = "last_active_at")
+	private LocalDateTime lastActiveAt;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 
@@ -143,6 +146,14 @@ public class User {
 
 	public void setActiveDeviceId(String activeDeviceId) {
 		this.activeDeviceId = activeDeviceId;
+	}
+
+	public LocalDateTime getLastActiveAt() {
+		return lastActiveAt;
+	}
+
+	public void setLastActiveAt(LocalDateTime lastActiveAt) {
+		this.lastActiveAt = lastActiveAt;
 	}
 
 	@PrePersist

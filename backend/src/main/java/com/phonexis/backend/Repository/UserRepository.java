@@ -1,5 +1,6 @@
 package com.phonexis.backend.Repository;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.Modifying;
@@ -14,8 +15,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 	Optional<User> findByEmailIgnoreCase(String email);
 
 	@Modifying
-	@Query("update User u set u.activeDeviceId = :deviceId where u.userId = :userId and (u.activeDeviceId is null or u.activeDeviceId = '')")
-	int claimDeviceIfAvailable(@Param("userId") Long userId, @Param("deviceId") String deviceId);
+	@Query("update User u set u.activeDeviceId = :deviceId, u.lastActiveAt = CURRENT_TIMESTAMP where u.userId = :userId "
+		+ "and (u.activeDeviceId is null or u.activeDeviceId = '' or u.activeDeviceId = :deviceId "
+		+ "or u.lastActiveAt is null or u.lastActiveAt < :staleBefore)")
+	int claimDeviceIfAvailable(@Param("userId") Long userId, @Param("deviceId") String deviceId, @Param("staleBefore") LocalDateTime staleBefore);
 
 	boolean existsByEmailIgnoreCase(String email);
 

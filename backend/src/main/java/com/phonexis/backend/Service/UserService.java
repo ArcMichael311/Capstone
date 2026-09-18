@@ -1,5 +1,6 @@
 package com.phonexis.backend.Service;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ public class UserService {
 	private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
+	private static final int DEVICE_LOCK_STALE_MINUTES = 30;
 	private static final Random RANDOM = new Random();
 
 	private final UserRepository userRepository;
@@ -220,20 +222,20 @@ public class UserService {
 		if (normalizedDeviceId.isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
 		}
-		if (!deviceMatches(user, normalizedDeviceId)) {
+
+		// Claims the device slot when it's free, already ours, or stale (no heartbeat
+		// for DEVICE_LOCK_STALE_MINUTES - e.g. the previous tab was closed without logging out).
+		LocalDateTime staleBefore = LocalDateTime.now().minusMinutes(DEVICE_LOCK_STALE_MINUTES);
+		if (userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
-		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
-			if (userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId) != 1) {
-				throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
-			}
-			user.setActiveDeviceId(normalizedDeviceId);
-		}
 
+		user.setActiveDeviceId(normalizedDeviceId);
+		user.setLastActiveAt(LocalDateTime.now());
 		return toUserProfile(userRepository.save(user));
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
@@ -241,6 +243,9 @@ public class UserService {
 			|| !normalizedDeviceId.equals(user.getActiveDeviceId())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
+
+		user.setLastActiveAt(LocalDateTime.now());
+		userRepository.save(user);
 	}
 
 	@Transactional
