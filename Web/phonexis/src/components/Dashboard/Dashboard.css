@@ -36,12 +36,24 @@
   width: 5.5rem;
   height: 5.5rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #FFD700 0%, #FF6B6B 100%);
+  padding: 0.55rem;
+  background: rgba(255, 255, 255, 0.94);
+  border: 3px solid rgba(255, 255, 255, 0.9);
   color: #FFFFFF;
-  box-shadow: 0 0 25px rgba(255, 107, 107, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 25px rgba(255, 107, 107, 0.4),
+              0 0 0 4px rgba(255, 255, 255, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
   font-size: 2rem;
   animation: float 3s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.dashboard-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: saturate(1.2) contrast(1.12) drop-shadow(0 4px 8px rgba(0,0,0,0.12));
 }
 
 @keyframes float {

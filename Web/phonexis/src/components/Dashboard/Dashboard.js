@@ -1,4 +1,5 @@
 import './Dashboard.css';
+import logo from '../Login/logoB.png';
 
 const moduleCards = [
   {
@@ -65,7 +66,7 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
       <header className="dashboard-topbar">
         <div className="dashboard-user">
           <div className="dashboard-avatar" aria-hidden="true">
-            <span>🎓</span>
+            <img src={logo} alt="Phonics Learning logo" className="dashboard-logo" />
           </div>
           <div>
             <h2>Welcome, {displayName}!</h2>
