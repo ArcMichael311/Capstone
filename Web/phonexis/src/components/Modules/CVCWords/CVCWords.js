@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import './CVCWords.css';
+import { speakText } from './speechUtils';
 import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const videos = [
@@ -146,6 +147,10 @@ const wordSelection = [
   { word: 'fox', icon: '🦊', prompt: 'A clever animal with a bushy tail', choices: ['Fox', 'Box', 'Fix'], correct: 'Fox' },
   { word: 'jam', icon: '🍓', prompt: 'A sweet spread made from fruit', choices: ['Jam', 'Ham', 'Jet'], correct: 'Jam' },
   { word: 'bed', icon: '🛏️', prompt: 'A place where you sleep', choices: ['Bed', 'Red', 'Bad'], correct: 'Bed' },
+  { word: 'bag', icon: '👜', prompt: 'A container you carry your things in', choices: ['Bag', 'Tag', 'Bug'], correct: 'Bag' },
+  { word: 'car', icon: '🚗', prompt: 'A vehicle with four wheels', choices: ['Car', 'Cat', 'Cap'], correct: 'Car' },
+  { word: 'bus', icon: '🚌', prompt: 'A big vehicle that carries many people', choices: ['Bus', 'Bun', 'Bug'], correct: 'Bus' },
+  { word: 'tree', icon: '🌳', prompt: 'A tall plant with branches and leaves', choices: ['Tree', 'Three', 'Bee'], correct: 'Tree' },
 ];
 
 const shuffleItems = (items) => {
@@ -237,6 +242,30 @@ const wordBuildingDeck = [
     choices: ['C', 'U', 'P', 'A', 'O'],
     description: 'A container used for drinking.',
   },
+  {
+    target: 'bag',
+    icon: '👜',
+    prompt: 'Build the word by choosing the correct letters',
+    slots: ['B', 'A', ''],
+    choices: ['B', 'A', 'G', 'D', 'R'],
+    description: 'A container you carry your things in.',
+  },
+  {
+    target: 'car',
+    icon: '🚗',
+    prompt: 'Build the word by choosing the correct letters',
+    slots: ['C', 'A', ''],
+    choices: ['C', 'A', 'R', 'T', 'M'],
+    description: 'A vehicle with four wheels.',
+  },
+  {
+    target: 'bus',
+    icon: '🚌',
+    prompt: 'Build the word by choosing the correct letters',
+    slots: ['B', 'U', 'S'],
+    choices: ['B', 'U', 'S', 'T', 'P'],
+    description: 'A large vehicle that carries many people.',
+  },
 ];
 
 const getRandomBuildingWord = () => wordBuildingDeck[Math.floor(Math.random() * wordBuildingDeck.length)];
@@ -250,12 +279,12 @@ const createBalloonSet = (word, builtSlots = [], previousLanes = {}, round = 0) 
     ? remainingTargetLetters[Math.floor(Math.random() * remainingTargetLetters.length)]
     : null;
   const distractorPool = word.choices.filter((letter) => !remainingTargetLetters.includes(letter));
-  const distractorCount = 4;
+  const distractorCount = 9;
   const distractors = Array.from({ length: distractorCount }, (_, index) => (
     distractorPool[index % distractorPool.length]
   ));
   const letters = shuffleItems(targetLetter ? [targetLetter, ...distractors] : distractors);
-  const availableLanes = shuffleItems([0, 1, 2, 3, 4]);
+  const availableLanes = shuffleItems([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
 
   return letters.map((letter, index) => {
     const previousLane = previousLanes[letter];
@@ -314,15 +343,12 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   };
 
   const speakWord = (word) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    const didSpeak = speakText(word, { rate: 0.9 });
+    if (!didSpeak) {
       setFeedback(`Hear the word: ${word}.`);
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking ${word}.`);
   };
 
@@ -340,12 +366,11 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(instructions);
-    utterance.rate = 0.85;
-    utterance.onend = () => setIsReadingInstructions(false);
-    utterance.onerror = () => setIsReadingInstructions(false);
-    window.speechSynthesis.speak(utterance);
+    speakText(instructions, {
+      rate: 0.85,
+      onend: () => setIsReadingInstructions(false),
+      onerror: () => setIsReadingInstructions(false),
+    });
     setIsReadingInstructions(true);
     setBalloonStatus('Speaking the game instructions.');
   };
@@ -362,12 +387,11 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(buildingWord.description);
-    utterance.rate = 0.85;
-    utterance.onend = () => setIsReadingHint(false);
-    utterance.onerror = () => setIsReadingHint(false);
-    window.speechSynthesis.speak(utterance);
+    speakText(buildingWord.description, {
+      rate: 0.85,
+      onend: () => setIsReadingHint(false),
+      onerror: () => setIsReadingHint(false),
+    });
     setIsReadingHint(true);
     setBalloonStatus('Speaking the word hint.');
   };
@@ -521,6 +545,8 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const handleBalloonClick = (balloon) => {
     if (balloonGameOver || builtSlots.every(Boolean) || poppedBalloons[balloon.id]) return;
 
+    speakText(balloon.letter);
+
     const targetIndex = buildingWord.target
       .toUpperCase()
       .split('')
@@ -532,7 +558,15 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'correct' }));
       setBuiltSlots(nextSlots);
       setBalloonStreak(nextStreak);
-      setBalloonStatus(nextSlots.every(Boolean) ? 'Correct! Word complete!' : 'Correct!');
+
+      if (nextSlots.every(Boolean)) {
+        const completedWord = nextSlots.join('');
+        setBalloonStatus('Correct! Word complete!');
+        speakText(completedWord, { rate: 0.8 });
+      } else {
+        setBalloonStatus('Correct!');
+      }
+
       window.setTimeout(() => {
         setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
         setPoppedBalloons((currentPopped) => {
