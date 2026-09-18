@@ -11,24 +11,23 @@ const moduleSections = {
     { key: 'easy', label: 'Easy' },
     { key: 'medium', label: 'Medium' },
     { key: 'hard', label: 'Hard' },
-    { key: 'alphaquest', label: 'AlphaQuest' },
+    { key: 'alphaquest', label: 'Game: AlphaQuest' },
   ],
   vowels: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'lesson', label: 'Basics of Vowels' },
-    { key: 'vowelrush', label: 'VowelRush' },
+    { key: 'vowelrush', label: 'Game: VowelRush' },
   ],
   consonants: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'explore', label: 'Explore Consonants' },
-    { key: 'wordblast', label: 'WordBlast' },
+    { key: 'wordblast', label: 'Game: WordBlast' },
   ],
   cvc: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'families', label: 'Simpler CVC Words' },
     { key: 'selection', label: 'CVC Word Selection' },
-    { key: 'building', label: 'Word Building' },
-    { key: 'racing', label: 'Pixel Car Racing' },
+    { key: 'building', label: 'Game:Balloon Pop' },
   ],
 };
 

@@ -530,196 +530,324 @@
   color: #25345a;
   font: inherit;
   font-weight: 800;
-  cursor: pointer;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.cvc-letter-choice.active {
-  background: #1e79ef;
-  border-color: #145fc4;
+.cvc-balloon-stage {
+  width: min(100%, 52rem);
+  justify-self: center;
+  margin-inline: auto;
+  gap: 1rem;
+}
+
+.cvc-balloon-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 2px solid #f0b63b;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, #fffaf0, #eaf7ff);
+  box-sizing: border-box;
+}
+
+.cvc-balloon-hint {
+  display: grid;
+  justify-items: center;
+  flex: 1;
+  text-align: center;
+}
+
+.cvc-balloon-header h3,
+.cvc-balloon-header p {
+  margin: 0.2rem 0 0;
+}
+
+.cvc-balloon-hint-sentence {
+  max-width: 31rem;
+}
+
+.cvc-balloon-hint .cvc-building-hint-icon {
+  font-size: clamp(6rem, 15vw, 9rem);
+  margin: 0.4rem 0;
+}
+
+.cvc-balloon-header h3 {
+  color: #193b62;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.cvc-balloon-header p {
+  color: #52657b;
+  font-size: 0.9rem;
+}
+
+.cvc-balloon-instructions {
+  max-width: 31rem;
+  color: #205c88 !important;
+  font-weight: 800;
+}
+
+.cvc-instructions-button {
+  justify-self: start;
+  margin-top: 0.4rem;
+  border: 1px solid #2a9bc8;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  background: #ffffff;
+  color: #205c88;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cvc-instructions-button:hover,
+.cvc-instructions-button:focus-visible {
+  background: #e5f7ff;
+  outline: 2px solid #63c5e8;
+  outline-offset: 2px;
+}
+
+.cvc-balloon-stats {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+  color: #d84d58;
+  white-space: nowrap;
+}
+
+.cvc-balloon-stats strong {
+  font-size: 1.35rem;
+  letter-spacing: 0.1em;
+}
+
+.cvc-balloon-stats span {
+  color: #205c88;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.cvc-shield-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: #dff6ff;
+}
+
+.cvc-balloon-sky {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: clamp(19rem, 48vw, 27rem);
+  border: 2px solid #63c5e8;
+  border-radius: 1.4rem;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.85) 0 2%, transparent 2.5%),
+    radial-gradient(circle at 76% 14%, rgba(255, 255, 255, 0.75) 0 3%, transparent 3.5%),
+    linear-gradient(180deg, #aee7ff 0%, #edfaff 78%, #d7f4d2 78%, #c2e7b6 100%);
+  box-shadow: inset 0 -1rem 0 rgba(73, 157, 93, 0.12);
+}
+
+.cvc-balloon {
+  position: absolute;
+  bottom: -5.5rem;
+  left: calc((var(--balloon-lane) + 0.5) * 20%);
+  z-index: 1;
+  width: clamp(3.4rem, 10vw, 5rem);
+  aspect-ratio: 0.82;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 52% 52% 48% 48%;
+  background: hsl(calc(var(--balloon-lane) * 63 + 8), 78%, 59%);
   color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(30, 121, 239, 0.2), 0 8px 16px rgba(30, 121, 239, 0.25);
+  font: inherit;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: inset -0.45rem -0.55rem 0 rgba(0, 0, 0, 0.12), 0 0.5rem 1rem rgba(38, 85, 116, 0.2);
+  animation: balloonRise 6.5s linear infinite;
+  animation-delay: var(--balloon-delay);
+}
+
+.cvc-balloon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -1.6rem;
+  width: 1px;
+  height: 1.8rem;
+  background: rgba(34, 79, 97, 0.55);
+}
+
+.cvc-balloon:hover,
+.cvc-balloon:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
+  transform: translateX(-50%) scale(1.08);
+}
+
+.cvc-balloon.popped {
+  pointer-events: none;
+  z-index: 3;
+  animation: balloonPop 0.45s ease forwards;
+}
+
+.cvc-balloon.popped.correct {
+  background: #20bf63;
+}
+
+.cvc-balloon.popped.wrong {
+  background: #e05252;
+}
+
+.cvc-balloon.popped::before {
+  content: '✦  •  ✦';
+  position: absolute;
+  inset: -1.2rem;
+  display: grid;
+  place-items: center;
+  color: #ffd84d;
+  font-size: 1.25rem;
+  letter-spacing: 0.35rem;
+  opacity: 0;
+  animation: balloonBurst 0.45s ease-out forwards;
+}
+
+.cvc-balloon.popped::after {
+  height: 0.25rem;
+  bottom: 50%;
+  background: #ffffff;
+  opacity: 0;
+  animation: balloonStringSnap 0.45s ease-out forwards;
+}
+
+@keyframes balloonPop {
+  0% { opacity: 1; transform: translateX(-50%) scale(1); }
+  35% { opacity: 1; transform: translateX(-50%) scale(1.28) rotate(-5deg); }
+  100% { opacity: 0; transform: translateX(-50%) scale(0.05) rotate(12deg); }
+}
+
+@keyframes balloonBurst {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  35% { opacity: 1; transform: scale(1) rotate(18deg); }
+  100% { opacity: 0; transform: scale(1.6) rotate(45deg); }
+}
+
+@keyframes balloonStringSnap {
+  0% { opacity: 0.8; transform: translateY(0) scaleX(1); }
+  100% { opacity: 0; transform: translateY(1.2rem) scaleX(0.2); }
+}
+
+.cvc-balloon:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+@keyframes balloonRise {
+  0% { bottom: -5.5rem; }
+  100% { bottom: calc(100% + 5.5rem); }
+}
+
+.cvc-balloon-message {
+  min-height: 1.4rem;
+  color: #205c88;
+  font-weight: 800;
+  text-align: center;
+}
+
+.cvc-reward-tray {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  color: #52657b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.cvc-reward-tray button {
+  border: 1px solid #8fc5df;
+  border-radius: 999px;
+  padding: 0.42rem 0.65rem;
+  background: #ffffff;
+  color: #205c88;
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.cvc-reward-tray button:not(:disabled):hover {
+  background: #e5f7ff;
+  border-color: #2a9bc8;
+}
+
+.cvc-reward-tray button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cvc-game-over-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(17, 35, 59, 0.62);
+}
+
+.cvc-game-over-card {
+  width: min(100%, 24rem);
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+  border: 3px solid #f0b63b;
+  border-radius: 1.25rem;
+  background: #ffffff;
+  color: #193b62;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(17, 35, 59, 0.35);
+}
+
+.cvc-game-over-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.cvc-game-over-card h3,
+.cvc-game-over-card p {
+  margin: 0;
+}
+
+.cvc-game-over-card h3 {
+  font-size: 2rem;
+}
+
+.cvc-game-over-card p {
+  color: #52657b;
+  font-weight: 700;
+}
+
+@media (max-width: 30rem) {
+  .cvc-balloon-header {
+    flex-direction: column;
+  }
+
+  .cvc-balloon-hint {
+    width: 100%;
+  }
+
+  .cvc-balloon-stats {
+    justify-items: start;
+  }
 }
 
 .cvc-tab.locked {
   opacity: 0.65;
   cursor: not-allowed;
-}
-
-.cvc-racing-stage {
-  min-height: 34rem;
-  align-content: center;
-}
-
-.cvc-racing-intro {
-  display: grid;
-  justify-items: center;
-  gap: 0.65rem;
-  max-width: 34rem;
-  text-align: center;
-}
-
-.cvc-racing-kicker {
-  margin: 0;
-  color: #168bd2;
-  font-size: 0.8rem;
-  font-weight: 900;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.cvc-racing-intro h3,
-.cvc-racing-intro p {
-  margin: 0;
-}
-
-.cvc-racing-intro h3 {
-  color: #183b70;
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
-}
-
-.cvc-racing-intro > p:not(.cvc-racing-kicker) {
-  color: #4a5670;
-}
-
-.cvc-racing-launch {
-  margin-top: 0.5rem;
-}
-
-.cvc-racing-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(6, 15, 30, 0.78);
-}
-
-.cvc-racing-modal-card {
-  position: relative;
-  width: min(100%, 34rem);
-  display: grid;
-  gap: 0.85rem;
-  padding: clamp(1rem, 3vw, 1.5rem);
-  border: 2px solid #168bd2;
-  border-radius: 1rem;
-  background: #09111f;
-  color: #ffffff;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
-}
-
-.cvc-racing-close {
-  position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 50%;
-  background: transparent;
-  color: #ffffff;
-  font: inherit;
-  font-size: 1.4rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.cvc-racing-heading {
-  display: grid;
-  gap: 0.2rem;
-  padding-right: 2rem;
-  text-align: center;
-}
-
-.cvc-racing-heading p,
-.cvc-racing-heading h3,
-.cvc-racing-heading strong {
-  margin: 0;
-}
-
-.cvc-racing-heading p {
-  color: #ff5b3d;
-  font-size: 0.8rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-}
-
-.cvc-racing-heading h3 {
-  color: #ffffff;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: clamp(1.5rem, 5vw, 2.2rem);
-}
-
-.cvc-racing-heading strong {
-  color: #73d7ff;
-  font-size: 0.95rem;
-}
-
-.cvc-racing-track {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  max-height: 28rem;
-  border: 2px solid #ff4b35;
-  background:
-    linear-gradient(90deg, rgba(0, 185, 255, 0.12) 0 31%, transparent 31% 33%, rgba(255, 255, 255, 0.04) 33% 66%, transparent 66% 68%, rgba(255, 45, 45, 0.12) 68%),
-    repeating-linear-gradient(90deg, transparent 0 32.5%, rgba(255, 255, 255, 0.32) 32.5% 33%, transparent 33% 66.5%, rgba(255, 255, 255, 0.32) 66.5% 67%, transparent 67% 100%),
-    #111820;
-}
-
-.cvc-racing-car {
-  position: absolute;
-  left: calc((var(--car-lane) + 0.5) * 33.333%);
-  top: var(--car-y, auto);
-  z-index: 2;
-  display: grid;
-  place-items: center;
-  width: clamp(2rem, 9vw, 3rem);
-  height: clamp(2.8rem, 13vw, 4rem);
-  transform: translateX(-50%);
-  border-radius: 0.35rem;
-  font-size: clamp(1.55rem, 7vw, 2.3rem);
-  line-height: 1;
-}
-
-.fire-car {
-  top: 0;
-  filter: drop-shadow(0 0 0.65rem rgba(255, 62, 35, 0.72));
-}
-
-.ice-car {
-  top: auto;
-  bottom: 7%;
-  filter: drop-shadow(0 0 0.65rem rgba(31, 205, 255, 0.8));
-}
-
-.cvc-racing-status {
-  min-height: 1.25rem;
-  margin: 0;
-  color: #c8d8ed;
-  text-align: center;
-  font-size: 0.86rem;
-}
-
-.cvc-racing-actions {
-  display: flex;
-  justify-content: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.cvc-racing-secondary {
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 0.2rem;
-  padding: 0.55rem 0.9rem;
-  background: transparent;
-  color: #ffffff;
-  font: inherit;
-  font-size: 0.78rem;
-  font-weight: 800;
-  cursor: pointer;
 }
 
 .cvc-learning-materials {

@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,9 +27,6 @@ public class UserService {
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
 	private static final Random RANDOM = new Random();
-
-	@Value("${app.admin-email}")
-	private String adminEmail;
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
@@ -96,7 +92,7 @@ public class UserService {
 		user.setLastName(lastName);
 		user.setEmail(email);
 		user.setPasswordHash(PASSWORD_ENCODER.encode(request.password()));
-		user.setRole(resolveRole(email, request.role()));
+		user.setRole(normalizeRole(request.role()));
 		user.setActiveDeviceId(normalizeDeviceId(request.deviceId()));
 
 		User savedUser = userRepository.save(user);
@@ -133,8 +129,8 @@ public class UserService {
 		user.setLastName(lastName);
 		user.setEmail(email);
 
-		if (request.role() != null || isAdminEmail(email)) {
-			user.setRole(resolveRole(email, request.role()));
+		if (request.role() != null) {
+			user.setRole(normalizeRole(request.role()));
 		}
 
 		if (request.classroom() != null) {
@@ -300,10 +296,8 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
 		}
 
-		User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+		return userRepository.findByEmailIgnoreCase(normalizedEmail)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
-		ensureAdminRole(user);
-		return user;
 	}
 
 	private String normalizeEmail(String email) {
@@ -370,35 +364,12 @@ public class UserService {
 		};
 	}
 
-	private Role resolveRole(String email, String role) {
-		if (isAdminEmail(email)) {
-			return Role.ADMIN;
-		}
-
-		return normalizeRole(role);
-	}
-
-	private boolean isAdminEmail(String email) {
-		return adminEmail.equalsIgnoreCase(normalizeEmail(email));
-	}
-
-	private void ensureAdminRole(User user) {
-		if (user == null || !isAdminEmail(user.getEmail())) {
-			return;
-		}
-
-		if (user.getRole() != Role.ADMIN) {
-			user.setRole(Role.ADMIN);
-			userRepository.save(user);
-		}
-	}
-
 	private UserProfile toUserProfile(User user) {
-		Role effectiveRole = isAdminEmail(user.getEmail()) ? Role.ADMIN : user.getRole();
+		Role role = user.getRole();
 		Map<String, Object> userMetadata = new LinkedHashMap<>();
 		userMetadata.put("firstName", user.getFirstName());
 		userMetadata.put("lastName", user.getLastName());
-		userMetadata.put("role", effectiveRole.name().toLowerCase());
+		userMetadata.put("role", role.name().toLowerCase());
 		userMetadata.put("email", user.getEmail());
 		userMetadata.put("classroom", user.getClassroom());
 		userMetadata.put("classCode", user.getClassCode());
@@ -408,7 +379,7 @@ public class UserService {
 			user.getEmail(),
 			user.getFirstName(),
 			user.getLastName(),
-			effectiveRole.name().toLowerCase(),
+			role.name().toLowerCase(),
 			user.getClassroom(),
 			user.getClassCode(),
 			user.getCreatedAt(),
