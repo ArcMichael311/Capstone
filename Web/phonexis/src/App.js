@@ -662,7 +662,7 @@ function App() {
     setActiveView(getLandingViewByRole(mappedProfile));
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await progressSyncRef.current;
       if (currentUser?.email) {
@@ -677,7 +677,46 @@ function App() {
     setCurrentUser(null);
     setNavigationHistory([]);
     setActiveView('login');
-  };
+  }, [currentUser]);
+
+  // Auto-logout after 30 minutes with no user activity, and heartbeat the backend
+  // periodically so the account's device lock doesn't stay held by a closed/crashed tab.
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.email) {
+      return undefined;
+    }
+
+    const IDLE_LIMIT_MS = 30 * 60 * 1000;
+    const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+    const email = currentUser.email;
+
+    let idleTimer;
+    let lastHeartbeatAt = 0;
+
+    const resetIdleTimer = () => {
+      const now = Date.now();
+      if (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
+        lastHeartbeatAt = now;
+        verifySupabaseUserDevice(email).catch(() => {
+          // ignore transient heartbeat failures
+        });
+      }
+
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        handleLogout();
+      }, IDLE_LIMIT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetIdleTimer));
+    resetIdleTimer();
+
+    return () => {
+      clearTimeout(idleTimer);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+    };
+  }, [isAuthenticated, currentUser, handleLogout]);
 
   const handleJoinClass = async () => {
     const classCodeInput = window.prompt('Enter class code from your teacher:');

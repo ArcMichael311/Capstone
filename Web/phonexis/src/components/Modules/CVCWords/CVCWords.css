@@ -590,7 +590,7 @@
 }
 
 .cvc-instructions-button {
-  justify-self: start;
+  justify-self: center;
   margin-top: 0.4rem;
   border: 1px solid #2a9bc8;
   border-radius: 999px;
@@ -652,9 +652,9 @@
 .cvc-balloon {
   position: absolute;
   bottom: -5.5rem;
-  left: calc((var(--balloon-lane) + 0.5) * 20%);
+  left: calc((var(--balloon-lane) + 0.5) * 10%);
   z-index: 1;
-  width: clamp(3.4rem, 10vw, 5rem);
+  width: clamp(2.2rem, 5vw, 3.1rem);
   aspect-ratio: 0.82;
   transform: translateX(-50%);
   border: 0;
@@ -662,10 +662,10 @@
   background: hsl(calc(var(--balloon-lane) * 63 + 8), 78%, 59%);
   color: #ffffff;
   font: inherit;
-  font-size: clamp(1.35rem, 4vw, 2rem);
+  font-size: clamp(0.95rem, 2.6vw, 1.5rem);
   font-weight: 900;
   cursor: pointer;
-  box-shadow: inset -0.45rem -0.55rem 0 rgba(0, 0, 0, 0.12), 0 0.5rem 1rem rgba(38, 85, 116, 0.2);
+  box-shadow: inset -0.25rem -0.35rem 0 rgba(0, 0, 0, 0.12), 0 0.35rem 0.8rem rgba(38, 85, 116, 0.18);
   animation: balloonRise 6.5s linear infinite;
   animation-delay: var(--balloon-delay);
 }
