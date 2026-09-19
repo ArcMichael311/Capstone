@@ -8,7 +8,9 @@ import TeacherPretest from './TeacherPretest';
 import TeacherAcademicProgress from './TeacherAcademicProgress';
 
 export default function Teacher({ user, backendUserId, activeSection }) {
-  const section = activeSection || 'dashboard';
+  const section = ['dashboard', 'materials', 'pretest', 'progress'].includes(activeSection)
+    ? activeSection
+    : 'dashboard';
   const teacherName = getDisplayName(user);
 
   const [classes, setClasses] = useState([]);
