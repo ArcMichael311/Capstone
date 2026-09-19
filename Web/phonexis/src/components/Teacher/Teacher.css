@@ -148,7 +148,8 @@
 }
 
 .teacher-activity-field input,
-.teacher-activity-field textarea {
+.teacher-activity-field textarea,
+.teacher-activity-field select {
 	box-sizing: border-box;
 	width: 100%;
 	border: 1px solid rgba(15, 23, 42, 0.16);
@@ -156,10 +157,12 @@
 	padding: 0.65rem;
 	font: inherit;
 	resize: vertical;
+	background: #fff;
 }
 
 .teacher-activity-field input:focus,
 .teacher-activity-field textarea:focus,
+.teacher-activity-field select:focus,
 .teacher-search-row input:focus {
 	outline: none;
 	border-color: #2563eb;
@@ -478,6 +481,12 @@
 	cursor: pointer;
 	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
 	transition: background 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.teacher-primary-button svg {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
 }
 
 .teacher-primary-button:hover:not(:disabled) {
@@ -907,6 +916,12 @@
 	background: rgba(37, 99, 235, 0.06);
 }
 
+.teacher-search-result svg {
+	width: 1.1rem;
+	height: 1.1rem;
+	flex-shrink: 0;
+}
+
 .teacher-search-result strong {
 	display: block;
 	color: #2c3e50;
@@ -1063,5 +1078,288 @@
 
 	.teacher-roster-progress {
 		display: none;
+	}
+}
+
+/* Pretest */
+
+.teacher-pretest-list {
+	margin-top: 0.85rem;
+	display: grid;
+	gap: 0.65rem;
+}
+
+.teacher-pretest-card {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.75rem;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	border-radius: 0.7rem;
+	padding: 0.7rem 0.85rem;
+	background: #fff;
+}
+
+.teacher-pretest-card-icon {
+	display: grid;
+	place-items: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 0.65rem;
+	background: #2563eb;
+	color: #fff;
+	flex-shrink: 0;
+}
+
+.teacher-pretest-card-icon svg {
+	width: 1.4rem;
+	height: 1.4rem;
+}
+
+.teacher-back-button {
+	margin-bottom: 1rem;
+}
+
+.teacher-pretest-detail {
+	border-radius: 0.85rem;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	background: #fff;
+	box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+	padding: 1.1rem;
+}
+
+.teacher-pretest-meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 1rem;
+	flex-wrap: wrap;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.teacher-pretest-meta h3 {
+	margin: 0;
+	color: #1e293b;
+}
+
+.teacher-pretest-meta p {
+	margin: 0.3rem 0 0;
+	color: #6f7d8d;
+}
+
+.teacher-pretest-meta-form {
+	display: grid;
+	gap: 0.5rem;
+	flex: 1;
+	min-width: 220px;
+}
+
+.teacher-pretest-meta-form input {
+	box-sizing: border-box;
+	width: 100%;
+	border: 1px solid rgba(15, 23, 42, 0.16);
+	border-radius: 0.5rem;
+	padding: 0.6rem;
+	font: inherit;
+}
+
+.teacher-pretest-meta-actions {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.teacher-pretest-results {
+	margin: 1rem 0;
+	padding: 1rem;
+	border-radius: 0.7rem;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	background: rgba(37, 99, 235, 0.03);
+}
+
+.teacher-pretest-results .teacher-board-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.teacher-pretest-results h4 {
+	margin: 0;
+	color: #1e293b;
+}
+
+.teacher-results-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 0.75rem;
+	font-size: 0.88rem;
+}
+
+.teacher-results-table th,
+.teacher-results-table td {
+	text-align: left;
+	padding: 0.5rem 0.6rem;
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.teacher-results-table th {
+	color: #6f7d8d;
+	font-weight: 700;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.teacher-question-list {
+	margin-top: 0.85rem;
+	display: grid;
+	gap: 0.75rem;
+}
+
+.teacher-question-card {
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	border-radius: 0.7rem;
+	padding: 0.85rem;
+	background: #fff;
+}
+
+.teacher-question-card-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.teacher-question-type-badge {
+	display: inline-block;
+	border-radius: 999px;
+	padding: 0.25rem 0.65rem;
+	font-size: 0.72rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: #1d4ed8;
+	background: rgba(37, 99, 235, 0.1);
+}
+
+.teacher-question-prompt {
+	margin: 0.6rem 0 0;
+	color: #1e293b;
+	font-weight: 600;
+}
+
+.teacher-question-answer {
+	margin: 0.5rem 0 0;
+	color: #2c3e50;
+	font-size: 0.9rem;
+}
+
+.teacher-question-options {
+	margin: 0.5rem 0 0;
+	padding-left: 1.1rem;
+	color: #2c3e50;
+	font-size: 0.9rem;
+}
+
+.teacher-question-options li.correct {
+	color: #187d3e;
+	font-weight: 700;
+}
+
+.teacher-question-modal {
+	max-width: 640px;
+	max-height: 88vh;
+	overflow-y: auto;
+}
+
+.teacher-question-form {
+	display: grid;
+	gap: 0.4rem;
+}
+
+.teacher-option-editor {
+	margin-top: 0.85rem;
+	display: grid;
+	gap: 0.5rem;
+}
+
+.teacher-option-editor-label {
+	color: #2c3e50;
+	font-size: 0.85rem;
+	font-weight: 700;
+}
+
+.teacher-option-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+	border-radius: 0.6rem;
+	padding: 0.5rem;
+}
+
+.teacher-option-label-input {
+	flex: 1;
+	min-width: 120px;
+	box-sizing: border-box;
+	border: 1px solid rgba(15, 23, 42, 0.16);
+	border-radius: 0.5rem;
+	padding: 0.5rem 0.6rem;
+	font: inherit;
+}
+
+.teacher-audio-recorder {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.teacher-audio-recorder-head {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: #2c3e50;
+}
+
+.teacher-audio-quality-badge {
+	display: inline-block;
+	border-radius: 999px;
+	padding: 0.1rem 0.5rem;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: #1d4ed8;
+	background: rgba(37, 99, 235, 0.1);
+	cursor: help;
+}
+
+.teacher-audio-recorder-controls {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.teacher-audio-status {
+	color: #6f7d8d;
+	font-size: 0.8rem;
+}
+
+.teacher-audio-preview {
+	height: 2.2rem;
+	max-width: 220px;
+}
+
+@media (max-width: 640px) {
+	.teacher-audio-preview {
+		max-width: 100%;
+	}
+
+	.teacher-question-modal {
+		max-width: 100%;
 	}
 }

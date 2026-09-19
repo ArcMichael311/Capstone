@@ -5,7 +5,7 @@ import profileIcon from '../Sidebar/Sidebar Icons/Profile.png';
 import settingsIcon from '../Sidebar/Sidebar Icons/Settings.png';
 import logoutIcon from '../Sidebar/Sidebar Icons/Logout.png';
 import hideSidebarIcon from '../Sidebar/Sidebar Icons/Hide sidebar.png';
-import { BookIcon, ChartIcon } from './TeacherIcons';
+import { BookIcon, ChartIcon, ClipboardCheckIcon } from './TeacherIcons';
 
 export default function TeacherSidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onLogout }) {
   const displayName = [
@@ -18,6 +18,7 @@ export default function TeacherSidebar({ isOpen = true, onToggle, activeView, ac
   const section = activeSection || 'dashboard';
   const isDashboard = activeView === 'teacher' && section === 'dashboard';
   const isMaterials = activeView === 'teacher' && section === 'materials';
+  const isPretest = activeView === 'teacher' && section === 'pretest';
   const isProgress = activeView === 'teacher' && section === 'progress';
   const isProfile = activeView === 'profile' && activeSection !== 'settings';
   const isSettings = activeView === 'profile' && activeSection === 'settings';
@@ -50,6 +51,10 @@ export default function TeacherSidebar({ isOpen = true, onToggle, activeView, ac
 
           <button type="button" className={isMaterials ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('teacher', 'materials')}>
             <BookIcon /> Learning Materials
+          </button>
+
+          <button type="button" className={isPretest ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('teacher', 'pretest')}>
+            <ClipboardCheckIcon /> Pretest
           </button>
 
           <button type="button" className={isProgress ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('teacher', 'progress')}>

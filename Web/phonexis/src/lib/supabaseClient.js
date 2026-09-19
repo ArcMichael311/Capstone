@@ -265,3 +265,43 @@ export const uploadLearningMaterial = async (classId, teacherId, file, title) =>
     return { data: null, error: { message: 'Backend unavailable' } };
   }
 };
+
+// Pretests (teacher-authored quizzes: multiple choice, matching, identification, true/false, fill-in-the-blank)
+export const fetchTeacherPretests = (classId) => getFromBackend(`/api/pretests/class/${classId}`);
+export const createPretest = (classId, teacherId, payload) => postToBackend(`/api/pretests/class/${classId}?teacherId=${teacherId}`, payload);
+export const fetchPretestDetail = (pretestId, teacherId) => getFromBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`);
+export const updatePretest = (pretestId, teacherId, payload) => putToBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`, payload);
+export const deletePretest = (pretestId, teacherId) => requestToBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const addPretestQuestion = (pretestId, teacherId, payload) => postToBackend(`/api/pretests/${pretestId}/questions?teacherId=${teacherId}`, payload);
+export const updatePretestQuestion = (questionId, teacherId, payload) => putToBackend(`/api/pretests/questions/${questionId}?teacherId=${teacherId}`, payload);
+export const deletePretestQuestion = (questionId, teacherId) => requestToBackend(`/api/pretests/questions/${questionId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const fetchPretestAttempts = (pretestId, teacherId) => getFromBackend(`/api/pretests/${pretestId}/attempts?teacherId=${teacherId}`);
+
+export const fetchStudentPretests = (classId, studentId) => getFromBackend(`/api/pretests/class/${classId}/student/${studentId}`);
+export const fetchPretestForStudent = (pretestId, studentId) => getFromBackend(`/api/pretests/${pretestId}/take?studentId=${studentId}`);
+export const submitPretestAttempt = (pretestId, studentId, payload) => postToBackend(`/api/pretests/${pretestId}/submit?studentId=${studentId}`, payload);
+
+export const uploadPretestAudio = async (pretestId, teacherId, blob, fileName = 'recording.webm') => {
+  const formData = new FormData();
+  formData.append('file', blob, fileName);
+
+  try {
+    const url = `${backendUrl}/api/pretests/${pretestId}/audio?teacherId=${teacherId}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-Device-Id': getDeviceId() },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      return { data: null, error: await readBackendError(response) };
+    }
+
+    const responseText = await response.text();
+    return { data: responseText ? JSON.parse(responseText) : null, error: null };
+  } catch (error) {
+    return { data: null, error: { message: 'Backend unavailable' } };
+  }
+};

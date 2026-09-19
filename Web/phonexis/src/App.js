@@ -896,6 +896,7 @@ function App() {
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
               studentClassInfo={studentClassInfo}
               studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -929,6 +930,7 @@ function App() {
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
               studentClassInfo={studentClassInfo}
               studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -962,6 +964,7 @@ function App() {
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
               studentClassInfo={studentClassInfo}
               studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -1040,6 +1043,7 @@ function App() {
             classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
             studentClassInfo={studentClassInfo}
             studentMaterials={studentMaterials}
+            studentId={backendUserId}
           />
         );
     }

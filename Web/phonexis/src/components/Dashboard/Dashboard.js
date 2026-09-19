@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './Dashboard.css';
 import logo from '../Login/logoB.png';
+import StudentClassModal from './StudentClassModal';
 
 const moduleCards = [
   {
@@ -37,18 +38,8 @@ const moduleCards = [
   },
 ];
 
-const formatFileSize = (bytes) => {
-  if (!bytes && bytes !== 0) {
-    return '';
-  }
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [] }) {
-  const [showMaterials, setShowMaterials] = useState(false);
+export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [], studentId = null }) {
+  const [showClassModal, setShowClassModal] = useState(false);
 
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
@@ -134,7 +125,7 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
             <button
               type="button"
               className="dashboard-card-button"
-              onClick={() => setShowMaterials(true)}
+              onClick={() => setShowClassModal(true)}
             >
               Click View
             </button>
@@ -180,48 +171,13 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
         })}
       </section>
 
-      {showMaterials && studentClassInfo && (
-        <div
-          className="dashboard-materials-modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${studentClassInfo.className} materials`}
-          onClick={() => setShowMaterials(false)}
-        >
-          <div className="dashboard-materials-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="dashboard-materials-modal-head">
-              <h3>{studentClassInfo.className} Materials</h3>
-              <button
-                type="button"
-                className="dashboard-materials-modal-close"
-                onClick={() => setShowMaterials(false)}
-                aria-label="Close"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="dashboard-materials-list">
-              {studentMaterials.map((material) => (
-                <a
-                  key={material.id}
-                  className="dashboard-material-item"
-                  href={material.downloadUrl || undefined}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>{material.title || material.fileName}</span>
-                  <span className="dashboard-material-meta">
-                    {material.fileSize ? formatFileSize(material.fileSize) : ''}
-                  </span>
-                </a>
-              ))}
-              {studentMaterials.length === 0 && (
-                <p className="dashboard-materials-empty">No materials shared yet.</p>
-              )}
-            </div>
-          </div>
-        </div>
+      {showClassModal && studentClassInfo && (
+        <StudentClassModal
+          studentClassInfo={studentClassInfo}
+          studentMaterials={studentMaterials}
+          studentId={studentId}
+          onClose={() => setShowClassModal(false)}
+        />
       )}
     </section>
   );
