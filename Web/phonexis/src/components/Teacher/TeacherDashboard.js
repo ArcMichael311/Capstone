@@ -227,11 +227,20 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
       <>
       {confirmDialog}
       <section className="teacher-board" aria-label="Class detail">
-        <button type="button" className="teacher-back-link" onClick={handleBack}>&larr; Back to classes</button>
+        <button type="button" className="teacher-back-link" onClick={handleBack}>&larr; All classes</button>
 
-        <div className="teacher-board-head">
-          <h3>{selectedClass.name}</h3>
-          <p>Created {formatDate(selectedClass.createdAt)} • {roster.length} student{roster.length === 1 ? '' : 's'}</p>
+        <div className="teacher-class-hero">
+          <div className="teacher-class-hero-mark"><UsersIcon /></div>
+          <div className="teacher-class-hero-copy">
+            <span className="teacher-class-eyebrow">Class workspace</span>
+            <h3>{selectedClass.name}</h3>
+            <p>Created {formatDate(selectedClass.createdAt)} <span aria-hidden="true">•</span> Manage your students, materials, and progress in one place.</p>
+          </div>
+          <div className="teacher-class-hero-meta">
+            <span>Roster size</span>
+            <strong>{roster.length}</strong>
+            <small>active students</small>
+          </div>
         </div>
 
         {rosterError && <div className="teacher-error">{rosterError}</div>}
@@ -262,35 +271,62 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
 
         <div className="teacher-class-detail-grid">
           <div className="teacher-roster-panel">
-            <h4>Roster</h4>
+            <div className="teacher-panel-heading">
+              <div>
+                <span className="teacher-section-eyebrow">People</span>
+                <h4>Student roster</h4>
+              </div>
+              <span className="teacher-panel-count">{roster.length}</span>
+            </div>
+            <p className="teacher-panel-description">Monitor each learner&apos;s progress and manage class access.</p>
             <div className="teacher-roster-list">
               {roster.map((student) => {
                 const progress = studentProgress[student.id] ?? 0;
+                const studentName = getDisplayName(student);
+                const initials = studentName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
                 return (
                   <article key={student.id} className="teacher-roster-item">
+                    <div className="teacher-student-avatar" aria-hidden="true">{initials || '?'}</div>
                     <div className="teacher-roster-item-main">
-                      <strong>{getDisplayName(student)}</strong>
+                      <strong>{studentName}</strong>
                       <span>{student.email}</span>
                     </div>
                     <div className="teacher-roster-progress">
                       <div className="teacher-roster-progress-track">
                         <div className="teacher-roster-progress-fill" style={{ width: `${progress}%` }} />
                       </div>
-                      <span>{progress}%</span>
+                      <span>{progress}% complete</span>
                     </div>
+                    <span className={`teacher-progress-status ${progress >= 80 ? 'complete' : progress > 0 ? 'active' : 'new'}`}>
+                      {progress >= 80 ? 'On track' : progress > 0 ? 'In progress' : 'Not started'}
+                    </span>
                     <button type="button" className="teacher-icon-button danger" onClick={() => handleRemoveStudent(student.id)} title="Remove student" aria-label="Remove student">
                       <TrashIcon />
                     </button>
                   </article>
                 );
               })}
-              {!rosterLoading && roster.length === 0 && <p className="teacher-empty">No students added yet. Search for students below.</p>}
+              {rosterLoading && <div className="teacher-roster-loading">Loading student roster...</div>}
+              {!rosterLoading && roster.length === 0 && (
+                <div className="teacher-roster-empty">
+                  <span className="teacher-roster-empty-icon"><UsersIcon /></span>
+                  <strong>Your roster is empty</strong>
+                  <p>Add students from the panel to start tracking their learning progress.</p>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="teacher-add-students-panel">
-            <h4>Add students</h4>
-            <p className="teacher-panel-hint">Only students not already in a class (yours or another teacher&apos;s) show up here.</p>
+            <div className="teacher-panel-heading">
+              <div>
+                <span className="teacher-section-eyebrow">Enrollment</span>
+                <h4>Add students</h4>
+              </div>
+              <span className="teacher-add-badge"><PlusIcon /></span>
+            </div>
+            <p className="teacher-panel-description">Invite unassigned student accounts to join this class.</p>
+            <p className="teacher-panel-hint">Students already assigned to a class will not appear in the list.</p>
             <div className="teacher-search-row">
               <input
                 type="text"
