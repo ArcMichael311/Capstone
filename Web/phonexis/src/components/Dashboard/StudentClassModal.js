@@ -20,8 +20,8 @@ const shuffle = (values) => {
   return copy;
 };
 
-export default function StudentClassModal({ studentClassInfo, studentMaterials = [], studentId, onClose }) {
-  const [tab, setTab] = useState('materials');
+export default function StudentClassModal({ studentClassInfo, studentMaterials = [], studentId, activeSection = 'materials', onNavigate }) {
+  const [tab, setTab] = useState(activeSection === 'pretests' ? 'pretests' : 'materials');
 
   const [pretests, setPretests] = useState([]);
   const [pretestsLoading, setPretestsLoading] = useState(false);
@@ -38,6 +38,10 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
   const [submitResult, setSubmitResult] = useState(null);
 
   const audioRef = useRef(null);
+
+  useEffect(() => {
+    setTab(activeSection === 'pretests' ? 'pretests' : 'materials');
+  }, [activeSection]);
 
   const loadPretests = async () => {
     if (!studentClassInfo?.classId || !studentId) {
@@ -207,34 +211,42 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
   };
 
   return (
-    <div
-      className="dashboard-materials-modal-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${studentClassInfo.className} class`}
-      onClick={onClose}
-    >
-      <div className="dashboard-materials-modal dashboard-class-modal" onClick={(event) => event.stopPropagation()}>
-        <div className="dashboard-materials-modal-head">
+    <section className="module-shell student-class-workspace">
+      <header className="module-banner student-class-banner">
+        <div>
+          <p className="module-label">Your Classroom</p>
           <h3>{studentClassInfo.className}</h3>
-          <button type="button" className="dashboard-materials-modal-close" onClick={onClose} aria-label="Close">
-            ✕
+          <p>
+            Learning materials and pretests shared by {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'your teacher'}.
+          </p>
+        </div>
+        <div className="module-banner-stats">
+          <article>
+            <span>Materials</span>
+            <strong>{studentMaterials.length}</strong>
+          </article>
+          <button type="button" className="module-back" onClick={() => onNavigate('dashboard')}>
+            Back to Dashboard
           </button>
         </div>
+      </header>
 
         {mode === 'browse' && (
           <>
-            <div className="dashboard-class-modal-tabs" role="tablist">
-              <button type="button" role="tab" className={tab === 'materials' ? 'active' : ''} onClick={() => setTab('materials')}>
-                Materials
+            <div className="module-strip student-class-tabs" role="tablist" aria-label="Class content">
+              <button type="button" role="tab" className={`module-tab${tab === 'materials' ? ' active' : ''}`} onClick={() => onNavigate('class', 'materials')}>
+                <h4>Materials</h4>
+                <span>Review lessons and files shared for your class.</span>
               </button>
-              <button type="button" role="tab" className={tab === 'pretests' ? 'active' : ''} onClick={() => setTab('pretests')}>
-                Pretests
+              <button type="button" role="tab" className={`module-tab${tab === 'pretests' ? ' active' : ''}`} onClick={() => onNavigate('class', 'pretests')}>
+                <h4>Pretests</h4>
+                <span>Check your understanding and track your attempts.</span>
               </button>
             </div>
 
+            <div className="module-stage student-class-stage">
             {tab === 'materials' && (
-              <div className="dashboard-materials-list">
+              <div className="dashboard-materials-list student-class-list">
                 {studentMaterials.map((material) => (
                   <a
                     key={material.id}
@@ -287,11 +299,12 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
                 )}
               </div>
             )}
+            </div>
           </>
         )}
 
         {mode === 'taking' && takeData && currentQuestion && (
-          <div className="dashboard-pretest-take">
+          <div className="module-stage dashboard-pretest-take student-class-stage">
             <div className="dashboard-pretest-progress">
               Question {currentIndex + 1} of {takeData.questions.length}
             </div>
@@ -388,7 +401,7 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
         )}
 
         {mode === 'result' && submitResult && takeData && (
-          <div className="dashboard-pretest-result">
+          <div className="module-stage dashboard-pretest-result student-class-stage">
             <h4>You scored {submitResult.score} / {submitResult.totalQuestions}!</h4>
             <div className="dashboard-pretest-result-list">
               {takeData.questions.map((question, index) => {
@@ -411,7 +424,6 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </section>
   );
 }
