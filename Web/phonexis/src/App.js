@@ -18,6 +18,7 @@ import AdminTeachers from './components/Admin/AdminTeachers';
 import Teacher from './components/Teacher/Teacher';
 import TeacherSidebar from './components/Teacher/TeacherSidebar';
 import Sidebar from './components/Sidebar/Sidebar';
+import StudentClassModal from './components/Dashboard/StudentClassModal';
 import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
 import {
   supabase,
@@ -866,6 +867,18 @@ function App() {
     }
 
     switch (activeView) {
+      case 'class':
+        return studentClassInfo ? (
+          <StudentClassModal
+            studentClassInfo={studentClassInfo}
+            studentMaterials={studentMaterials}
+            studentId={backendUserId}
+            activeSection={activeSection}
+            onNavigate={navigateTo}
+          />
+        ) : (
+          <section className="app-loading" aria-live="polite">Loading your classroom...</section>
+        );
       case 'alphabet':
         return (
           <AlphabetRecognition
@@ -882,7 +895,7 @@ function App() {
         if (!cvcUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -916,7 +929,7 @@ function App() {
         if (!vowelsUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -950,7 +963,7 @@ function App() {
         if (!consonantsUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -985,7 +998,7 @@ function App() {
         return (
           <Modules
             activeModule={activeModule}
-            onNavigate={setActiveView}
+            onNavigate={navigateTo}
             onSelectModule={openModule}
             vowelsUnlocked={vowelsUnlocked}
             consonantsUnlocked={consonantsUnlocked}
