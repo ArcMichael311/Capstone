@@ -279,12 +279,12 @@ const createBalloonSet = (word, builtSlots = [], previousLanes = {}, round = 0) 
     ? remainingTargetLetters[Math.floor(Math.random() * remainingTargetLetters.length)]
     : null;
   const distractorPool = word.choices.filter((letter) => !remainingTargetLetters.includes(letter));
-  const distractorCount = 9;
+  const distractorCount = 3;
   const distractors = Array.from({ length: distractorCount }, (_, index) => (
     distractorPool[index % distractorPool.length]
   ));
   const letters = shuffleItems(targetLetter ? [targetLetter, ...distractors] : distractors);
-  const availableLanes = shuffleItems([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const availableLanes = shuffleItems([0, 1, 2, 3]);
 
   return letters.map((letter, index) => {
     const previousLane = previousLanes[letter];
@@ -564,17 +564,30 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
         setBalloonStatus('Correct! Word complete!');
         speakText(completedWord, { rate: 0.8 });
       } else {
-        setBalloonStatus('Correct!');
+        const nextRound = createBalloonSet(buildingWord, nextSlots, balloonLaneHistoryRef.current, balloonRoundRef.current + 1);
+        setBalloonStatus('Correct! Next letter is coming!');
+        window.setTimeout(() => {
+          setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
+          setPoppedBalloons((currentPopped) => {
+            const nextPopped = { ...currentPopped };
+            delete nextPopped[balloon.id];
+            return nextPopped;
+          });
+          balloonRoundRef.current += 1;
+          setBalloons(nextRound);
+        }, 400);
       }
 
-      window.setTimeout(() => {
-        setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
-        setPoppedBalloons((currentPopped) => {
-          const nextPopped = { ...currentPopped };
-          delete nextPopped[balloon.id];
-          return nextPopped;
-        });
-      }, 400);
+      if (nextSlots.every(Boolean)) {
+        window.setTimeout(() => {
+          setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
+          setPoppedBalloons((currentPopped) => {
+            const nextPopped = { ...currentPopped };
+            delete nextPopped[balloon.id];
+            return nextPopped;
+          });
+        }, 400);
+      }
       if (nextStreak > 0 && nextStreak % 3 === 0) awardBalloonReward();
       return;
     }
