@@ -798,6 +798,12 @@
 	color: #2c3e50;
 }
 
+.teacher-panel-hint {
+	margin: -0.5rem 0 0.75rem;
+	color: #6f7d8d;
+	font-size: 0.8rem;
+}
+
 .teacher-roster-list {
 	display: grid;
 	gap: 0.55rem;

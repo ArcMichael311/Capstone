@@ -36,7 +36,17 @@ const moduleCards = [
   },
 ];
 
-export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false }) {
+const formatFileSize = (bytes) => {
+  if (!bytes && bytes !== 0) {
+    return '';
+  }
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [] }) {
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -101,6 +111,44 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
             <div className="dashboard-progress-fill" style={{ width: `${overallProgress}%` }} />
           </div>
           <strong>{overallProgress}%</strong>
+        </div>
+      </section>
+
+      <section className="dashboard-card dashboard-card-class" aria-label="Your class">
+        <div className="dashboard-card-copy">
+          {studentClassInfo ? (
+            <>
+              <h3>{studentClassInfo.className}</h3>
+              <p>
+                Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
+              </p>
+
+              <div className="dashboard-materials-list">
+                {studentMaterials.map((material) => (
+                  <a
+                    key={material.id}
+                    className="dashboard-material-item"
+                    href={material.downloadUrl || undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>{material.title || material.fileName}</span>
+                    <span className="dashboard-material-meta">
+                      {material.fileSize ? formatFileSize(material.fileSize) : ''}
+                    </span>
+                  </a>
+                ))}
+                {studentMaterials.length === 0 && (
+                  <p className="dashboard-materials-empty">No materials shared yet.</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <h3>No Class Yet</h3>
+              <p>Ask your teacher to add you to a class to see your section and materials here.</p>
+            </>
+          )}
         </div>
       </section>
 

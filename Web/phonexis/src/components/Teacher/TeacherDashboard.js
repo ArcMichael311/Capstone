@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { addClassStudents, createTeacherClass, deleteTeacherClass, fetchBackendProgress, fetchBackendUsers, fetchClassStudents, fetchLearningMaterials, removeClassStudent } from '../../lib/supabaseClient';
+import { addClassStudents, createTeacherClass, deleteTeacherClass, fetchAvailableStudents, fetchBackendProgress, fetchClassStudents, fetchLearningMaterials, removeClassStudent } from '../../lib/supabaseClient';
 import { MODULES, formatDate, getDisplayName, safePercent } from './teacherUtils';
 import { BookIcon, ChartIcon, CloseIcon, PlusIcon, SearchIcon, TrashIcon, UsersIcon } from './TeacherIcons';
 import useConfirm from './useConfirm';
@@ -25,9 +25,9 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
   const [studentProgress, setStudentProgress] = useState({});
   const [materialsCount, setMaterialsCount] = useState(0);
 
-  const [allStudents, setAllStudents] = useState([]);
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [availableStudentsLoading, setAvailableStudentsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
   const [pendingEmails, setPendingEmails] = useState([]);
   const [addingStudents, setAddingStudents] = useState(false);
   const [addFeedback, setAddFeedback] = useState(null);
@@ -37,13 +37,12 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     [classes, selectedClassId]
   );
 
-  useEffect(() => {
-    fetchBackendUsers().then((result) => {
-      if (!result.error && Array.isArray(result.data)) {
-        setAllStudents(result.data.filter((entry) => String(entry?.role || '').toLowerCase() === 'student'));
-      }
-    });
-  }, []);
+  const loadAvailableStudents = async () => {
+    setAvailableStudentsLoading(true);
+    const result = await fetchAvailableStudents();
+    setAvailableStudents(!result.error && Array.isArray(result.data) ? result.data : []);
+    setAvailableStudentsLoading(false);
+  };
 
   const loadRoster = async (classId) => {
     setRosterLoading(true);
@@ -75,8 +74,8 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     if (selectedClassId) {
       void loadRoster(selectedClassId);
       void loadMaterialsCount(selectedClassId);
+      void loadAvailableStudents();
       setSearchQuery('');
-      setSearchResults([]);
       setPendingEmails([]);
       setAddFeedback(null);
     }
@@ -149,25 +148,23 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     }
   };
 
-  const enrolledEmails = useMemo(() => new Set(roster.map((student) => String(student.email || '').toLowerCase())), [roster]);
-
-  const handleSearch = () => {
+  // Students not yet enrolled in ANY class (from any teacher) and not already staged to add.
+  const visibleAvailableStudents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) {
-      setSearchResults([]);
-      return;
-    }
-
-    const matches = allStudents.filter((student) => {
-      const email = String(student.email || '').toLowerCase();
-      return email.includes(query) && !enrolledEmails.has(email) && !pendingEmails.includes(email);
-    });
-    setSearchResults(matches.slice(0, 8));
-  };
+    return availableStudents
+      .filter((student) => !pendingEmails.includes(String(student.email || '').toLowerCase()))
+      .filter((student) => {
+        if (!query) {
+          return true;
+        }
+        const name = getDisplayName(student).toLowerCase();
+        const email = String(student.email || '').toLowerCase();
+        return name.includes(query) || email.includes(query);
+      });
+  }, [availableStudents, pendingEmails, searchQuery]);
 
   const handleAddToPending = (email) => {
     setPendingEmails((current) => (current.includes(email) ? current : [...current, email]));
-    setSearchResults((current) => current.filter((student) => String(student.email || '').toLowerCase() !== email));
   };
 
   const handleRemoveFromPending = (email) => {
@@ -189,16 +186,18 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
       return;
     }
 
-    const { added = [], alreadyEnrolled = [], notFound = [], notStudent = [] } = result.data || {};
+    const { added = [], alreadyEnrolled = [], enrolledElsewhere = [], notFound = [], notStudent = [] } = result.data || {};
     const messages = [];
     if (added.length) messages.push(`Added: ${added.join(', ')}`);
-    if (alreadyEnrolled.length) messages.push(`Already in class: ${alreadyEnrolled.join(', ')}`);
+    if (alreadyEnrolled.length) messages.push(`Already in this class: ${alreadyEnrolled.join(', ')}`);
+    if (enrolledElsewhere.length) messages.push(`Already in another teacher's class: ${enrolledElsewhere.join(', ')}`);
     if (notStudent.length) messages.push(`Not a student account: ${notStudent.join(', ')}`);
     if (notFound.length) messages.push(`No account found: ${notFound.join(', ')}`);
 
-    setAddFeedback({ type: notFound.length || notStudent.length ? 'warning' : 'success', message: messages.join(' • ') });
+    setAddFeedback({ type: notFound.length || notStudent.length || enrolledElsewhere.length ? 'warning' : 'success', message: messages.join(' • ') });
     setPendingEmails([]);
     await loadRoster(selectedClassId);
+    await loadAvailableStudents();
     await onClassesChanged();
   };
 
@@ -218,6 +217,7 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     const result = await removeClassStudent(selectedClassId, backendUserId, studentId);
     if (!result.error) {
       await loadRoster(selectedClassId);
+      await loadAvailableStudents();
       await onClassesChanged();
     }
   };
@@ -290,32 +290,36 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
 
           <div className="teacher-add-students-panel">
             <h4>Add students</h4>
+            <p className="teacher-panel-hint">Only students not already in a class (yours or another teacher&apos;s) show up here.</p>
             <div className="teacher-search-row">
               <input
-                type="email"
-                placeholder="Search by student email"
+                type="text"
+                placeholder="Search by name or email"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                onKeyDown={(event) => event.key === 'Enter' && handleSearch()}
               />
-              <button type="button" className="teacher-icon-button" onClick={handleSearch} aria-label="Search">
-                <SearchIcon /> Search
-              </button>
+              <span className="teacher-icon-button" aria-hidden="true">
+                <SearchIcon />
+              </span>
             </div>
 
-            {searchResults.length > 0 && (
-              <div className="teacher-search-results">
-                {searchResults.map((student) => (
-                  <button key={student.id} type="button" className="teacher-search-result" onClick={() => handleAddToPending(String(student.email).toLowerCase())}>
-                    <span>
-                      <strong>{getDisplayName(student)}</strong>
-                      <em>{student.email}</em>
-                    </span>
-                    <PlusIcon />
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="teacher-search-results">
+              {availableStudentsLoading && <p className="teacher-empty">Loading available students...</p>}
+              {!availableStudentsLoading && visibleAvailableStudents.map((student) => (
+                <button key={student.id} type="button" className="teacher-search-result" onClick={() => handleAddToPending(String(student.email).toLowerCase())}>
+                  <span>
+                    <strong>{getDisplayName(student)}</strong>
+                    <em>{student.email}</em>
+                  </span>
+                  <PlusIcon />
+                </button>
+              ))}
+              {!availableStudentsLoading && visibleAvailableStudents.length === 0 && (
+                <p className="teacher-empty">
+                  {searchQuery.trim() ? 'No available students match your search.' : 'No unassigned students right now.'}
+                </p>
+              )}
+            </div>
 
             {pendingEmails.length > 0 && (
               <div className="teacher-pending-chips">

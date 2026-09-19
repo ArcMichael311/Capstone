@@ -28,6 +28,16 @@ public class ClassSectionController {
 		return ResponseEntity.ok(classSectionService.listClasses(teacherId));
 	}
 
+	@GetMapping("/available-students")
+	public ResponseEntity<List<ClassSectionService.AvailableStudentResponse>> listAvailableStudents() {
+		return ResponseEntity.ok(classSectionService.listAvailableStudents());
+	}
+
+	@GetMapping("/student/{studentId}")
+	public ResponseEntity<ClassSectionService.StudentClassResponse> getClassForStudent(@PathVariable Long studentId) {
+		return ResponseEntity.ok(classSectionService.getClassForStudent(studentId));
+	}
+
 	@PostMapping("/teacher/{teacherId}")
 	public ResponseEntity<ClassSectionService.ClassResponse> createClass(
 		@PathVariable Long teacherId,
