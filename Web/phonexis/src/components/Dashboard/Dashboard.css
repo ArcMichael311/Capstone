@@ -552,6 +552,76 @@
   width: min(560px, 100%);
 }
 
+.student-class-workspace {
+  min-height: 100%;
+  padding-bottom: 2rem;
+}
+
+.student-class-banner {
+  align-items: flex-end;
+}
+
+.student-class-banner .module-label {
+  margin-bottom: 0.7rem;
+}
+
+.student-class-banner .module-banner-stats {
+  justify-content: flex-end;
+}
+
+.student-class-banner .module-back {
+  white-space: nowrap;
+}
+
+.student-class-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.student-class-stage {
+  min-height: 20rem;
+}
+
+.student-class-list,
+.student-class-stage .dashboard-pretest-list {
+  margin-top: 0;
+}
+
+.student-class-list .dashboard-material-item {
+  min-height: 4.5rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(77, 150, 255, 0.16);
+  background: rgba(77, 150, 255, 0.07);
+}
+
+.student-class-list .dashboard-material-item span:first-child {
+  font-size: 1rem;
+}
+
+.student-class-stage .dashboard-pretest-item {
+  min-height: 5.5rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(255, 107, 107, 0.14);
+}
+
+@media (max-width: 700px) {
+  .student-class-banner {
+    align-items: stretch;
+  }
+
+  .student-class-banner .module-banner-stats {
+    justify-content: flex-start;
+  }
+
+  .student-class-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .student-class-stage .dashboard-pretest-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .dashboard-secondary-button {
   appearance: none;
   border: 2px solid rgba(0, 0, 0, 0.12);

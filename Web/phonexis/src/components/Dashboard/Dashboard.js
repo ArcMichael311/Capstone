@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import './Dashboard.css';
 import logo from '../Login/logoB.png';
-import StudentClassModal from './StudentClassModal';
 
 const moduleCards = [
   {
@@ -39,8 +37,6 @@ const moduleCards = [
 ];
 
 export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [], studentId = null }) {
-  const [showClassModal, setShowClassModal] = useState(false);
-
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -125,9 +121,9 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
             <button
               type="button"
               className="dashboard-card-button"
-              onClick={() => setShowClassModal(true)}
+              onClick={() => onNavigate('class', 'materials')}
             >
-              Click View
+              OPEN CLASS
             </button>
           </div>
         )}
@@ -171,14 +167,6 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
         })}
       </section>
 
-      {showClassModal && studentClassInfo && (
-        <StudentClassModal
-          studentClassInfo={studentClassInfo}
-          studentMaterials={studentMaterials}
-          studentId={studentId}
-          onClose={() => setShowClassModal(false)}
-        />
-      )}
     </section>
   );
 }
