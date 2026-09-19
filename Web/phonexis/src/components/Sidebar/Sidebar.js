@@ -38,7 +38,7 @@ const modules = [
   { key: 'cvc', label: 'CVC Words' },
 ];
 
-export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {}, completedAlphabetModes = [] }) {
+export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, studentClassInfo = null, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {}, completedAlphabetModes = [] }) {
   const displayName = [currentUser?.firstname || currentUser?.user_metadata?.firstname, currentUser?.lastname || currentUser?.user_metadata?.lastname]
     .filter(Boolean)
     .join(' ') || currentUser?.email?.split('@')[0] || 'Learner';
@@ -71,6 +71,7 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
         </button>
 
         <div className="sidebar-section sidebar-module-list">
+          <p className="sidebar-section-title">Modules</p>
           {modules.map((module) => (
             <button
               key={module.key}
@@ -83,6 +84,20 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
             </button>
           ))}
         </div>
+
+        {studentClassInfo?.classId && (
+          <div className="sidebar-section sidebar-classroom-list">
+            <p className="sidebar-section-title">Class</p>
+            <button
+              type="button"
+              className={activeView === 'class' ? 'sidebar-sub-link active' : 'sidebar-sub-link'}
+              onClick={() => onNavigate('class', 'materials')}
+            >
+              <span className="sidebar-classroom-name">{studentClassInfo.className || studentClassInfo.name || 'My Class'}</span>
+              <span className="sidebar-classroom-action"></span>
+            </button>
+          </div>
+        )}
 
         {sections.length > 0 && (
           <div className="sidebar-section">

@@ -1118,6 +1118,7 @@ function App() {
             activeView={activeView}
             activeSection={activeSection}
             currentUser={currentUser}
+            studentClassInfo={studentClassInfo}
             onNavigate={navigateTo}
             onSelectModule={openModule}
             alphabetProgress={alphabetProgress}
