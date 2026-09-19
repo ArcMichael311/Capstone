@@ -256,7 +256,3 @@ The frontend may use the public Supabase anonymous key, but privileged Supabase 
 - validate frontend changes with `npm run build`
 - validate backend changes with `..\..\backend\mvnw.cmd test`
 - prefer focused changes consistent with the existing role-based architecture
-
-## License
-
-No license has been specified for this repository yet. Add a license file before distributing or reusing the project publicly.
