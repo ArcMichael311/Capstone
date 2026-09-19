@@ -23,6 +23,8 @@ import {
   supabase,
   fetchBackendUsers,
   fetchBackendProgress,
+  fetchStudentClass,
+  fetchLearningMaterials,
   joinBackendClass,
   updateBackendModuleProgress,
   verifySupabaseUserDevice,
@@ -61,6 +63,8 @@ function App() {
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
   const [isProgressHydrated, setIsProgressHydrated] = useState(false);
   const [backendUserId, setBackendUserId] = useState(null);
+  const [studentClassInfo, setStudentClassInfo] = useState(null);
+  const [studentMaterials, setStudentMaterials] = useState([]);
   const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
   const isAdminUser = normalizedRole === 'admin';
   const isTeacherUser = normalizedRole === 'teacher';
@@ -476,6 +480,43 @@ function App() {
     };
   }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, resolveBackendUserId, resetProgressState]);
 
+  // Load the student's assigned class (if any) and the materials their teacher shared with it.
+  useEffect(() => {
+    if (isAdminUser || isTeacherUser || !backendUserId) {
+      setStudentClassInfo(null);
+      setStudentMaterials([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadClassInfo = async () => {
+      const classResult = await fetchStudentClass(backendUserId);
+      if (cancelled) {
+        return;
+      }
+
+      const classInfo = !classResult.error && classResult.data ? classResult.data : null;
+      setStudentClassInfo(classInfo);
+
+      if (!classInfo?.classId) {
+        setStudentMaterials([]);
+        return;
+      }
+
+      const materialsResult = await fetchLearningMaterials(classInfo.classId);
+      if (!cancelled) {
+        setStudentMaterials(!materialsResult.error && Array.isArray(materialsResult.data) ? materialsResult.data : []);
+      }
+    };
+
+    void loadClassInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backendUserId, isAdminUser, isTeacherUser]);
+
   useEffect(() => {
     if (!currentUser || !isProgressHydrated) return;
 
@@ -853,6 +894,8 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
             />
           );
         }
@@ -884,6 +927,8 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
             />
           );
         }
@@ -915,6 +960,8 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
             />
           );
         }
@@ -991,6 +1038,8 @@ function App() {
             onLogout={handleLogout}
             onJoinClass={handleJoinClass}
             classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+            studentClassInfo={studentClassInfo}
+            studentMaterials={studentMaterials}
           />
         );
     }

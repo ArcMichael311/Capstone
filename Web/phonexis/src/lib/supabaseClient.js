@@ -234,6 +234,8 @@ export const deleteTeacherClass = (classId, teacherId) => requestToBackend(`/api
 export const fetchClassStudents = (classId) => getFromBackend(`/api/classes/${classId}/students`);
 export const addClassStudents = (classId, teacherId, emails) => postToBackend(`/api/classes/${classId}/students?teacherId=${teacherId}`, { emails });
 export const removeClassStudent = (classId, teacherId, studentId) => requestToBackend(`/api/classes/${classId}/students/${studentId}?teacherId=${teacherId}`, { method: 'DELETE' });
+export const fetchAvailableStudents = () => getFromBackend('/api/classes/available-students');
+export const fetchStudentClass = (studentId) => getFromBackend(`/api/classes/student/${studentId}`);
 
 export const fetchLearningMaterials = (classId) => getFromBackend(`/api/learning-materials/class/${classId}`);
 export const deleteLearningMaterial = (materialId, teacherId) => requestToBackend(`/api/learning-materials/${materialId}?teacherId=${teacherId}`, { method: 'DELETE' });

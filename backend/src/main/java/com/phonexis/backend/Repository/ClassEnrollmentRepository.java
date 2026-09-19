@@ -17,9 +17,13 @@ public interface ClassEnrollmentRepository extends JpaRepository<ClassEnrollment
 
 	boolean existsByClassSectionAndStudent(ClassSection classSection, User student);
 
+	boolean existsByStudent(User student);
+
 	long countByClassSection(ClassSection classSection);
 
 	List<ClassEnrollment> findByStudent(User student);
+
+	java.util.Optional<ClassEnrollment> findFirstByStudent(User student);
 
 	void deleteByClassSection(ClassSection classSection);
 

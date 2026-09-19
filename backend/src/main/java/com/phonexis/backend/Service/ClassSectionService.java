@@ -86,6 +86,7 @@ public class ClassSectionService {
 
 		List<String> added = new ArrayList<>();
 		List<String> alreadyEnrolled = new ArrayList<>();
+		List<String> enrolledElsewhere = new ArrayList<>();
 		List<String> notFound = new ArrayList<>();
 		List<String> notStudent = new ArrayList<>();
 
@@ -118,6 +119,12 @@ public class ClassSectionService {
 				continue;
 			}
 
+			// A student can only belong to one class at a time, across every teacher.
+			if (classEnrollmentRepository.existsByStudent(student)) {
+				enrolledElsewhere.add(email);
+				continue;
+			}
+
 			ClassEnrollment enrollment = new ClassEnrollment();
 			enrollment.setClassSection(classSection);
 			enrollment.setStudent(student);
@@ -125,7 +132,33 @@ public class ClassSectionService {
 			added.add(email);
 		}
 
-		return new AddStudentsResponse(added, alreadyEnrolled, notFound, notStudent);
+		return new AddStudentsResponse(added, alreadyEnrolled, enrolledElsewhere, notFound, notStudent);
+	}
+
+	@Transactional(readOnly = true)
+	public List<AvailableStudentResponse> listAvailableStudents() {
+		return userRepository.findUnassignedStudents().stream()
+			.map(student -> new AvailableStudentResponse(student.getUserId(), student.getFirstName(), student.getLastName(), student.getEmail()))
+			.toList();
+	}
+
+	@Transactional(readOnly = true)
+	public StudentClassResponse getClassForStudent(Long studentId) {
+		User student = userRepository.findById(studentId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found"));
+
+		return classEnrollmentRepository.findFirstByStudent(student)
+			.map(enrollment -> {
+				ClassSection classSection = enrollment.getClassSection();
+				User teacher = classSection.getTeacher();
+				return new StudentClassResponse(
+					classSection.getClassId(),
+					classSection.getName(),
+					teacher.getFirstName(),
+					teacher.getLastName()
+				);
+			})
+			.orElse(null);
 	}
 
 	@Transactional
@@ -194,9 +227,13 @@ public class ClassSectionService {
 
 	public record AddStudentsRequest(List<String> emails) { }
 
-	public record AddStudentsResponse(List<String> added, List<String> alreadyEnrolled, List<String> notFound, List<String> notStudent) { }
+	public record AddStudentsResponse(List<String> added, List<String> alreadyEnrolled, List<String> enrolledElsewhere, List<String> notFound, List<String> notStudent) { }
 
 	public record ClassResponse(Long id, Long teacherId, String name, LocalDateTime createdAt, long studentCount) { }
 
 	public record StudentResponse(Long id, String firstName, String lastName, String email, LocalDateTime addedAt) { }
+
+	public record AvailableStudentResponse(Long id, String firstName, String lastName, String email) { }
+
+	public record StudentClassResponse(Long classId, String className, String teacherFirstName, String teacherLastName) { }
 }
