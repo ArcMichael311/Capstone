@@ -211,9 +211,21 @@
 }
 
 .admin-delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.5rem;
+  min-width: 2.75rem;
+  padding: 0.5rem;
   border: 1px solid rgba(220, 38, 38, 0.28);
   color: #dc2626;
   background: transparent;
+}
+
+.admin-delete-button svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .admin-delete-button:hover:not(:disabled) {
@@ -366,10 +378,16 @@
 }
 
 .admin-actions-cell {
-  display: flex;
+  display: flex !important;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.admin-actions-cell > * {
+  flex-shrink: 0;
 }
 
 /* Search bar */

@@ -3,6 +3,7 @@ import './Admin.css';
 import { deleteBackendUser, fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
 import { toFullName, formatDate, getInitials } from './adminHelpers';
 import { GraduationIcon, SearchIcon, CloseIcon } from './AdminIcons';
+import { TrashIcon } from '../Teacher/TeacherIcons';
 
 export default function AdminStudents() {
   const [users, setUsers] = useState([]);
@@ -183,8 +184,10 @@ export default function AdminStudents() {
                       className="admin-delete-button"
                       onClick={() => deleteAccount(student.id)}
                       disabled={loading || !!promotingUserId || !!deletingUserId}
+                      title={deletingUserId === student.id ? 'Deleting...' : 'Delete student'}
+                      aria-label={deletingUserId === student.id ? 'Deleting student' : 'Delete student'}
                     >
-                      {deletingUserId === student.id ? 'Deleting...' : 'Delete'}
+                      {deletingUserId === student.id ? 'Deleting...' : <TrashIcon />}
                     </button>
                   </td>
                 </tr>

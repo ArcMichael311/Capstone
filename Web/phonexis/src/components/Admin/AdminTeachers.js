@@ -2,8 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import './Admin.css';
 import { deleteBackendUser, fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
 import { toFullName, formatDate, getInitials } from './adminHelpers';
-import { ChalkboardIcon, SearchIcon, CloseIcon } from './AdminIcons';
-
+import { ChalkboardIcon, SearchIcon, CloseIcon } from './AdminIcons';import { TrashIcon } from '../Teacher/TeacherIcons';
 export default function AdminTeachers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -190,8 +189,10 @@ export default function AdminTeachers() {
                       className="admin-delete-button"
                       onClick={() => deleteAccount(teacher.id)}
                       disabled={loading || !!demotingUserId || !!deletingUserId}
+                      title={deletingUserId === teacher.id ? 'Deleting...' : 'Delete teacher'}
+                      aria-label={deletingUserId === teacher.id ? 'Deleting teacher' : 'Delete teacher'}
                     >
-                      {deletingUserId === teacher.id ? 'Deleting...' : 'Delete'}
+                      {deletingUserId === teacher.id ? 'Deleting...' : <TrashIcon />}
                     </button>
                   </td>
                 </tr>
