@@ -4,6 +4,7 @@ import { fetchTeacherClasses } from '../../lib/supabaseClient';
 import { getDisplayName } from './teacherUtils';
 import TeacherDashboard from './TeacherDashboard';
 import TeacherLearningMaterials from './TeacherLearningMaterials';
+import TeacherPretest from './TeacherPretest';
 import TeacherAcademicProgress from './TeacherAcademicProgress';
 
 export default function Teacher({ user, backendUserId, activeSection }) {
@@ -37,6 +38,7 @@ export default function Teacher({ user, backendUserId, activeSection }) {
   const sectionCopy = {
     dashboard: { title: `${teacherName}'s Classes`, subtitle: 'Create classes and manage each section’s roster.' },
     materials: { title: 'Learning Materials', subtitle: 'Share PPT, PDF, MP4, and MP3 files with your classes.' },
+    pretest: { title: 'Pretest', subtitle: 'Build quizzes with your own voice recordings for each class.' },
     progress: { title: 'Academic Progress', subtitle: 'Review each class’s students and their module progress.' },
   }[section];
 
@@ -62,6 +64,10 @@ export default function Teacher({ user, backendUserId, activeSection }) {
 
       {section === 'materials' && (
         <TeacherLearningMaterials backendUserId={backendUserId} classes={classes} loading={classesLoading} />
+      )}
+
+      {section === 'pretest' && (
+        <TeacherPretest backendUserId={backendUserId} classes={classes} loading={classesLoading} />
       )}
 
       {section === 'progress' && (

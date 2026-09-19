@@ -24,17 +24,20 @@ public class ClassSectionService {
 	private final ClassEnrollmentRepository classEnrollmentRepository;
 	private final UserRepository userRepository;
 	private final LearningMaterialService learningMaterialService;
+	private final PretestService pretestService;
 
 	public ClassSectionService(
 		ClassSectionRepository classSectionRepository,
 		ClassEnrollmentRepository classEnrollmentRepository,
 		UserRepository userRepository,
-		LearningMaterialService learningMaterialService
+		LearningMaterialService learningMaterialService,
+		PretestService pretestService
 	) {
 		this.classSectionRepository = classSectionRepository;
 		this.classEnrollmentRepository = classEnrollmentRepository;
 		this.userRepository = userRepository;
 		this.learningMaterialService = learningMaterialService;
+		this.pretestService = pretestService;
 	}
 
 	@Transactional(readOnly = true)
@@ -68,6 +71,7 @@ public class ClassSectionService {
 	public void deleteClass(Long classId, Long teacherId) {
 		ClassSection classSection = getOwnedClass(classId, teacherId);
 		learningMaterialService.deleteAllForClass(classSection);
+		pretestService.deleteAllForClass(classSection);
 		classEnrollmentRepository.deleteByClassSection(classSection);
 		classSectionRepository.delete(classSection);
 	}
