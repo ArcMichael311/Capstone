@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import './Dashboard.css';
 import logo from '../Login/logoB.png';
 
@@ -47,6 +48,8 @@ const formatFileSize = (bytes) => {
 };
 
 export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [] }) {
+  const [showMaterials, setShowMaterials] = useState(false);
+
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -114,45 +117,30 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
         </div>
       </section>
 
-      <section className="dashboard-card dashboard-card-class" aria-label="Your class">
-        <div className="dashboard-card-copy">
-          {studentClassInfo ? (
-            <>
+      <section className="dashboard-cards" aria-label="Class and game modules">
+        {studentClassInfo && (
+          <div className="dashboard-card dashboard-card-classroom" aria-label="Your class">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              <span>🏫</span>
+            </div>
+
+            <div className="dashboard-card-copy">
               <h3>{studentClassInfo.className}</h3>
               <p>
                 Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
               </p>
+            </div>
 
-              <div className="dashboard-materials-list">
-                {studentMaterials.map((material) => (
-                  <a
-                    key={material.id}
-                    className="dashboard-material-item"
-                    href={material.downloadUrl || undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span>{material.title || material.fileName}</span>
-                    <span className="dashboard-material-meta">
-                      {material.fileSize ? formatFileSize(material.fileSize) : ''}
-                    </span>
-                  </a>
-                ))}
-                {studentMaterials.length === 0 && (
-                  <p className="dashboard-materials-empty">No materials shared yet.</p>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <h3>No Class Yet</h3>
-              <p>Ask your teacher to add you to a class to see your section and materials here.</p>
-            </>
-          )}
-        </div>
-      </section>
+            <button
+              type="button"
+              className="dashboard-card-button"
+              onClick={() => setShowMaterials(true)}
+            >
+              Click View
+            </button>
+          </div>
+        )}
 
-      <section className="dashboard-cards" aria-label="Game modules">
         {moduleCards.map((card) => {
           const isLocked = (card.key === 'vowels' && !vowelsUnlocked) || (card.key === 'consonants' && !consonantsUnlocked) || (card.key === 'cvc' && !cvcUnlocked);
           const cardProgressMap = {
@@ -191,6 +179,50 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
           );
         })}
       </section>
+
+      {showMaterials && studentClassInfo && (
+        <div
+          className="dashboard-materials-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${studentClassInfo.className} materials`}
+          onClick={() => setShowMaterials(false)}
+        >
+          <div className="dashboard-materials-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="dashboard-materials-modal-head">
+              <h3>{studentClassInfo.className} Materials</h3>
+              <button
+                type="button"
+                className="dashboard-materials-modal-close"
+                onClick={() => setShowMaterials(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="dashboard-materials-list">
+              {studentMaterials.map((material) => (
+                <a
+                  key={material.id}
+                  className="dashboard-material-item"
+                  href={material.downloadUrl || undefined}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span>{material.title || material.fileName}</span>
+                  <span className="dashboard-material-meta">
+                    {material.fileSize ? formatFileSize(material.fileSize) : ''}
+                  </span>
+                </a>
+              ))}
+              {studentMaterials.length === 0 && (
+                <p className="dashboard-materials-empty">No materials shared yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
