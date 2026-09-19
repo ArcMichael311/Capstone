@@ -701,6 +701,7 @@ function App() {
     setIsAuthenticated(true);
     setNavigationHistory([]);
     setActiveView(getLandingViewByRole(mappedProfile));
+    setActiveSection(null);
   };
 
   const handleLogout = useCallback(async () => {
@@ -718,6 +719,7 @@ function App() {
     setCurrentUser(null);
     setNavigationHistory([]);
     setActiveView('login');
+    setActiveSection(null);
   }, [currentUser]);
 
   // Auto-logout after 30 minutes with no user activity, and heartbeat the backend

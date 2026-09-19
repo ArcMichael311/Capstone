@@ -3,7 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
-const backendUrl = (configuredBackendUrl || 'https://phonexis-backend.onrender.com').replace(/\/$/, '');
+const defaultBackendUrl = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:8080'
+  : 'https://phonexis-backend.onrender.com';
+const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
 
