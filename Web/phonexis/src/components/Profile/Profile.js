@@ -642,12 +642,6 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             </div>
           </div>
 
-          <div className="profile-sign-out-section">
-            <p>Need help with your account?</p>
-            <button type="button" className="profile-sign-out-btn" onClick={onLogout}>
-              SIGN OUT
-            </button>
-          </div>
         </div>
       )}
     </section>
