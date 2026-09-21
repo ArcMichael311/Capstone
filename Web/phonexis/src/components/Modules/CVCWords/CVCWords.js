@@ -343,16 +343,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     return source[Math.floor(Math.random() * source.length)];
   };
 
-  const speakWord = (word) => {
-    const didSpeak = speakText(word, { rate: 0.9 });
-    if (!didSpeak) {
-      setFeedback(`Hear the word: ${word}.`);
-      return;
-    }
-
-    setFeedback(`Speaking ${word}.`);
-  };
-
   const speakSelectionWord = () => {
     const didSpeak = speakText(currentSelection.word, {
       rate: 0.85,
@@ -472,7 +462,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
 
   const handleWordPick = (item) => {
     setSelectedWord(item);
-    speakWord(item.word);
+    speakText(item.word, { rate: 0.9 });
   };
 
   const currentSelection = selectionDeck[selectionIndex];
@@ -719,9 +709,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
         <h3>{selectedWord.word}</h3>
         <p>{selectedWord.description}</p>
         <div className="cvc-button-group">
-          <button type="button" className="cvc-action-button" onClick={() => speakWord(selectedWord.word)}>
-            Hear the Word
-          </button>
           <button 
             type="button" 
             className="cvc-voice-practice-btn"

@@ -267,7 +267,8 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
       '',
       'Learning Progress:',
       `- Alphabet Recognition: ${alphabetProgress}%`,
-      `- Vowels & Consonants: ${Math.round((vowelsProgress + consonantsProgress) / 2)}%`,
+      `- Vowels: ${vowelsProgress}%`,
+      `- Consonants: ${consonantsProgress}%`,
       `- CVC Words: ${cvcProgress}%`,
       `- Overall Progress: ${overallProgress}%`,
       '',
@@ -389,8 +390,12 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
                 <span className="profile-progress-percentage">{alphabetProgress}%</span>
               </div>
               <div className="profile-progress-item">
-                <span>Vowels & Consonants</span>
-                <span className="profile-progress-percentage">{Math.round((vowelsProgress + consonantsProgress) / 2)}%</span>
+                <span>Vowels</span>
+                <span className="profile-progress-percentage">{vowelsProgress}%</span>
+              </div>
+              <div className="profile-progress-item">
+                <span>Consonants</span>
+                <span className="profile-progress-percentage">{consonantsProgress}%</span>
               </div>
               <div className="profile-progress-item">
                 <span>CVC Words</span>
