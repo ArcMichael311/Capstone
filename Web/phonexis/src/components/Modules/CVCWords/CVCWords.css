@@ -143,8 +143,29 @@
 }
 
 .cvc-selection-image {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: 1.25rem;
+  background: transparent;
+  color: inherit;
+  padding: 0.35rem 0.75rem;
   font-size: clamp(4.5rem, 8vw, 6rem);
   line-height: 1;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.cvc-selection-image:hover,
+.cvc-selection-image:focus-visible,
+.cvc-selection-image.speaking {
+  border-color: #d4af37;
+  background: rgba(212, 175, 55, 0.12);
+  transform: scale(1.06);
+  outline: none;
+}
+
+.cvc-selection-image.speaking {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.45);
 }
 
 .cvc-selection-answer-area {
