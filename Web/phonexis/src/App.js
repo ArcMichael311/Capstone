@@ -265,8 +265,12 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
+        if (event !== 'SIGNED_OUT') {
+          return;
+        }
+
         setIsAuthenticated(false);
         setCurrentUser(null);
         setNavigationHistory([]);
