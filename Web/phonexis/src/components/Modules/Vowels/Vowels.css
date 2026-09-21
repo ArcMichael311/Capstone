@@ -167,6 +167,17 @@
   gap: 0.8rem;
   place-items: center;
   text-align: center;
+  cursor: pointer;
+  border-radius: 1rem;
+  padding: 0.5rem 1rem;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.vowels-object:hover,
+.vowels-object:focus-visible {
+  background: rgba(212, 175, 55, 0.08);
+  transform: translateY(-2px);
+  outline: none;
 }
 
 .vowels-object-icon {

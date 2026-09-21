@@ -21,7 +21,7 @@ const consonants = [
   { letter: 'S', word: 'Sun', icon: '☀️' },
   { letter: 'T', word: 'Tiger', icon: '🐯' },
   { letter: 'W', word: 'Wolf', icon: '🐺' },
-  { letter: 'X', word: 'Xylophone', icon: '🎹' },
+  { letter: 'X', word: 'X-ray', icon: '🩻' },
   { letter: 'Y', word: 'Yoyo', icon: '🪀' },
   { letter: 'Z', word: 'Zebra', icon: '🦓' },
 ];
@@ -165,11 +165,19 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     handleVideoWatched(videoId);
   };
 
+  const speakLetterOnly = (letterToSpeak = selectedItem) => {
+    speakText(letterToSpeak.letter, `Speaking letter: ${letterToSpeak.letter}.`);
+  };
+
+  const speakLetterAndWord = (letterToSpeak = selectedItem) => {
+    speakText(`${letterToSpeak.letter}. ${letterToSpeak.word}.`, `Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
+  };
+
   const handlePick = (letter) => {
     const nextItem = consonants.find((item) => item.letter === letter) ?? consonants[0];
     setSelectedLetter(nextItem.letter);
     setShowVoicePractice(false);
-    speakText(nextItem.word, `Speaking ${nextItem.word}.`);
+    speakLetterAndWord(nextItem);
   };
 
   const speakCurrent = () => {
@@ -309,9 +317,35 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
           </div>
 
           <div className="consonants-stage">
-            <span className="consonants-letter">{selectedItem.letter}</span>
+            <span
+              className="consonants-letter"
+              onClick={() => speakLetterOnly()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakLetterOnly();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the letter ${selectedItem.letter}`}
+            >
+              {selectedItem.letter}
+            </span>
 
-            <div className="consonants-object">
+            <div
+              className="consonants-object"
+              onClick={() => speakCurrent()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakCurrent();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the word ${selectedItem.word}`}
+            >
               <span className="consonants-object-icon" aria-hidden="true">
                 {selectedItem.icon}
               </span>

@@ -1,17 +1,16 @@
 .vowel-rush-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
+  position: relative;
+  z-index: auto;
   display: grid;
-  place-items: center;
-  padding: clamp(0.75rem, 2vw, 1.5rem);
-  background: var(--app-background, #ffffff);
-  backdrop-filter: blur(10px);
+  place-items: stretch;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .vowel-rush-shell {
-  width: min(100%, 72rem);
-  max-height: 100%;
+  width: 100%;
+  max-height: none;
   overflow: auto;
   display: grid;
   gap: 1rem;
@@ -20,6 +19,7 @@
   background: linear-gradient(180deg, rgba(29, 36, 61, 0.96), rgba(15, 18, 33, 0.98));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   padding: 1rem;
+  min-height: 100%;
 }
 
 .rush-topbar,

@@ -1,19 +1,10 @@
 .alpha-quest-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   width: 100%;
-  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, rgba(30, 144, 255, 0.2), rgba(135, 206, 235, 0.3));
-  backdrop-filter: blur(5px);
-  z-index: 1000;
   animation: fadeIn 0.5s ease-out;
-  padding: 1rem;
+  padding: 0;
 }
 
 @keyframes fadeIn {
@@ -41,6 +32,7 @@
   border-radius: 2rem;
   box-shadow: 0 12px 40px rgba(77, 150, 255, 0.15), 0 20px 60px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.5s ease-out;
+  width: 100%;
 }
 
 .alpha-quest-title {
@@ -180,9 +172,9 @@
 /* Game Screen */
 .alpha-quest-game {
   width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -463,15 +455,14 @@
 }
 
 .alpha-quest-reward-overlay {
-  position: fixed;
-  inset: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(6px);
-  z-index: 1100;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: none;
+  z-index: auto;
 }
 
 .alpha-quest-reward-card {
