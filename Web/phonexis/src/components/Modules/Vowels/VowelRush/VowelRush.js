@@ -549,7 +549,7 @@ export default function VowelRush({ onClose }) {
   );
 
   return (
-    <div className="vowel-rush-overlay" role="dialog" aria-modal="true" aria-label="Vowel Rush game">
+    <div className="vowel-rush-overlay" aria-label="Vowel Rush game">
       <div className="vowel-rush-shell">
         <div className="rush-topbar">
           <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
