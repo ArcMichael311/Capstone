@@ -15,7 +15,7 @@
   display: grid;
   gap: 1rem;
   border: 2px solid rgba(212, 175, 55, 0.55);
-  border-radius: 1.5rem;
+  border-radius: 1rem;
   background: linear-gradient(180deg, rgba(29, 36, 61, 0.96), rgba(15, 18, 33, 0.98));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   padding: 1rem;
