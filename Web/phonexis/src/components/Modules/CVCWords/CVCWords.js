@@ -328,6 +328,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const [showVoicePractice, setShowVoicePractice] = useState(false);
   const [isReadingInstructions, setIsReadingInstructions] = useState(false);
   const [isReadingHint, setIsReadingHint] = useState(false);
+  const [isReadingSelectionWord, setIsReadingSelectionWord] = useState(false);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -350,6 +351,23 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     }
 
     setFeedback(`Speaking ${word}.`);
+  };
+
+  const speakSelectionWord = () => {
+    const didSpeak = speakText(currentSelection.word, {
+      rate: 0.85,
+      onend: () => setIsReadingSelectionWord(false),
+      onerror: () => setIsReadingSelectionWord(false),
+    });
+
+    if (!didSpeak) {
+      setIsReadingSelectionWord(false);
+      setFeedback(`Hear the word: ${currentSelection.word}.`);
+      return;
+    }
+
+    setIsReadingSelectionWord(true);
+    setFeedback(`Listening to ${currentSelection.word}.`);
   };
 
   const speakBalloonInstructions = () => {
@@ -493,6 +511,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   setSelectedWord(selectionDeck[nextIndex]);
     setSelectionResult(null);
     setSelectionMessage('');
+    setIsReadingSelectionWord(false);
     setFeedback('');
   };
 
@@ -814,9 +833,15 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       </div>
 
       <div className="cvc-selection-card-shell">
-        <div className="cvc-selection-image" aria-hidden="true">
+        <button
+          type="button"
+          className={`cvc-selection-image${isReadingSelectionWord ? ' speaking' : ''}`}
+          onClick={speakSelectionWord}
+          aria-label={`Hear the word ${currentSelection.word}`}
+          title="Click to hear the word"
+        >
           {currentSelection.icon}
-        </div>
+        </button>
 
         <div className="cvc-selection-answer-area">
           <div className="cvc-selection-choices" aria-label="Word selection choices">
