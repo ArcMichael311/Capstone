@@ -11,6 +11,7 @@ const moduleSections = {
     { key: 'easy', label: 'Easy' },
     { key: 'medium', label: 'Medium' },
     { key: 'hard', label: 'Hard' },
+    { key: 'frywords', label: 'Fry Words' },
     { key: 'alphaquest', label: 'Game: AlphaQuest' },
   ],
   vowels: [

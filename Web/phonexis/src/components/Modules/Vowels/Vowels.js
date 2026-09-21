@@ -5,10 +5,10 @@ import VowelRush from './VowelRush';
 import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const vowels = [
-  { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
-  { letter: 'E', sound: 'eh', word: 'Elephant', icon: '🐘' },
-  { letter: 'I', sound: 'ih', word: 'Ice cream', icon: '🍦' },
-  { letter: 'O', sound: 'oh', word: 'Octopus', icon: '🐙' },
+  { letter: 'A', sound: 'ah', word: 'Cat', icon: '🐱' },
+  { letter: 'E', sound: 'eh', word: 'Egg', icon: '🥚' },
+  { letter: 'I', sound: 'ih', word: 'Ice', icon: '🧊' },
+  { letter: 'O', sound: 'oh', word: 'Owl', icon: '🦉' },
   { letter: 'U', sound: 'uh', word: 'Umbrella', icon: '☂️' },
 ];
 
@@ -224,6 +224,10 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     speakText(`${selectedItem.letter}, ${selectedItem.sound}`, `Speaking ${selectedItem.letter} sound.`);
   };
 
+  const speakSelectedWord = () => {
+    speakText(selectedItem.word, `Speaking word: ${selectedItem.word}`);
+  };
+
   const getPairLetters = (team, word) => {
     const lowercaseTeam = team.toLowerCase();
     const pairLetters = [...lowercaseTeam].filter((letter) => /[aeiou]/.test(letter));
@@ -398,11 +402,23 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
           <div className="vowels-stage">
             <span className="vowels-letter">{selectedItem.letter}</span>
 
-            <div className="vowels-object">
-              <span className="vowels-object-icon" aria-hidden="true">
+            <div
+              className="vowels-object"
+              onClick={speakSelectedWord}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakSelectedWord();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the word ${selectedItem.word}`}
+            >
+              <span className="vowels-object-icon" aria-hidden="true" onClick={speakSelectedWord}>
                 {selectedItem.icon}
               </span>
-              <p className="vowels-object-word">{selectedItem.word}</p>
+              <p className="vowels-object-word" onClick={speakSelectedWord}>{selectedItem.word}</p>
               <p className="vowels-object-sound">Sound: "{selectedItem.sound}"</p>
             </div>
 
@@ -432,10 +448,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                 })}
               </div>
             </div>
-
-            <button type="button" className="vowels-listen" onClick={speakCurrent}>
-              🔊 LISTEN TO SOUND
-            </button>
 
             <div className="vowels-button-group">
               <button

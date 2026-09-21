@@ -48,8 +48,32 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const [showAlphaQuest, setShowAlphaQuest] = useState(false); // Track if AlphaQuest is active
   const letters = useMemo(() => alphabet.map((item) => item.letter), []);
   const selectedIndex = letters.indexOf(selectedLetter.letter);
+  const isFryWordsView = initialSection === 'frywords';
+  const fryWordColumns = useMemo(
+    () => [
+      ['the', 'to', 'that', 'for', 'with', 'at', 'from', 'by', 'what', 'when', 'there', 'which', 'their', 'other', 'then', 'some', 'like', 'has', 'write', 'no', 'my', 'been', 'sit', 'down', 'come'],
+      ['of', 'in', 'it', 'on', 'his', 'be', 'or', 'words', 'all', 'your', 'use', 'she', 'if', 'about', 'them', 'her', 'him', 'look', 'go', 'way', 'than', 'called', 'now', 'day', 'made'],
+      ['and', 'is', 'he', 'are', 'they', 'this', 'one', 'but', 'were', 'can', 'an', 'do', 'will', 'out', 'these', 'would', 'into', 'two', 'see', 'could', 'first', 'who', 'find', 'did', 'may'],
+      ['a', 'you', 'was', 'as', 'I', 'have', 'had', 'not', 'we', 'said', 'each', 'how', 'up', 'many', 'so', 'make', 'time', 'more', 'number', 'people', 'water', 'oil', 'long', 'get', 'part'],
+    ],
+    []
+  );
 
   const speakLetter = (letterToSpeak = selectedLetter) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setFeedback(`Speech is not available for ${letterToSpeak.letter} right now.`);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(letterToSpeak.letter);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    setFeedback(`Speaking letter: ${letterToSpeak.letter}.`);
+  };
+
+  const speakLetterAndWord = (letterToSpeak = selectedLetter) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       setFeedback(`Speech is not available for ${letterToSpeak.letter} right now.`);
       return;
@@ -63,10 +87,37 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setFeedback(`Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
   };
 
+  const speakObjectWord = (wordToSpeak = selectedLetter.word) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setFeedback(`Speech is not available for ${wordToSpeak} right now.`);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(wordToSpeak);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    setFeedback(`Speaking word: ${wordToSpeak}.`);
+  };
+
+  const speakFryWord = (word) => {
+    if (!word || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    setFeedback(`Speaking word: ${word}`);
+  };
+
   const handlePick = (letter) => {
     const nextSelected = alphabet.find((item) => item.letter === letter) ?? alphabet[0];
     setSelectedLetter(nextSelected);
-    speakLetter(nextSelected);
+    speakLetterAndWord(nextSelected);
   };
 
   const goToRelativeLetter = (offset) => {
@@ -149,6 +200,17 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     }
   }, [difficulty, initialSection, mode, resetPretestState, showAlphaQuest]);
 
+  if (initialSection === 'alphaquest' || showAlphaQuest) {
+    return (
+      <div className="module-detail alphabet-module">
+        <div className="alphabet-topbar">
+          <p className="module-detail-label">Alphabet Recognition</p>
+        </div>
+        <AlphaQuest onClose={() => onNavigate?.('alphabet', 'learning')} />
+      </div>
+    );
+  }
+
   const playPretestAudio = (letter) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -219,18 +281,84 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     <div className="module-detail alphabet-module">
       <div className="alphabet-topbar">
         <p className="module-detail-label">
-          {mode === 'learning' ? 'Alphabet Recognition' : `Pretest - ${difficulty?.toUpperCase()}`}
+          {isFryWordsView ? 'Alphabet Recognition' : mode === 'learning' ? 'Alphabet Recognition' : `Pretest - ${difficulty?.toUpperCase()}`}
         </p>
       </div>
 
-      {mode === 'learning' ? (
+      {isFryWordsView ? (
+        <div className="alphabet-stage">
+          <div className="fry-words-section">
+            <div className="fry-words-header-wrap">
+              <h3 className="fry-words-title">Fry Words – The First Hundred</h3>
+              <p className="fry-words-subtitle">High-frequency sight words for reading practice</p>
+            </div>
+
+            <div className="fry-words-panel">
+              <div className="fry-words-header-row">
+                {['List 1', 'List 2', 'List 3', 'List 4'].map((label) => (
+                  <span key={label} className="fry-words-column-header">{label}</span>
+                ))}
+              </div>
+
+              <div className="fry-words-list-wrap">
+                {fryWordColumns.map((column, columnIndex) => (
+                  <ul key={`fry-column-${columnIndex}`} className="fry-words-list" aria-label={`Fry words list ${columnIndex + 1}`}>
+                    {column.map((word, index) => (
+                      <li
+                        key={`${columnIndex}-${word}-${index}`}
+                        className="fry-word-item"
+                        onClick={() => speakFryWord(word)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            speakFryWord(word);
+                          }
+                        }}
+                        aria-label={`Read the word ${word}`}
+                      >
+                        {word}
+                      </li>
+                    ))}
+                  </ul>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : mode === 'learning' ? (
         <div className="alphabet-stage">
           <div className="alphabet-display">
-            <div className="alphabet-letter-panel">
+            <div
+              className="alphabet-letter-panel"
+              onClick={() => speakLetter()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakLetter();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the letter ${selectedLetter.letter}`}
+            >
               <span className="alphabet-letter">{selectedLetter.letter}</span>
             </div>
 
-            <div className="alphabet-object-panel">
+            <div
+              className="alphabet-object-panel"
+              onClick={() => speakObjectWord()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakObjectWord();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the word ${selectedLetter.word}`}
+            >
               <span className="alphabet-object-icon" aria-hidden="true">
                 {selectedLetter.icon}
               </span>
@@ -242,9 +370,6 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
           </div>
 
           <div className="alphabet-actions">
-            <button type="button" className="alphabet-speak-button" onClick={speakLetter}>
-              🔊 Listen
-            </button>
             <button 
               type="button" 
               className="alphabet-voice-practice-btn"
@@ -346,9 +471,6 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
         </div>
       ) : null}
 
-      {showAlphaQuest && (
-        <AlphaQuest onClose={() => onNavigate?.('alphabet', 'learning')} />
-      )}
     </div>
   );
 }

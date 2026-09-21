@@ -20,7 +20,7 @@ export const routes = {
 const viewsByPath = Object.fromEntries(Object.entries(routes).map(([view, path]) => [path, view]));
 
 const sectionsByView = {
-  alphabet: ['easy', 'medium', 'hard', 'alphaquest'],
+  alphabet: ['easy', 'medium', 'hard', 'frywords', 'alphaquest'],
   vowels: ['learning', 'lesson', 'pretest', 'vowelrush'],
   consonants: ['learning', 'explore', 'teacher', 'wordblast'],
   cvc: ['learning', 'families', 'selection', 'building'],
