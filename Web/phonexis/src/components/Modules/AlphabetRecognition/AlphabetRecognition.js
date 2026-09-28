@@ -202,12 +202,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
 
   if (initialSection === 'alphaquest' || showAlphaQuest) {
     return (
-      <div className="module-detail alphabet-module">
-        <div className="alphabet-topbar">
-          <p className="module-detail-label">Alphabet Recognition</p>
-        </div>
-        <AlphaQuest onClose={() => onNavigate?.('alphabet', 'learning')} />
-      </div>
+      <AlphaQuest onClose={() => onNavigate?.('alphabet', 'learning')} />
     );
   }
 
