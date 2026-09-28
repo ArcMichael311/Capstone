@@ -6,35 +6,55 @@ const vowelLetters = new Set(['A', 'E', 'I', 'O', 'U']);
 const vowelTeams = doubleVowelExamples.map(({ letters }) => letters.toUpperCase());
 const letterPool = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const laneCount = 6;
+const maxHearts = 3;
+const comboTarget = 5;
+const burstAngles = [0, 45, 90, 135, 180, 225, 270, 315];
 
 const difficultyModes = {
   beginner: {
     label: 'Beginner',
+    icon: '🟢',
     description: '10 falling stars, 3 hearts, slow speed',
     totalStars: 10,
     fallDuration: 2600,
     gapDuration: 500,
+    minSpeedFactor: 0.8,
+    speedLevel: 1,
     goal: 'Catch 10 vowel stars',
   },
   intermediate: {
     label: 'Intermediate',
+    icon: '🟡',
     description: '20 falling stars, 3 hearts, medium speed',
     totalStars: 20,
     fallDuration: 2000,
     gapDuration: 380,
+    minSpeedFactor: 0.75,
+    speedLevel: 2,
     goal: 'Catch 20 vowel stars',
   },
   endless: {
     label: 'Endless',
+    icon: '🔴',
     description: 'Unlimited stars, 3 hearts, fast speed',
     totalStars: null,
     fallDuration: 1550,
     gapDuration: 250,
+    minSpeedFactor: 0.6,
+    speedLevel: 3,
     goal: 'Build the highest score possible',
   },
 };
 
-const createRandomStar = () => {
+const confettiColors = ['#ffd84d', '#62d6ff', '#ff6b9a', '#7ef0a8', '#c08bff'];
+const confettiPieces = Array.from({ length: 32 }, (_, i) => ({
+  left: (i * 37) % 100,
+  delay: (i % 10) * 0.15,
+  duration: 2.4 + (i % 4) * 0.4,
+  color: confettiColors[i % confettiColors.length],
+}));
+
+const createRandomStar = (fallDuration) => {
   const isVowel = Math.random() < 0.55;
   const vowels = [...vowelLetters, ...vowelTeams];
   const consonants = letterPool.filter((letter) => !vowelLetters.has(letter));
@@ -47,7 +67,14 @@ const createRandomStar = () => {
     letter,
     isVowel,
     lane: Math.floor(Math.random() * laneCount),
+    fallDuration,
   };
+};
+
+// Stars fall a little faster as the run goes on, down to the mode's minimum.
+const getFallDuration = (mode, starNumber) => {
+  const factor = Math.max(mode.minSpeedFactor, 1 - starNumber * 0.015);
+  return Math.round(mode.fallDuration * factor);
 };
 
 const getPlayerFace = (hearts) => {
@@ -64,12 +91,20 @@ const moveBasket = (currentLane, direction) => {
   return nextLane;
 };
 
+const getStarRating = (score, vowelsSeen) => {
+  if (vowelsSeen === 0) return 1;
+  const accuracy = score / vowelsSeen;
+  if (accuracy >= 0.9) return 3;
+  if (accuracy >= 0.6) return 2;
+  return 1;
+};
+
 export default function VowelRush({ onClose }) {
   const [screen, setScreen] = useState('instructions');
   const [selectedDifficulty, setSelectedDifficulty] = useState('beginner');
   const [activeStar, setActiveStar] = useState(null);
   const [score, setScore] = useState(0);
-  const [hearts, setHearts] = useState(3);
+  const [hearts, setHearts] = useState(maxHearts);
   const [streak, setStreak] = useState(0);
   const [roundCount, setRoundCount] = useState(0);
   const [basketLane, setBasketLane] = useState(2);
@@ -79,14 +114,25 @@ export default function VowelRush({ onClose }) {
   const [finalMessage, setFinalMessage] = useState('');
   const [isReadingInstructions, setIsReadingInstructions] = useState(false);
 
+  // Animation state
+  const [countdown, setCountdown] = useState(null);
+  const [effects, setEffects] = useState([]);
+  const [rocketTilt, setRocketTilt] = useState('');
+  const [bossThrowId, setBossThrowId] = useState(0);
+  const [combos, setCombos] = useState(0);
+  const [vowelsSeen, setVowelsSeen] = useState(0);
+
   const starTimerRef = useRef(null);
   const effectTimerRef = useRef(null);
   const comboTimerRef = useRef(null);
+  const fxTimersRef = useRef([]);
+  const fxIdRef = useRef(0);
   const activeStarRef = useRef(null);
   const scoreRef = useRef(0);
-  const heartsRef = useRef(3);
+  const heartsRef = useRef(maxHearts);
   const streakRef = useRef(0);
   const roundCountRef = useRef(0);
+  const vowelsSeenRef = useRef(0);
   const basketLaneRef = useRef(2);
   const selectedDifficultyRef = useRef('beginner');
 
@@ -99,9 +145,17 @@ export default function VowelRush({ onClose }) {
 
   const currentMode = useMemo(() => difficultyModes[selectedDifficulty], [selectedDifficulty]);
   const playerFace = getPlayerFace(hearts);
-  const heartsDisplay = '❤️'.repeat(Math.max(0, hearts));
   const roundGoal = currentMode.totalStars === null ? '∞' : currentMode.totalStars;
   const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, U, and double vowel pairs like EE, OO, AI, OA, AY, AA, and II. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel or vowel pair gives one point. Catching a consonant removes one heart. Catch five vowel stars in a row to gain one heart.';
+
+  const scheduleFx = (fn, ms) => {
+    fxTimersRef.current.push(window.setTimeout(fn, ms));
+  };
+
+  const clearFxTimers = () => {
+    fxTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    fxTimersRef.current = [];
+  };
 
   const clearTimers = () => {
     if (starTimerRef.current) {
@@ -122,8 +176,15 @@ export default function VowelRush({ onClose }) {
 
   useEffect(() => () => {
     clearTimers();
+    clearFxTimers();
     stopSpeech();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const tiltRocket = (direction) => {
+    setRocketTilt(direction);
+    scheduleFx(() => setRocketTilt(''), 180);
+  };
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -134,6 +195,7 @@ export default function VowelRush({ onClose }) {
       const key = event.key.toLowerCase();
       if (key === 'arrowleft' || key === 'a') {
         event.preventDefault();
+        tiltRocket('left');
         setBasketLane((currentLane) => {
           const nextLane = moveBasket(currentLane, -1);
           basketLaneRef.current = nextLane;
@@ -143,6 +205,7 @@ export default function VowelRush({ onClose }) {
 
       if (key === 'arrowright' || key === 'd') {
         event.preventDefault();
+        tiltRocket('right');
         setBasketLane((currentLane) => {
           const nextLane = moveBasket(currentLane, 1);
           basketLaneRef.current = nextLane;
@@ -153,25 +216,40 @@ export default function VowelRush({ onClose }) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen]);
+
+  const addEffect = (type, lane, text) => {
+    fxIdRef.current += 1;
+    const id = fxIdRef.current;
+    setEffects((current) => [...current, { id, type, lane, text }]);
+    scheduleFx(() => setEffects((current) => current.filter((effect) => effect.id !== id)), 900);
+  };
 
   const resetRunState = () => {
     clearTimers();
+    clearFxTimers();
     activeStarRef.current = null;
     scoreRef.current = 0;
-    heartsRef.current = 3;
+    heartsRef.current = maxHearts;
     streakRef.current = 0;
     roundCountRef.current = 0;
+    vowelsSeenRef.current = 0;
     basketLaneRef.current = 2;
     setActiveStar(null);
     setScore(0);
-    setHearts(3);
+    setHearts(maxHearts);
     setStreak(0);
     setRoundCount(0);
     setBasketLane(2);
     setEffectState('');
     setComboFlash(false);
     setFinalMessage('');
+    setCountdown(null);
+    setEffects([]);
+    setRocketTilt('');
+    setCombos(0);
+    setVowelsSeen(0);
   };
 
   const finishGame = (nextScreen, message) => {
@@ -211,22 +289,37 @@ export default function VowelRush({ onClose }) {
       return;
     }
 
-    const nextStar = createRandomStar();
+    const nextStar = createRandomStar(getFallDuration(mode, roundCountRef.current));
     activeStarRef.current = nextStar;
     setActiveStar(nextStar);
+    setBossThrowId((current) => current + 1);
+
+    if (nextStar.isVowel) {
+      vowelsSeenRef.current += 1;
+      setVowelsSeen(vowelsSeenRef.current);
+    }
 
     roundCountRef.current += 1;
     setRoundCount(roundCountRef.current);
     setEffectState('');
-    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
+    setStatusMessage('Move the rocket with ⬅️ ➡️, A, or D.');
+  };
+
+  const beginCountdown = () => {
+    setCountdown(3);
+    scheduleFx(() => setCountdown(2), 700);
+    scheduleFx(() => setCountdown(1), 1400);
+    scheduleFx(() => setCountdown('GO!'), 2100);
+    scheduleFx(() => setCountdown(null), 2700);
+    starTimerRef.current = window.setTimeout(spawnStar, 2500);
   };
 
   const startRun = () => {
     selectedDifficultyRef.current = selectedDifficulty;
     resetRunState();
     setScreen('game');
-    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
-    starTimerRef.current = window.setTimeout(spawnStar, 300);
+    setStatusMessage('Get ready...');
+    beginCountdown();
   };
 
   const speakInstructions = () => {
@@ -269,8 +362,8 @@ export default function VowelRush({ onClose }) {
     selectedDifficultyRef.current = selectedDifficulty;
     resetRunState();
     setScreen('game');
-    setStatusMessage('Move the rocket with ➡️, ⬅️, A, or D.');
-    starTimerRef.current = window.setTimeout(spawnStar, 300);
+    setStatusMessage('Get ready...');
+    beginCountdown();
   };
 
   const pulseEffect = (nextState) => {
@@ -282,7 +375,7 @@ export default function VowelRush({ onClose }) {
 
     effectTimerRef.current = window.setTimeout(() => {
       setEffectState('');
-    }, 350);
+    }, 450);
   };
 
   const handleCombo = () => {
@@ -294,7 +387,7 @@ export default function VowelRush({ onClose }) {
 
     comboTimerRef.current = window.setTimeout(() => {
       setComboFlash(false);
-    }, 700);
+    }, 1200);
   };
 
   const resolveStar = (star, caught) => {
@@ -318,14 +411,17 @@ export default function VowelRush({ onClose }) {
       setStreak(nextStreak);
       setStatusMessage('⭐ +1 Point');
       pulseEffect('correct');
+      addEffect('catch', star.lane, '+1');
 
-      if (nextStreak >= 5) {
-        const nextHearts = Math.min(heartsRef.current + 1, 3);
+      if (nextStreak >= comboTarget) {
+        const nextHearts = Math.min(heartsRef.current + 1, maxHearts);
         heartsRef.current = nextHearts;
         streakRef.current = 0;
         setHearts(nextHearts);
         setStreak(0);
+        setCombos((current) => current + 1);
         setStatusMessage('🔥 COMBO x5  ❤️ +1 Heart');
+        addEffect('heal', star.lane, '+1 ❤️');
         handleCombo();
       }
     } else if (caught && basketMatches && !star.isVowel) {
@@ -335,21 +431,25 @@ export default function VowelRush({ onClose }) {
       streakRef.current = 0;
       setHearts(nextHearts);
       setStreak(0);
-      setStatusMessage('💔 -1 Heart');
+      setStatusMessage(`💔 ${star.letter} is a consonant! -1 Heart`);
       pulseEffect('wrong');
+      addEffect('hit', star.lane, '-1 ❤️');
 
       if (nextHearts <= 0) {
-        finishGame('gameover', '💀 GAME OVER 💀');
+        clearTimers();
+        scheduleFx(() => finishGame('gameover', '💀 GAME OVER 💀'), 700);
         return;
       }
     } else if (!caught && star.isVowel) {
       streakRef.current = 0;
       setStreak(0);
-      setStatusMessage('A vowel star slipped past.');
+      setStatusMessage(`${star.letter} was a vowel — it slipped past!`);
+      addEffect('miss', star.lane, 'MISS');
     } else {
       streakRef.current = 0;
       setStreak(0);
-      setStatusMessage('A consonant star passed by.');
+      setStatusMessage('Nice dodge! That was a consonant.');
+      addEffect('dodge', star.lane, 'DODGED');
     }
 
     scheduleNextStar();
@@ -370,32 +470,64 @@ export default function VowelRush({ onClose }) {
     resolveStar(star, true);
   };
 
+  const renderTopbar = () => (
+    <div className="rush-topbar">
+      <div className="rush-brand">
+        <span className="rush-brand-icon" aria-hidden="true">🚀</span>
+        <div>
+          <h1>Vowel Rush</h1>
+          <span>Fast vowels, sharp eyes.</span>
+        </div>
+      </div>
+      {typeof onClose === 'function' ? (
+        <button
+          type="button"
+          className="rush-secondary-btn"
+          onClick={() => {
+            stopSpeech();
+            clearTimers();
+            clearFxTimers();
+            onClose();
+          }}
+        >
+          ← Return to Vowels
+        </button>
+      ) : null}
+    </div>
+  );
+
   const renderMenuCard = () => (
-    <section className="rush-card rush-panel">
+    <section className="rush-card rush-panel rush-menu">
+      <div className="rush-hero" aria-hidden="true">
+        <span className="rush-hero-star s1">⭐</span>
+        <span className="rush-hero-star s2">✨</span>
+        <span className="rush-hero-star s3">⭐</span>
+        <span className="rush-hero-alien">👽</span>
+        <span className="rush-hero-rocket">🚀</span>
+      </div>
+
       <div className="rush-panel-header">
-        <p className="rush-eyebrow">Vowel Rush</p>
-        <h2>Catch the vowel stars with your rocket.</h2>
-        <p>
-          Use the rocket to catch the falling vowel stars while the pretest stays open on the left.
-        </p>
+        <p className="rush-eyebrow">How to play</p>
+        <h2>Catch the vowel stars with your rocket!</h2>
       </div>
 
       <div className="rush-instructions-list" aria-label="Vowel Rush rules">
-        <div className="rush-rule">🎯 Catch the vowel stars: A, E, I, O, U, plus double vowels and pairs.</div>
-        <div className="rush-rule">✨ Double vowels and pairs include: EE, OO, AI, OA, AY, AA, II.</div>
-        <div className="rush-rule">🚀 Move the rocket with ➡️, ⬅️, A, or D.</div>
-        <div className="rush-rule">⭐ Catching a vowel gives 1 point.</div>
-        <div className="rush-rule">💔 Catching a consonant removes 1 heart.</div>
-        <div className="rush-rule">🔥 Catch 5 vowels in a row to gain 1 heart.</div>
+        <div className="rush-rule"><span>🎯</span>Catch the vowel stars: A, E, I, O, U</div>
+        <div className="rush-rule"><span>✨</span>Double vowels count too: EE, OO, AI, OA, AY, AA, II</div>
+        <div className="rush-rule"><span>🚀</span>Move the rocket with ⬅️ ➡️, A, or D</div>
+        <div className="rush-rule"><span>⭐</span>Catching a vowel gives 1 point</div>
+        <div className="rush-rule"><span>💔</span>Catching a consonant removes 1 heart</div>
+        <div className="rush-rule"><span>🔥</span>Catch 5 vowels in a row to gain 1 heart</div>
       </div>
 
-      <button type="button" className="rush-listen-btn" onClick={speakInstructions} aria-pressed={isReadingInstructions}>
-        {isReadingInstructions ? '⏹ Stop Reading' : '🔊 Read Instructions Aloud'}
-      </button>
-
-      <button type="button" className="rush-primary-btn" onClick={openDifficultyScreen}>
-        Start Game
-      </button>
+      <div className="rush-actions">
+        <button type="button" className="rush-listen-btn" onClick={speakInstructions} aria-pressed={isReadingInstructions}>
+          {isReadingInstructions ? '⏹ Stop Reading' : '🔊 Read Instructions Aloud'}
+        </button>
+        <button type="button" className="rush-primary-btn rush-pulse" onClick={openDifficultyScreen}>
+          Start Game ▶
+        </button>
+      </div>
     </section>
   );
 
@@ -417,8 +549,14 @@ export default function VowelRush({ onClose }) {
             className={selectedDifficulty === key ? 'rush-difficulty-card active' : 'rush-difficulty-card'}
             onClick={() => setSelectedDifficulty(key)}
           >
+            <span className="rush-difficulty-icon" aria-hidden="true">{mode.icon}</span>
             <span className="rush-difficulty-name">{mode.label}</span>
             <span className="rush-difficulty-detail">{mode.description}</span>
+            <span className="rush-speed-meter" aria-label={`Speed ${mode.speedLevel} of 3`}>
+              {[1, 2, 3].map((level) => (
+                <span key={level} className={level <= mode.speedLevel ? 'on' : ''} />
+              ))}
+            </span>
             <span className="rush-difficulty-goal">Goal: {mode.goal}</span>
           </button>
         ))}
@@ -428,8 +566,8 @@ export default function VowelRush({ onClose }) {
         <button type="button" className="rush-secondary-btn" onClick={returnToMainMenu}>
           Main Menu
         </button>
-        <button type="button" className="rush-primary-btn" onClick={startRun}>
-          Start Game
+        <button type="button" className="rush-primary-btn rush-pulse" onClick={startRun}>
+          Launch! 🚀
         </button>
       </div>
     </section>
@@ -437,79 +575,126 @@ export default function VowelRush({ onClose }) {
 
   const renderGameBoard = () => {
     const mode = difficultyModes[selectedDifficulty];
+    // The background speeds up as the streak builds.
+    const warpSpeed = Math.max(1.2, 6 - streak * 1.1);
 
     return (
-      <section className={`rush-game-shell ${effectState ? `is-${effectState}` : ''} ${comboFlash ? 'is-combo' : ''}`}>
-        <div className="rush-game-header">
-          <div>
-            <p className="rush-eyebrow">{mode.label} Mode</p>
-            <h2>Vowel Rush</h2>
+      <section
+        className={[
+          'rush-game-shell',
+          effectState ? `is-${effectState}` : '',
+          comboFlash ? 'is-combo' : '',
+          hearts === 1 ? 'is-danger' : '',
+        ].join(' ')}
+      >
+        <div className="rush-hud">
+          <div className="rush-hud-block">
+            <span className="rush-hud-label">{mode.icon} {mode.label}</span>
+            <strong>Star {roundCount}/{roundGoal}</strong>
           </div>
-          <button type="button" className="rush-secondary-btn" onClick={returnToMainMenu}>
+
+          <div className="rush-hud-block">
+            <span className="rush-hud-label">Hearts</span>
+            <div className="rush-hearts">
+              {Array.from({ length: maxHearts }).map((_, i) => (
+                <span key={i} className={`rush-heart ${i < hearts ? 'full' : 'empty'}`}>❤️</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="rush-hud-block rush-hud-score">
+            <span className="rush-hud-label">Score</span>
+            <strong key={score} className="rush-score-value">⭐ {score}</strong>
+          </div>
+
+          <div className="rush-hud-block rush-hud-combo">
+            <span className="rush-hud-label">Combo {streak >= 3 ? '🔥' : ''}</span>
+            <div className="rush-combo-meter" aria-label={`Combo ${streak} of ${comboTarget}`}>
+              {Array.from({ length: comboTarget }).map((_, i) => (
+                <span key={i} className={i < streak ? 'on' : ''} />
+              ))}
+            </div>
+          </div>
+
+          <button type="button" className="rush-secondary-btn rush-hud-menu" onClick={returnToMainMenu}>
             Main Menu
           </button>
         </div>
 
-        <div className="rush-status-bar">
-          <div className="rush-status-chip">
-            <span>Player</span>
-            <strong>{playerFace}</strong>
-          </div>
-          <div className="rush-status-chip">
-            <span>HP</span>
-            <strong>{heartsDisplay || '0'}</strong>
-          </div>
-          <div className="rush-status-chip">
-            <span>Score</span>
-            <strong>{score}</strong>
-          </div>
-          <div className="rush-status-chip">
-            <span>Streak</span>
-            <strong>{streak}</strong>
-          </div>
-          <div className="rush-status-chip">
-            <span>Round</span>
-            <strong>{roundCount}/{roundGoal}</strong>
-          </div>
-        </div>
+        <div className="rush-board" style={{ '--rush-warp': `${warpSpeed}s` }}>
+          <div className="rush-starfield far" aria-hidden="true" />
+          <div className="rush-starfield near" aria-hidden="true" />
 
-        <div className="rush-board" aria-live="polite">
+          <div className="rush-lanes" aria-hidden="true">
+            {Array.from({ length: laneCount }).map((_, i) => (
+              <span key={i} className={i === basketLane ? 'active' : ''} />
+            ))}
+          </div>
+
           <div className="rush-boss" aria-hidden="true">
-            <span className="rush-boss-icon">👽</span>
+            <span key={bossThrowId} className={`rush-boss-icon ${bossThrowId ? 'throw' : ''}`}>👽</span>
             <span className="rush-boss-label">BOSS</span>
           </div>
 
-          {comboFlash ? <div className="rush-combo-banner">🔥 COMBO x5  ❤️ +1 Heart</div> : null}
+          {comboFlash ? <div className="rush-combo-banner">🔥 COMBO x5 · ❤️ +1 Heart</div> : null}
+
+          {countdown !== null ? (
+            <div key={countdown} className={`rush-countdown ${countdown === 'GO!' ? 'go' : ''}`} aria-live="assertive">
+              {countdown}
+            </div>
+          ) : null}
 
           {activeStar ? (
             <div
-              className={`rush-star ${activeStar.isVowel ? 'vowel' : 'consonant'} lane-${activeStar.lane} ${effectState}`}
-              style={{ '--rush-fall-duration': `${mode.fallDuration}ms`, '--rush-lane': activeStar.lane }}
+              key={activeStar.id}
+              className={`rush-star lane-${activeStar.lane}`}
+              style={{ '--rush-fall-duration': `${activeStar.fallDuration}ms`, '--rush-lane': activeStar.lane }}
               role="button"
               tabIndex={0}
+              aria-label={`Falling star ${activeStar.letter}`}
               onClick={() => handleStarCatch(activeStar)}
-              onAnimationEnd={() => handleStarMiss(activeStar)}
+              onAnimationEnd={(event) => {
+                if (event.target === event.currentTarget) {
+                  handleStarMiss(activeStar);
+                }
+              }}
             >
-              <span className="rush-star-icon" aria-hidden="true">🔥</span>
-              <span className="rush-star-content">
+              <span className="rush-star-trail" aria-hidden="true" />
+              <span className="rush-star-orb">
                 <span className="rush-star-letter">{activeStar.letter}</span>
               </span>
             </div>
-          ) : (
-            <div className="rush-letter-placeholder">
-              <span>Waiting for the next star...</span>
-            </div>
-          )}
+          ) : null}
 
-          <div className={`rush-basket lane-${basketLane}`} style={{ '--rush-lane': basketLane }} aria-hidden="true">
+          {effects.map((effect) => (
+            <div
+              key={effect.id}
+              className={`rush-fx ${effect.type}`}
+              style={{ '--rush-lane': effect.lane }}
+              aria-hidden="true"
+            >
+              {effect.type === 'catch' || effect.type === 'heal'
+                ? burstAngles.map((angle) => (
+                    <span key={angle} className="rush-particle" style={{ '--angle': `${angle}deg` }} />
+                  ))
+                : null}
+              {effect.type === 'hit' ? <span className="rush-explosion">💥</span> : null}
+              <span className="rush-fx-text">{effect.text}</span>
+            </div>
+          ))}
+
+          <div
+            className={`rush-basket ${rocketTilt ? `tilt-${rocketTilt}` : ''}`}
+            style={{ '--rush-lane': basketLane }}
+            aria-hidden="true"
+          >
             <span className="rush-basket-icon">🚀</span>
+            <span className="rush-flame" />
           </div>
 
           <div className="rush-ground">
-            <div className="rush-avatar" aria-hidden="true">
-              {playerFace}
-            </div>
-            <p>{statusMessage}</p>
+            <div className="rush-avatar" aria-hidden="true">{playerFace}</div>
+            <p key={statusMessage} className="rush-status">{statusMessage}</p>
           </div>
         </div>
       </section>
@@ -518,50 +703,73 @@ export default function VowelRush({ onClose }) {
 
   const renderGameOverCard = () => (
     <section className="rush-card rush-final-card gameover">
+      <div className="rush-final-emoji" aria-hidden="true">💀</div>
       <p className="rush-eyebrow">Game Over</p>
-      <h2>💀 GAME OVER 💀</h2>
-      <p>You finished with {score} points.</p>
+      <h2>The aliens got you!</h2>
+      <div className="rush-final-stats">
+        <div><span>Score</span><strong>⭐ {score}</strong></div>
+        <div><span>Stars</span><strong>{roundCount}</strong></div>
+        <div><span>Combos</span><strong>🔥 {combos}</strong></div>
+      </div>
       <div className="rush-actions">
-        <button type="button" className="rush-secondary-btn" onClick={restartSameDifficulty}>
-          Retry
-        </button>
-        <button type="button" className="rush-primary-btn" onClick={returnToMainMenu}>
+        <button type="button" className="rush-secondary-btn" onClick={returnToMainMenu}>
           Main Menu
+        </button>
+        <button type="button" className="rush-primary-btn rush-pulse" onClick={restartSameDifficulty}>
+          Retry ↻
         </button>
       </div>
     </section>
   );
 
-  const renderCompleteCard = () => (
-    <section className="rush-card rush-final-card complete">
-      <p className="rush-eyebrow">Run Complete</p>
-      <h2>Great run.</h2>
-      <p>You finished with {score} points and {hearts} heart{hearts === 1 ? '' : 's'} remaining.</p>
-      <div className="rush-actions">
-        <button type="button" className="rush-secondary-btn" onClick={restartSameDifficulty}>
-          Retry
-        </button>
-        <button type="button" className="rush-primary-btn" onClick={returnToMainMenu}>
-          Main Menu
-        </button>
-      </div>
-    </section>
-  );
+  const renderCompleteCard = () => {
+    const rating = getStarRating(score, vowelsSeen);
+
+    return (
+      <section className="rush-card rush-final-card complete">
+        <div className="rush-confetti" aria-hidden="true">
+          {confettiPieces.map((piece, i) => (
+            <span
+              key={i}
+              style={{
+                left: `${piece.left}%`,
+                background: piece.color,
+                animationDelay: `${piece.delay}s`,
+                animationDuration: `${piece.duration}s`,
+              }}
+            />
+          ))}
+        </div>
+        <p className="rush-eyebrow">Run Complete</p>
+        <div className="rush-rating" aria-label={`${rating} out of 3 stars`}>
+          {[1, 2, 3].map((value) => (
+            <span key={value} className={value <= rating ? 'earned' : ''} style={{ animationDelay: `${value * 0.25}s` }}>
+              ⭐
+            </span>
+          ))}
+        </div>
+        <h2>{rating === 3 ? 'Superstar!' : rating === 2 ? 'Great run!' : 'Nice try!'}</h2>
+        <div className="rush-final-stats">
+          <div><span>Score</span><strong>⭐ {score}</strong></div>
+          <div><span>Hearts left</span><strong>❤️ {hearts}</strong></div>
+          <div><span>Combos</span><strong>🔥 {combos}</strong></div>
+        </div>
+        <div className="rush-actions">
+          <button type="button" className="rush-secondary-btn" onClick={returnToMainMenu}>
+            Main Menu
+          </button>
+          <button type="button" className="rush-primary-btn rush-pulse" onClick={restartSameDifficulty}>
+            Play Again ↻
+          </button>
+        </div>
+      </section>
+    );
+  };
 
   return (
     <div className="vowel-rush-overlay" aria-label="Vowel Rush game">
       <div className="vowel-rush-shell">
-        <div className="rush-topbar">
-          <span className="rush-topbar-note">Fast vowels, sharp eyes.</span>
-          {typeof onClose === 'function' ? (
-            <button type="button" className="rush-secondary-btn" onClick={() => {
-              stopSpeech();
-              onClose();
-            }}>
-              ← Return to Vowels
-            </button>
-          ) : null}
-        </div>
+        {renderTopbar()}
 
         {screen === 'instructions' ? renderMenuCard() : null}
         {screen === 'difficulty' ? renderDifficultyCard() : null}
@@ -569,7 +777,7 @@ export default function VowelRush({ onClose }) {
         {screen === 'gameover' ? renderGameOverCard() : null}
         {screen === 'complete' ? renderCompleteCard() : null}
 
-        <p className="rush-footer-note">{finalMessage || statusMessage}</p>
+        {screen !== 'game' ? <p className="rush-footer-note">{finalMessage || statusMessage}</p> : null}
       </div>
     </div>
   );
