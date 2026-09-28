@@ -1,6 +1,7 @@
 import './Dashboard.css';
 import './StudentHome.css';
 import logo from '../Login/logoB.png';
+import { getLevel, getNextRank, getRank, getStars, getXpInLevel } from './playerProgress';
 
 const moduleCards = [
   {
@@ -37,25 +38,7 @@ const moduleCards = [
   },
 ];
 
-const ranks = [
-  { min: 0, title: 'Letter Rookie', icon: '🌱' },
-  { min: 20, title: 'Sound Seeker', icon: '🔎' },
-  { min: 40, title: 'Phonics Explorer', icon: '🧭' },
-  { min: 60, title: 'Word Builder', icon: '🧱' },
-  { min: 80, title: 'Reading Hero', icon: '🦸' },
-  { min: 100, title: 'Phonics Champion', icon: '👑' },
-];
-
 const floatingLetters = ['A', 'b', 'C', 'e', 'M', 'o', 'S', 'u'];
-
-const getRank = (progress) => [...ranks].reverse().find((rank) => progress >= rank.min) || ranks[0];
-
-const getStars = (progress) => {
-  if (progress >= 100) return 3;
-  if (progress >= 67) return 2;
-  if (progress >= 34) return 1;
-  return 0;
-};
 
 function ProgressRing({ value, size = 76, stroke = 8, label }) {
   const radius = (size - stroke) / 2;
@@ -124,9 +107,9 @@ export default function Dashboard({ onNavigate, onSelectModule, user, overallPro
   };
 
   const rank = getRank(overallProgress);
-  const nextRank = ranks.find((item) => item.min > overallProgress);
-  const level = Math.min(Math.floor(overallProgress / 20) + 1, 6);
-  const xpInLevel = overallProgress >= 100 ? 100 : ((overallProgress % 20) / 20) * 100;
+  const nextRank = getNextRank(overallProgress);
+  const level = getLevel(overallProgress);
+  const xpInLevel = getXpInLevel(overallProgress);
   const worldsCleared = moduleCards.filter((card) => progressByModule[card.key] >= 100).length;
   const totalStars = moduleCards.reduce((sum, card) => sum + getStars(progressByModule[card.key]), 0);
   const currentWorldKey = moduleCards.find((card) => !lockedByModule[card.key] && progressByModule[card.key] < 100)?.key;
