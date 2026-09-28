@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useVoiceRecorder } from '../../lib/useVoiceRecorder';
+import { useMicrophoneLevel } from '../../lib/useMicrophoneLevel';
 import { startPronunciationSession } from '../../lib/pronunciationChecker';
 import './VoicePractice.css';
+
+const VOICE_DETECTED_LEVEL = 12;
+
+const RESULT_DISPLAY = {
+  perfect: { title: 'Perfect!', icon: '🌟', stars: 3 },
+  great: { title: 'Great job!', icon: '🎉', stars: 2 },
+  almost: { title: 'So close!', icon: '💪', stars: 1 },
+  retry: { title: 'Good try!', icon: '🙂', stars: 0 },
+  silent: { title: "I didn't hear you", icon: '👂', stars: 0 },
+};
 
 /**
  * Reusable voice practice component for pronunciation checking
@@ -19,18 +29,37 @@ export default function VoicePractice({
   showTranscript = true,
   autoPlayGuide = false,
 }) {
+  const [isListening, setIsListening] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [result, setResult] = useState(null);
   const [feedback, setFeedback] = useState('');
+  const [liveText, setLiveText] = useState('');
   const [recordingTime, setRecordingTime] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceDetected, setVoiceDetected] = useState(false);
   const pronunciationSessionRef = useRef(null);
-  const { isRecording, startRecording, stopRecording, resetRecording, error: recorderError } =
-    useVoiceRecorder();
+  const { level: micLevel, error: micError, start: startMicLevel, stop: stopMicLevel } = useMicrophoneLevel();
+  const isLetterTarget = /^[a-z]$/i.test(String(targetWord).trim());
 
   useEffect(() => () => {
-    pronunciationSessionRef.current?.stop();
+    pronunciationSessionRef.current?.abort();
   }, []);
+
+  // Start fresh when the child moves to another letter or word.
+  useEffect(() => {
+    pronunciationSessionRef.current?.abort();
+    pronunciationSessionRef.current = null;
+    stopMicLevel();
+    setIsListening(false);
+    setIsChecking(false);
+    setResult(null);
+    setFeedback('');
+    setLiveText('');
+  }, [targetWord, stopMicLevel]);
+
+  useEffect(() => {
+    if (isListening && micLevel >= VOICE_DETECTED_LEVEL) setVoiceDetected(true);
+  }, [isListening, micLevel]);
 
   const playPronunciationGuide = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -41,24 +70,24 @@ export default function VoicePractice({
     try {
       window.speechSynthesis.cancel();
       setIsSpeaking(true);
-      
+
       const utterance = new SpeechSynthesisUtterance(targetWord);
       utterance.rate = 0.8;
       utterance.pitch = 1;
       utterance.lang = language;
-      
+
       utterance.onend = () => {
         setIsSpeaking(false);
-        setFeedback('Now it\'s your turn! Click "Start Recording" to practice.');
+        setFeedback('Now it\'s your turn! Press "Start Talking" and say it.');
       };
-      
+
       utterance.onerror = () => {
         setIsSpeaking(false);
         setFeedback('Could not play pronunciation guide.');
       };
 
       window.speechSynthesis.speak(utterance);
-      setFeedback('Listen to the correct pronunciation...');
+      setFeedback('Listen carefully...');
     } catch {
       setIsSpeaking(false);
       setFeedback('Error playing pronunciation guide.');
@@ -74,19 +103,22 @@ export default function VoicePractice({
 
   // Update recording time display
   useEffect(() => {
-    if (!isRecording) return;
+    if (!isListening) return;
 
     const interval = setInterval(() => {
       setRecordingTime((prev) => prev + 100);
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isRecording]);
+  }, [isListening]);
 
-  const handleStartRecording = async () => {
+  const handleStartRecording = () => {
     setRecordingTime(0);
     setResult(null);
-    setFeedback('Listening... Speak now!');
+    setLiveText('');
+    setVoiceDetected(false);
+    setFeedback(isLetterTarget ? `Say only the letter "${targetWord.toUpperCase()}".` : `Say "${targetWord}".`);
+
     let savedSettings = {};
     try {
       savedSettings = JSON.parse(localStorage.getItem('phonexis_voice_settings') || '{}');
@@ -95,47 +127,51 @@ export default function VoicePractice({
     }
     const voiceMode = savedSettings.mode || 'isolation';
     const microphoneSensitivity = Number(savedSettings.sensitivity) || 60;
-    const recordingStarted = await startRecording({
-      audio: {
-        noiseSuppression: voiceMode === 'isolation' ? { ideal: true } : false,
+
+    const session = startPronunciationSession(targetWord, language, { onInterim: setLiveText });
+    pronunciationSessionRef.current = session;
+    setIsListening(true);
+    startMicLevel({
+      sensitivity: microphoneSensitivity,
+      constraints: {
+        noiseSuppression: voiceMode === 'isolation',
         echoCancellation: voiceMode !== 'studio',
-        autoGainControl: voiceMode !== 'isolation' && microphoneSensitivity >= 60,
-        volume: microphoneSensitivity / 100,
+        autoGainControl: true,
       },
     });
 
-    if (!recordingStarted) {
-      setFeedback('Could not start recording. Please check your microphone permissions.');
-      return;
-    }
-
-    pronunciationSessionRef.current = startPronunciationSession(targetWord, language);
+    session.promise
+      .then((checkResult) => {
+        if (pronunciationSessionRef.current !== session) return;
+        setResult(checkResult);
+        setFeedback(checkResult.tip ? `${checkResult.feedback} ${checkResult.tip}` : checkResult.feedback);
+        if (typeof onResult === 'function') onResult(checkResult);
+      })
+      .catch((err) => {
+        if (pronunciationSessionRef.current !== session) return;
+        const errorMsg = err.message || 'Could not check pronunciation. Please try again.';
+        setFeedback(errorMsg);
+        setResult({ success: false, level: 'retry', accuracy: 0, recognized: '', heard: '', target: targetWord.toLowerCase(), letterDiff: [], error: errorMsg });
+      })
+      .finally(() => {
+        if (pronunciationSessionRef.current !== session) return;
+        pronunciationSessionRef.current = null;
+        stopMicLevel();
+        setIsListening(false);
+        setIsChecking(false);
+      });
   };
 
-  const handleStopRecording = async () => {
-    stopRecording();
+  const handleStopRecording = () => {
     setIsChecking(true);
-    setFeedback('Analyzing your voice...');
+    setFeedback('Checking...');
     pronunciationSessionRef.current?.stop();
-    try {
-      const checkResult = await pronunciationSessionRef.current?.promise;
-      setResult(checkResult);
-      setFeedback(checkResult.feedback);
-      if (typeof onResult === 'function') onResult(checkResult);
-    } catch (err) {
-      const errorMsg = err.message || 'Could not check pronunciation. Please try again.';
-      setFeedback(errorMsg);
-      setResult({ success: false, accuracy: 0, recognized: '', target: targetWord.toLowerCase(), error: errorMsg });
-    } finally {
-      pronunciationSessionRef.current = null;
-      setIsChecking(false);
-    }
   };
 
   const handleReset = () => {
-    resetRecording();
     setResult(null);
     setFeedback('');
+    setLiveText('');
     setRecordingTime(0);
   };
 
@@ -145,16 +181,28 @@ export default function VoicePractice({
     return `${seconds}.${milliseconds}s`;
   };
 
+  const getListeningHint = () => {
+    if (micLevel >= VOICE_DETECTED_LEVEL) return 'I can hear you! Keep going 🎉';
+    if (!voiceDetected && recordingTime > 1500) return "I can't hear you yet. Speak a little louder 🙂";
+    return 'Listening...';
+  };
+
+  const display = result ? RESULT_DISPLAY[result.level] || RESULT_DISPLAY.retry : null;
+  const heardText = result?.heard || result?.recognized;
+  const silentButVoiceDetected = result?.level === 'silent' && voiceDetected;
+
   return (
     <div className="voice-practice-container">
       <div className="voice-practice-header">
         <h3>Practice Pronunciation</h3>
-        <p className="voice-practice-target">Say: <strong>{targetWord}</strong></p>
+        <p className="voice-practice-target">
+          {isLetterTarget ? 'Say the letter:' : 'Say:'} <strong>{isLetterTarget ? targetWord.toUpperCase() : targetWord}</strong>
+        </p>
       </div>
 
-      {recorderError && (
+      {micError && (
         <div className="voice-practice-error" role="alert">
-          ⚠️ {recorderError}
+          ⚠️ {micError}
         </div>
       )}
 
@@ -164,56 +212,89 @@ export default function VoicePractice({
           type="button"
           className="voice-btn voice-btn-guide"
           onClick={playPronunciationGuide}
-          disabled={isRecording || isChecking || isSpeaking}
+          disabled={isListening || isSpeaking}
           aria-label="Hear pronunciation guide"
           title="Listen to how to pronounce this correctly"
         >
           🔊 Hear It First
         </button>
 
-        {!result && !isChecking && (
+        {!result && (
           <button
             type="button"
-            className={isRecording ? 'voice-btn voice-btn-stop' : 'voice-btn voice-btn-start'}
-            onClick={isRecording ? handleStopRecording : handleStartRecording}
-            disabled={isSpeaking}
-            aria-label={isRecording ? 'Stop and check recording' : 'Start recording'}
+            className={isListening ? 'voice-btn voice-btn-stop' : 'voice-btn voice-btn-start'}
+            onClick={isListening ? handleStopRecording : handleStartRecording}
+            disabled={isSpeaking || isChecking}
+            aria-label={isListening ? 'Done talking, check my voice' : 'Start talking'}
           >
-            {isRecording ? '⏹ Stop & Check' : '🎤 Start Recording'}
+            {isListening ? '✋ Done Talking' : '🎤 Start Talking'}
           </button>
         )}
 
-        {isRecording && (
-          <div className="voice-timer" aria-live="polite">
-            <span className="voice-timer-dot">●</span>
-            Recording: {formatTime(recordingTime)}
+        {isListening && (
+          <div className="voice-live" aria-live="polite">
+            <div className="voice-timer">
+              <span className="voice-timer-dot">●</span>
+              {getListeningHint()} <span className="voice-timer-time">{formatTime(recordingTime)}</span>
+            </div>
+            <div
+              className="voice-meter"
+              role="meter"
+              aria-label="Microphone volume"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={micLevel}
+            >
+              <div
+                className={micLevel >= VOICE_DETECTED_LEVEL ? 'voice-meter-fill voice-meter-fill-active' : 'voice-meter-fill'}
+                style={{ width: `${Math.max(3, micLevel)}%` }}
+              />
+            </div>
+            <p className="voice-live-text">
+              {liveText ? <>I'm hearing: <strong>{liveText}</strong></> : 'Waiting for your voice...'}
+            </p>
           </div>
         )}
 
         {isChecking && (
           <div className="voice-checking">
             <div className="voice-spinner"></div>
-            <span>Analyzing your voice...</span>
+            <span>Checking...</span>
           </div>
         )}
 
-        {result && (
+        {result && display && (
           <>
-            <div className={`voice-result ${result.success ? 'voice-result-success' : 'voice-result-fail'}`}>
-              <div className="voice-result-icon">
-                {result.success ? '✅' : '❌'}
-              </div>
+            <div className={`voice-result voice-result-${result.success ? 'success' : result.level === 'almost' ? 'almost' : 'fail'}`}>
+              <div className="voice-result-icon">{display.icon}</div>
               <div className="voice-result-content">
-                <p className="voice-result-title">
-                  {result.success ? 'Correct!' : 'Try Again'}
+                <p className="voice-result-title">{display.title}</p>
+                <p className="voice-result-stars" aria-label={`${display.stars} out of 3 stars`}>
+                  {[1, 2, 3].map((star) => (
+                    <span key={star} className={star <= display.stars ? 'voice-star voice-star-on' : 'voice-star'}>★</span>
+                  ))}
+                  <span className="voice-result-accuracy">{result.accuracy}%</span>
                 </p>
-                <p className="voice-result-accuracy">
-                  Accuracy: <strong>{result.accuracy}%</strong>
-                </p>
-                {showTranscript && result.recognized && (
+                {showTranscript && heardText && (
                   <p className="voice-result-transcript">
-                    You said: <em>{result.recognized}</em>
+                    I heard: <strong>{heardText}</strong>
                   </p>
+                )}
+                {result.level !== 'perfect' && result.letterDiff?.length > 0 && heardText && (
+                  <div className="voice-letter-diff" aria-label="Sounds to practice">
+                    {result.letterDiff.map((item, index) => (
+                      <span
+                        key={`${item.char}-${index}`}
+                        className={item.char === ' ' ? 'voice-letter-space' : item.ok ? 'voice-letter voice-letter-ok' : 'voice-letter voice-letter-miss'}
+                      >
+                        {item.char}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {result.tip && <p className="voice-result-tip">💡 {result.tip}</p>}
+                {silentButVoiceDetected && (
+                  <p className="voice-result-tip">💡 I heard a sound but couldn't make out the word. Try saying it slowly and clearly.</p>
                 )}
               </div>
             </div>

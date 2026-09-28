@@ -375,7 +375,7 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
                     if (result.success) {
                       setFeedback(`Great! You pronounced "${selectedItem.word}" correctly!`);
                     } else {
-                      setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                      setFeedback(result.feedback);
                     }
                   }}
                   showTranscript={true}

@@ -389,7 +389,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
                   if (result.success) {
                     setFeedback(`Great! You pronounced ${selectedLetter.letter} correctly!`);
                   } else {
-                    setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                    setFeedback(result.feedback);
                   }
                 }}
                 showTranscript={true}
