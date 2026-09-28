@@ -1,42 +1,89 @@
 import './Dashboard.css';
+import './StudentHome.css';
 import logo from '../Login/logoB.png';
 
 const moduleCards = [
   {
     key: 'alphabet',
-    icon: '📘',
+    icon: '🔤',
     title: 'Alphabet Recognition',
-    description: 'Alphabet Familiarization with fun visuals',
+    world: 'Letter Land',
+    description: 'Meet every letter with fun visuals',
     accent: 'blue',
-    progress: 0, // Will be overridden with alphabetProgress
   },
   {
     key: 'vowels',
-    icon: '🔉',
+    icon: '🗣️',
     title: 'Vowels',
+    world: 'Vowel Valley',
     description: 'Discover vowel sounds with audio guides',
     accent: 'purple',
-    progress: 0,
   },
   {
     key: 'consonants',
-    icon: '🔊',
+    icon: '🧩',
     title: 'Consonants',
+    world: 'Consonant Canyon',
     description: 'Explore consonant sounds visually',
     accent: 'green',
-    progress: 0,
   },
   {
     key: 'cvc',
-    icon: '💡',
+    icon: '🏗️',
     title: 'CVC Words',
+    world: 'Word Kingdom',
     description: 'Build simple words and practice phonics',
-    accent: 'pink',
-    progress: 9,
+    accent: 'orange',
   },
 ];
 
-export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [], studentId = null }) {
+const ranks = [
+  { min: 0, title: 'Letter Rookie', icon: '🌱' },
+  { min: 20, title: 'Sound Seeker', icon: '🔎' },
+  { min: 40, title: 'Phonics Explorer', icon: '🧭' },
+  { min: 60, title: 'Word Builder', icon: '🧱' },
+  { min: 80, title: 'Reading Hero', icon: '🦸' },
+  { min: 100, title: 'Phonics Champion', icon: '👑' },
+];
+
+const floatingLetters = ['A', 'b', 'C', 'e', 'M', 'o', 'S', 'u'];
+
+const getRank = (progress) => [...ranks].reverse().find((rank) => progress >= rank.min) || ranks[0];
+
+const getStars = (progress) => {
+  if (progress >= 100) return 3;
+  if (progress >= 67) return 2;
+  if (progress >= 34) return 1;
+  return 0;
+};
+
+function ProgressRing({ value, size = 76, stroke = 8, label }) {
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, value));
+
+  return (
+    <div className="sd-ring" style={{ width: size, height: size }} aria-label={label}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle className="sd-ring-track" cx={size / 2} cy={size / 2} r={radius} strokeWidth={stroke} />
+        <circle
+          className="sd-ring-fill"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          style={{
+            '--circ': circumference,
+            '--offset': circumference * (1 - clamped / 100),
+          }}
+        />
+      </svg>
+      <strong>{clamped}%</strong>
+    </div>
+  );
+}
+
+export default function Dashboard({ onNavigate, onSelectModule, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null }) {
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -61,112 +108,201 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
     || user?.user_metadata?.name
     || emailName
     || 'Learner';
+  const firstName = displayName.split(' ')[0];
+
+  const progressByModule = {
+    alphabet: alphabetProgress,
+    vowels: vowelsProgress,
+    consonants: consonantsProgress,
+    cvc: cvcProgress,
+  };
+  const lockedByModule = {
+    alphabet: false,
+    vowels: !vowelsUnlocked,
+    consonants: !consonantsUnlocked,
+    cvc: !cvcUnlocked,
+  };
+
+  const rank = getRank(overallProgress);
+  const nextRank = ranks.find((item) => item.min > overallProgress);
+  const level = Math.min(Math.floor(overallProgress / 20) + 1, 6);
+  const xpInLevel = overallProgress >= 100 ? 100 : ((overallProgress % 20) / 20) * 100;
+  const worldsCleared = moduleCards.filter((card) => progressByModule[card.key] >= 100).length;
+  const totalStars = moduleCards.reduce((sum, card) => sum + getStars(progressByModule[card.key]), 0);
+  const currentWorldKey = moduleCards.find((card) => !lockedByModule[card.key] && progressByModule[card.key] < 100)?.key;
+
+  const badges = [
+    { key: 'start', icon: '🚀', title: 'First Steps', detail: 'Start your adventure', earned: overallProgress > 0 },
+    { key: 'alphabet', icon: '🔤', title: 'Alphabet Ace', detail: 'Finish Letter Land', earned: alphabetProgress >= 100 },
+    { key: 'vowels', icon: '🎵', title: 'Vowel Voyager', detail: 'Finish Vowel Valley', earned: vowelsProgress >= 100 },
+    { key: 'half', icon: '⚡', title: 'Halfway Hero', detail: 'Reach 50% overall', earned: overallProgress >= 50 },
+    { key: 'consonants', icon: '🧩', title: 'Consonant Crusher', detail: 'Finish Consonant Canyon', earned: consonantsProgress >= 100 },
+    { key: 'cvc', icon: '🏆', title: 'Word Wizard', detail: 'Finish Word Kingdom', earned: cvcProgress >= 100 },
+  ];
+  const badgesEarned = badges.filter((badge) => badge.earned).length;
+
   return (
-    <section className="dashboard-shell">
-      <header className="dashboard-topbar">
-        <div className="dashboard-user">
-          <div className="dashboard-avatar" aria-hidden="true">
-            <img src={logo} alt="Phonics Learning logo" className="dashboard-logo" />
+    <section className="sd-home" aria-label="Student dashboard">
+      <div className="sd-backdrop" aria-hidden="true">
+        {floatingLetters.map((letter, i) => (
+          <span key={letter} className="sd-float-letter" style={{ '--i': i }}>{letter}</span>
+        ))}
+      </div>
+
+      {/* Player card */}
+      <header className="sd-hero">
+        <div className="sd-player">
+          <div className="sd-avatar">
+            <img src={logo} alt="" />
+            <span className="sd-level-badge" aria-label={`Level ${level}`}>Lv {level}</span>
           </div>
-          <div>
-            <h2>Welcome, {displayName}!</h2>
-            <p>Let&apos;s learn together</p>
-          </div>
-        </div>
-
-        <div className="dashboard-topbar-actions">
-          {user?.role === 'admin' && (
-            <button type="button" className="dashboard-admin" onClick={() => onNavigate('admin')}>
-              ⚙️ ADMIN
-            </button>
-          )}
-          {user?.role === 'teacher' && (
-            <button type="button" className="dashboard-teacher" onClick={() => onNavigate('teacher')}>
-              🧑‍🏫 TEACHER
-            </button>
-          )}
-        </div>
-      </header>
-
-      <section className="dashboard-progress-card" aria-label="Overall progress">
-        <div className="dashboard-progress-head">
-          <span className="dashboard-progress-icon" aria-hidden="true">
-            🏅
-          </span>
-          <h3>Overall Progress</h3>
-        </div>
-
-        <div className="dashboard-progress-meter">
-          <div className="dashboard-progress-track">
-            <div className="dashboard-progress-fill" style={{ width: `${overallProgress}%` }} />
-          </div>
-          <strong>{overallProgress}%</strong>
-        </div>
-      </section>
-
-      <section className="dashboard-cards" aria-label="Class and game modules">
-        {studentClassInfo && (
-          <div className="dashboard-card dashboard-card-classroom" aria-label="Your class">
-            <div className="dashboard-card-icon" aria-hidden="true">
-              <span>🏫</span>
+          <div className="sd-player-copy">
+            <p className="sd-greeting">Welcome back, adventurer! 👋</p>
+            <h1>Hi, {firstName}!</h1>
+            <div className="sd-rank">
+              <span aria-hidden="true">{rank.icon}</span>
+              <strong>{rank.title}</strong>
             </div>
-
-            <div className="dashboard-card-copy">
-              <h3>{studentClassInfo.className}</h3>
-              <p>
-                Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
-              </p>
+            <div className="sd-xp">
+              <div className="sd-xp-track">
+                <div className="sd-xp-fill" style={{ '--xp': `${xpInLevel}%` }} />
+              </div>
+              <span>
+                {nextRank ? `${nextRank.min - overallProgress}% more to become ${nextRank.icon} ${nextRank.title}` : 'Max rank reached! 🎉'}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <button
-              type="button"
-              className="dashboard-card-button"
-              onClick={() => onNavigate('class', 'materials')}
-            >
-              OPEN CLASS
-            </button>
+        <div className="sd-hero-side">
+          <ProgressRing value={overallProgress} size={128} stroke={12} label={`Overall progress ${overallProgress}%`} />
+          <span className="sd-hero-side-label">Overall Progress</span>
+        </div>
+
+        {(user?.role === 'admin' || user?.role === 'teacher') && (
+          <div className="sd-role-actions">
+            {user?.role === 'admin' && (
+              <button type="button" className="sd-chip-btn" onClick={() => onNavigate('admin')}>⚙️ Admin</button>
+            )}
+            {user?.role === 'teacher' && (
+              <button type="button" className="sd-chip-btn" onClick={() => onNavigate('teacher')}>🧑‍🏫 Teacher</button>
+            )}
           </div>
         )}
+      </header>
 
-        {moduleCards.map((card) => {
-          const isLocked = (card.key === 'vowels' && !vowelsUnlocked) || (card.key === 'consonants' && !consonantsUnlocked) || (card.key === 'cvc' && !cvcUnlocked);
-          const cardProgressMap = {
-            alphabet: alphabetProgress,
-            vowels: vowelsProgress,
-            consonants: consonantsProgress,
-            cvc: cvcProgress,
-          };
-          const cardProgress = cardProgressMap[card.key] ?? card.progress;
-          return (
-            <button
-              key={card.key}
-              type="button"
-              className={`dashboard-card dashboard-card-${card.accent}${isLocked ? ' locked' : ''}`}
-              onClick={() => openGame(card.key)}
-              disabled={isLocked}
-            >
-              <div className="dashboard-card-icon" aria-hidden="true">
-                <span>{card.icon}</span>
-              </div>
-
-              <div className="dashboard-card-copy">
-                <h3>{card.title}</h3>
-                <p>{card.description}</p>
-
-                <div className="dashboard-card-progress">
-                  <span>Progress</span>
-                  <strong>{isLocked ? 'Locked' : `${cardProgress}%`}</strong>
-                </div>
-
-              <div className="dashboard-card-button">
-                {isLocked ? 'Locked' : 'START LEARNING ✨'}
-              </div>
+      {/* Quick stats */}
+      <section className="sd-stats" aria-label="Your stats">
+        <div className="sd-stat sd-stat-yellow">
+          <span className="sd-stat-icon" aria-hidden="true">⭐</span>
+          <div><strong>{totalStars}<small>/12</small></strong><span>Stars collected</span></div>
+        </div>
+        <div className="sd-stat sd-stat-green">
+          <span className="sd-stat-icon" aria-hidden="true">🗺️</span>
+          <div><strong>{worldsCleared}<small>/4</small></strong><span>Worlds cleared</span></div>
+        </div>
+        <div className="sd-stat sd-stat-purple">
+          <span className="sd-stat-icon" aria-hidden="true">🏅</span>
+          <div><strong>{badgesEarned}<small>/{badges.length}</small></strong><span>Badges earned</span></div>
+        </div>
+        {studentClassInfo ? (
+          <button type="button" className="sd-stat sd-stat-blue sd-stat-class" onClick={() => onNavigate('class', 'materials')}>
+            <span className="sd-stat-icon" aria-hidden="true">🏫</span>
+            <div>
+              <strong className="sd-class-name">{studentClassInfo.className}</strong>
+              <span>
+                Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
+              </span>
             </div>
-            </button>
-          );
-        })}
+            <em>Open ›</em>
+          </button>
+        ) : null}
       </section>
 
+      {/* Adventure map */}
+      <section className="sd-section" aria-label="Learning worlds">
+        <div className="sd-section-head">
+          <h2>🗺️ Adventure Map</h2>
+          <p>Clear each world to unlock the next one!</p>
+        </div>
+
+        <div className="sd-map">
+          {moduleCards.map((card, index) => {
+            const isLocked = lockedByModule[card.key];
+            const progress = progressByModule[card.key];
+            const isComplete = progress >= 100;
+            const isCurrent = card.key === currentWorldKey;
+            const stars = getStars(progress);
+
+            return (
+              <button
+                key={card.key}
+                type="button"
+                className={[
+                  'sd-world',
+                  `sd-world-${card.accent}`,
+                  isLocked ? 'locked' : '',
+                  isComplete ? 'complete' : '',
+                  isCurrent ? 'current' : '',
+                ].join(' ')}
+                style={{ '--i': index }}
+                onClick={() => openGame(card.key)}
+                disabled={isLocked}
+                aria-label={`${card.title}${isLocked ? ', locked' : `, ${progress}% complete`}`}
+              >
+                {isCurrent ? <span className="sd-here" aria-hidden="true">📍 You are here</span> : null}
+                <span className="sd-world-number" aria-hidden="true">{isComplete ? '✓' : index + 1}</span>
+
+                <div className="sd-world-art" aria-hidden="true">
+                  <span className="sd-world-icon">{isLocked ? '🔒' : card.icon}</span>
+                  {isComplete ? <span className="sd-world-crown">👑</span> : null}
+                </div>
+
+                <div className="sd-world-copy">
+                  <span className="sd-world-name">{card.world}</span>
+                  <h3>{card.title}</h3>
+                  <p>{isLocked ? 'Finish the previous world to unlock.' : card.description}</p>
+                </div>
+
+                <div className="sd-world-footer">
+                  <div className="sd-stars" aria-label={`${stars} of 3 stars`}>
+                    {[1, 2, 3].map((value) => (
+                      <span key={value} className={value <= stars ? 'earned' : ''}>★</span>
+                    ))}
+                  </div>
+                  <div className="sd-world-progress">
+                    <div className="sd-world-track">
+                      <div className="sd-world-fill" style={{ '--p': `${isLocked ? 0 : progress}%` }} />
+                    </div>
+                    <strong>{isLocked ? 'Locked' : `${progress}%`}</strong>
+                  </div>
+                  <span className="sd-play">
+                    {isLocked ? '🔒 Locked' : isComplete ? '↻ Play again' : progress > 0 ? '▶ Continue' : '▶ Start'}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Badges */}
+      <section className="sd-section" aria-label="Badges">
+        <div className="sd-section-head">
+          <h2>🏅 Badge Collection</h2>
+          <p>{badgesEarned === badges.length ? 'You collected every badge! Amazing!' : 'Keep learning to collect them all!'}</p>
+        </div>
+
+        <div className="sd-badges">
+          {badges.map((badge, i) => (
+            <div key={badge.key} className={`sd-badge ${badge.earned ? 'earned' : ''}`} style={{ '--i': i }}>
+              <span className="sd-badge-icon" aria-hidden="true">{badge.earned ? badge.icon : '🔒'}</span>
+              <strong>{badge.title}</strong>
+              <span>{badge.detail}</span>
+            </div>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }
