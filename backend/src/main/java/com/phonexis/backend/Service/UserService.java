@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +37,11 @@ public class UserService {
 	private final ClassEnrollmentRepository classEnrollmentRepository;
 	private final TeacherActivityRepository teacherActivityRepository;
 	private final LearningMaterialService learningMaterialService;
+
+	// One-device-per-account login lock. Disable locally (DEVICE_LOCK_ENABLED=false)
+	// to test teacher and student accounts side by side in separate browser windows.
+	@Value("${app.device-lock.enabled:true}")
+	private boolean deviceLockEnabled = true;
 
 	public UserService(
 		UserRepository userRepository,
@@ -226,7 +232,7 @@ public class UserService {
 		// Claims the device slot when it's free, already ours, or stale (no heartbeat
 		// for DEVICE_LOCK_STALE_MINUTES - e.g. the previous tab was closed without logging out).
 		LocalDateTime staleBefore = LocalDateTime.now().minusMinutes(DEVICE_LOCK_STALE_MINUTES);
-		if (userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
+		if (deviceLockEnabled && userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
 
@@ -239,8 +245,8 @@ public class UserService {
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		if (normalizedDeviceId.isEmpty() || user.getActiveDeviceId() == null
-			|| !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+		if (deviceLockEnabled && (normalizedDeviceId.isEmpty() || user.getActiveDeviceId() == null
+			|| !normalizedDeviceId.equals(user.getActiveDeviceId()))) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
 
@@ -252,6 +258,9 @@ public class UserService {
 	public void releaseDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (!deviceLockEnabled) {
+			return;
+		}
 		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "This device is not active for the account");
 		}

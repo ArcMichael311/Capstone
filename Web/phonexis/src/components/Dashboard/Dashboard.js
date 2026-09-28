@@ -66,7 +66,7 @@ function ProgressRing({ value, size = 76, stroke = 8, label }) {
   );
 }
 
-export default function Dashboard({ onNavigate, onSelectModule, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null }) {
+export default function Dashboard({ onNavigate, onSelectModule, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [] }) {
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -188,18 +188,6 @@ export default function Dashboard({ onNavigate, onSelectModule, user, overallPro
           <span className="sd-stat-icon" aria-hidden="true">🏅</span>
           <div><strong>{badgesEarned}<small>/{badges.length}</small></strong><span>Badges earned</span></div>
         </div>
-        {studentClassInfo ? (
-          <button type="button" className="sd-stat sd-stat-blue sd-stat-class" onClick={() => onNavigate('class', 'materials')}>
-            <span className="sd-stat-icon" aria-hidden="true">🏫</span>
-            <div>
-              <strong className="sd-class-name">{studentClassInfo.className}</strong>
-              <span>
-                Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
-              </span>
-            </div>
-            <em>Open ›</em>
-          </button>
-        ) : null}
       </section>
 
       {/* Adventure map */}
@@ -209,7 +197,7 @@ export default function Dashboard({ onNavigate, onSelectModule, user, overallPro
           <p>Clear each world to unlock the next one!</p>
         </div>
 
-        <div className="sd-map">
+        <div className={`sd-map${studentClassInfo ? ' sd-map-with-class' : ''}`}>
           {moduleCards.map((card, index) => {
             const isLocked = lockedByModule[card.key];
             const progress = progressByModule[card.key];
@@ -266,6 +254,39 @@ export default function Dashboard({ onNavigate, onSelectModule, user, overallPro
               </button>
             );
           })}
+
+          {studentClassInfo ? (
+            <button
+              type="button"
+              className="sd-world sd-world-pink sd-world-class"
+              style={{ '--i': moduleCards.length }}
+              onClick={() => onNavigate('class', 'materials')}
+              aria-label={`Open your class ${studentClassInfo.className || ''}`}
+            >
+              <span className="sd-here sd-new-tag" aria-hidden="true">🎉 New class!</span>
+              <span className="sd-world-number" aria-hidden="true">🏫</span>
+
+              <div className="sd-world-art" aria-hidden="true">
+                <span className="sd-world-icon">🏫</span>
+              </div>
+
+              <div className="sd-world-copy">
+                <span className="sd-world-name">Class Camp</span>
+                <h3>{studentClassInfo.className || 'My Class'}</h3>
+                <p>
+                  Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Your teacher'}
+                </p>
+              </div>
+
+              <div className="sd-world-footer">
+                <div className="sd-class-chips">
+                  <span>📚 {studentMaterials.length} material{studentMaterials.length === 1 ? '' : 's'}</span>
+                  <span>📝 Pretests</span>
+                </div>
+                <span className="sd-play">▶ Enter Class</span>
+              </div>
+            </button>
+          ) : null}
         </div>
       </section>
 

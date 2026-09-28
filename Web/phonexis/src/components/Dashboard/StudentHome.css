@@ -304,7 +304,6 @@
 
 .sd-stat:nth-child(2) { animation-delay: 0.08s; }
 .sd-stat:nth-child(3) { animation-delay: 0.16s; }
-.sd-stat:nth-child(4) { animation-delay: 0.24s; }
 
 .sd-stat-icon {
   display: grid;
@@ -319,7 +318,6 @@
 .sd-stat-yellow .sd-stat-icon { background: #fff4cc; }
 .sd-stat-green .sd-stat-icon { background: #d9f7ea; }
 .sd-stat-purple .sd-stat-icon { background: #ede4ff; }
-.sd-stat-blue .sd-stat-icon { background: #dcebff; }
 
 .sd-stat div {
   display: grid;
@@ -341,31 +339,6 @@
   color: var(--sd-muted);
   font-size: 0.92rem;
   font-weight: 700;
-}
-
-.sd-stat-class {
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.sd-stat-class:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 14px 28px rgba(59, 130, 246, 0.2);
-}
-
-.sd-class-name {
-  font-size: 1.2rem !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sd-stat-class em {
-  margin-left: auto;
-  color: var(--sd-blue);
-  font-style: normal;
-  font-weight: 900;
-  white-space: nowrap;
 }
 
 /* ===== Sections ===== */
@@ -440,6 +413,47 @@
 .sd-world-purple { --accent: var(--sd-purple); --accent-soft: #ddd0ff; }
 .sd-world-green { --accent: var(--sd-green); --accent-soft: #bdeedb; }
 .sd-world-orange { --accent: var(--sd-orange); --accent-soft: #ffd9bd; }
+.sd-world-pink { --accent: var(--sd-pink); --accent-soft: #fbcfe8; }
+
+/* Class card: 5th card in the Adventure Map once a teacher adds the student to a class */
+.sd-map.sd-map-with-class {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.sd-world-class {
+  border-color: var(--accent);
+  animation: sd-pop-in 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, sd-glow 2.2s ease-in-out 1s infinite;
+  animation-delay: calc(0.2s + var(--i) * 0.1s), 1s;
+}
+
+.sd-world-class .sd-world-number {
+  font-size: 1rem;
+}
+
+.sd-new-tag {
+  background: linear-gradient(135deg, #f472b6, #ec4899);
+}
+
+.sd-class-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sd-class-chips span {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--sd-ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .sd-class-chips span {
+  background: rgba(255, 255, 255, 0.1);
+}
 
 [data-theme='dark'] .sd-world { --accent-soft: rgba(255, 255, 255, 0.08); }
 
@@ -788,7 +802,8 @@
 
 /* ===== Responsive ===== */
 @media (max-width: 1100px) {
-  .sd-map {
+  .sd-map,
+  .sd-map.sd-map-with-class {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 2rem;
   }
@@ -827,7 +842,8 @@
     height: 5.5rem;
   }
 
-  .sd-map {
+  .sd-map,
+  .sd-map.sd-map-with-class {
     grid-template-columns: 1fr;
   }
 

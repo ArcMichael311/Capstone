@@ -90,6 +90,17 @@ public class SupabaseStorageService {
 		}
 	}
 
+	// Signed URL that makes the browser save the file as downloadName instead of the
+	// storage object name (which carries a UUID prefix).
+	public String createSignedUrl(String objectPath, int expiresInSeconds, String downloadName) {
+		String signedUrl = createSignedUrl(objectPath, expiresInSeconds);
+		if (downloadName == null || downloadName.isBlank()) {
+			return signedUrl;
+		}
+		String encodedName = java.net.URLEncoder.encode(downloadName, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
+		return signedUrl + (signedUrl.contains("?") ? "&" : "?") + "download=" + encodedName;
+	}
+
 	public String createSignedUrl(String objectPath, int expiresInSeconds) {
 		requireConfigured();
 		try {
