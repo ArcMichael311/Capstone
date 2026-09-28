@@ -4,6 +4,7 @@ import './VowelsPage.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
 import VoicePractice from '../../VoicePractice/VoicePractice';
+import VideoEpisodes from '../shared/VideoEpisodes';
 
 const vowels = [
   { letter: 'A', sound: 'ah', word: 'Cat', icon: '🐱' },
@@ -288,89 +289,8 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
     </header>
   );
 
-  const renderVideoPlayer = () => {
-    const video = videos[currentVideoIndex];
-    const isWatched = videosWatched.includes(video.id);
-
-    return (
-      <div
-        className="vw-modal-backdrop"
-        role="presentation"
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            closeVideoPlayer();
-          }
-        }}
-      >
-        <div className="vw-modal vw-player" role="dialog" aria-modal="true" aria-labelledby="vw-player-title">
-          <div className="vw-modal-head">
-            <div>
-              <span className="vw-kicker">🎬 Episode {currentVideoIndex + 1} of {videos.length}</span>
-              <h3 id="vw-player-title">{video.title}</h3>
-            </div>
-            <button type="button" className="vw-close" onClick={closeVideoPlayer} aria-label="Close video">
-              ✕
-            </button>
-          </div>
-
-          <div className="vw-video-frame">
-            <video
-              key={`video-${video.id}`}
-              width="100%"
-              height="100%"
-              controls
-              autoPlay
-              onEnded={() => handleVideoEnd(video.id)}
-            >
-              <source src={video.url} type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-
-          <p className={`vw-watch-note ${isWatched ? 'done' : ''}`}>
-            {isWatched
-              ? '✓ Watched! Great job finishing this episode.'
-              : '⏳ This video is marked as watched once you finish it completely.'}
-          </p>
-
-          <div className="vw-player-nav" aria-label="Video navigation">
-            <button
-              type="button"
-              className="vw-btn vw-btn-soft"
-              onClick={handlePreviousVideo}
-              disabled={currentVideoIndex === 0}
-            >
-              ‹ Previous
-            </button>
-            <div className="vw-player-dots" aria-hidden="true">
-              {videos.map((item, index) => (
-                <span
-                  key={item.id}
-                  className={[
-                    index === currentVideoIndex ? 'current' : '',
-                    videosWatched.includes(item.id) ? 'watched' : '',
-                  ].join(' ')}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              className="vw-btn vw-btn-soft"
-              onClick={handleNextVideo}
-              disabled={currentVideoIndex === videos.length - 1}
-            >
-              Next ›
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderLearning = () => {
     const watchedCount = videosWatched.length;
-    const remaining = videos.length - watchedCount;
-    const upNextIndex = videos.findIndex((video) => !videosWatched.includes(video.id));
 
     return (
       <>
@@ -387,68 +307,19 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
           ),
         })}
 
-        <section className="vw-episodes">
-          {videos.map((video, index) => {
-            const isWatched = videosWatched.includes(video.id);
-            const isUpNext = index === upNextIndex;
-
-            return (
-              <article
-                key={video.id}
-                className={`vw-episode ${isWatched ? 'watched' : ''} ${isUpNext ? 'up-next' : ''}`}
-                style={{ '--i': index }}
-              >
-                {isUpNext ? <span className="vw-up-next" aria-hidden="true">⭐ Up next</span> : null}
-                <button
-                  type="button"
-                  className="vw-thumb"
-                  onClick={() => handlePlayVideo(index)}
-                  aria-label={`${isWatched ? 'Rewatch' : 'Play'} ${video.title}`}
-                >
-                  <span className="vw-ep-badge">EP {index + 1}</span>
-                  <span className="vw-duration">⏱ {video.duration}</span>
-                  <span className="vw-play-circle" aria-hidden="true">▶</span>
-                  {isWatched ? <span className="vw-stamp" aria-hidden="true">✓ Watched</span> : null}
-                </button>
-                <div className="vw-episode-body">
-                  <h3>{video.title}</h3>
-                  <p>{video.description}</p>
-                  <button
-                    type="button"
-                    className={`vw-btn ${isWatched ? 'vw-btn-soft' : ''}`}
-                    onClick={() => handlePlayVideo(index)}
-                  >
-                    {isWatched ? '↻ Rewatch' : '▶ Play'}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </section>
-
-        <section className={`vw-unlock ${allVideosWatched ? 'open' : ''}`}>
-          <span className="vw-unlock-icon" aria-hidden="true">{allVideosWatched ? '🎁' : '🔒'}</span>
-          <div className="vw-unlock-copy">
-            <strong>{allVideosWatched ? 'Basics of the Vowels unlocked!' : 'Basics of the Vowels'}</strong>
-            <span>
-              {allVideosWatched
-                ? 'You watched every episode. Time for the lesson!'
-                : `Watch ${remaining} more video${remaining === 1 ? '' : 's'} to unlock the lesson.`}
-            </span>
-            <div className="vw-unlock-track">
-              {videos.map((video) => (
-                <span key={video.id} className={videosWatched.includes(video.id) ? 'on' : ''} />
-              ))}
-            </div>
-          </div>
-          {allVideosWatched ? (
-            <button type="button" className="vw-btn vw-pulse" onClick={goToLesson}>
-              Go to Lesson ▶
-            </button>
-          ) : null}
-        </section>
-
-        {currentVideoIndex !== null ? renderVideoPlayer() : null}
+        <VideoEpisodes
+          videos={videos}
+          watchedIds={videosWatched}
+          currentIndex={currentVideoIndex}
+          onPlay={handlePlayVideo}
+          onClose={closeVideoPlayer}
+          onPrevious={handlePreviousVideo}
+          onNext={handleNextVideo}
+          onEnded={handleVideoEnd}
+          unlockTitle="Basics of the Vowels"
+          unlockActionLabel="Go to Lesson ▶"
+          onUnlockAction={goToLesson}
+        />
       </>
     );
   };

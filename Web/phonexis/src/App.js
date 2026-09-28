@@ -993,6 +993,7 @@ function App() {
           <Consonants
             onComplete={handleConsonantsComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}

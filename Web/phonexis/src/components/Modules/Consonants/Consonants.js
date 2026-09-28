@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import './Consonants.css';
+import './ConsonantsPage.css';
 import WordBlast from './WordBlast';
 import VoicePractice from '../../VoicePractice/VoicePractice';
+import VideoEpisodes from '../shared/VideoEpisodes';
 
 const consonants = [
   { letter: 'B', word: 'Ball', icon: '⚽' },
@@ -71,13 +73,15 @@ const videos = [
   },
 ];
 
-export default function Consonants({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
+export default function Consonants({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(consonants[0].letter);
   const [feedback, setFeedback] = useState('Choose a consonant to hear the object name.');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [completionNotified, setCompletionNotified] = useState(false);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
+  const [exploredConsonants, setExploredConsonants] = useState([consonants[0].letter]);
+  const [letterTap, setLetterTap] = useState(0);
 
   const selectedItem = consonants.find((item) => item.letter === selectedLetter) ?? consonants[0];
   const videosWatched = Array.isArray(initialVideosWatched) ? initialVideosWatched : [];
@@ -173,11 +177,25 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     speakText(`${letterToSpeak.letter}. ${letterToSpeak.word}.`, `Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
   };
 
+  const markExplored = (letter) => {
+    setExploredConsonants((current) => (current.includes(letter) ? current : [...current, letter]));
+  };
+
   const handlePick = (letter) => {
     const nextItem = consonants.find((item) => item.letter === letter) ?? consonants[0];
     setSelectedLetter(nextItem.letter);
+    markExplored(nextItem.letter);
     setShowVoicePractice(false);
     speakLetterAndWord(nextItem);
+  };
+
+  const goToRelative = (offset) => {
+    const currentIndex = consonants.findIndex((item) => item.letter === selectedItem.letter);
+    const nextItem = consonants[(currentIndex + offset + consonants.length) % consonants.length];
+    setSelectedLetter(nextItem.letter);
+    markExplored(nextItem.letter);
+    setShowVoicePractice(false);
+    setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };
 
   const speakCurrent = () => {
@@ -188,208 +206,202 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     return <WordBlast onClose={() => handleModeChange('learning')} />;
   }
 
-  return (
-    <div className="module-detail consonants-detail">
-      <div className="consonants-topbar">
+  const goToExplore = () => {
+    if (typeof onNavigate === 'function') {
+      onNavigate('consonants', 'explore');
+      return;
+    }
+    handleModeChange('explore');
+  };
+
+  const renderHero = ({ icon, title, subtitle, stat }) => (
+    <header className="cn-hero">
+      <span className="cn-hero-icon" aria-hidden="true">{icon}</span>
+      <div className="cn-hero-copy">
+        <span className="cn-kicker">🗺️ Consonant Canyon</span>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </div>
+      {stat}
+    </header>
+  );
+
+  const renderLearning = () => {
+    const watchedCount = videosWatched.length;
+
+    return (
+      <>
+        {renderHero({
+          icon: '🎬',
+          title: 'Learning Videos',
+          subtitle: `Watch all ${videos.length} episodes to unlock Explore Consonants!`,
+          stat: (
+            <div className="cn-hero-stat">
+              <strong key={watchedCount} className="cn-pop">{watchedCount}<small>/{videos.length}</small></strong>
+              <span>Videos watched</span>
+              <div className="cn-meter"><div style={{ '--p': `${(watchedCount / videos.length) * 100}%` }} /></div>
+            </div>
+          ),
+        })}
+
+        <VideoEpisodes
+          videos={videos}
+          watchedIds={videosWatched}
+          currentIndex={currentVideoIndex}
+          onPlay={handlePlayVideo}
+          onClose={closeVideoPlayer}
+          onPrevious={handlePreviousVideo}
+          onNext={handleNextVideo}
+          onEnded={handleVideoEnd}
+          unlockTitle="Explore Consonants"
+          unlockActionLabel="Go Explore ▶"
+          onUnlockAction={goToExplore}
+        />
+      </>
+    );
+  };
+
+  const renderExplore = () => (
+    <>
+      {renderHero({
+        icon: '🧩',
+        title: 'Explore Consonants',
+        subtitle: 'Tap a consonant to hear it and meet its word friend!',
+        stat: (
+          <div className="cn-hero-stat">
+            <strong key={exploredConsonants.length} className="cn-pop">
+              {exploredConsonants.length}<small>/{consonants.length}</small>
+            </strong>
+            <span>Consonants explored</span>
+            <div className="cn-meter">
+              <div style={{ '--p': `${(exploredConsonants.length / consonants.length) * 100}%` }} />
+            </div>
+          </div>
+        ),
+      })}
+
+      <section className="cn-spotlight">
+        <button
+          type="button"
+          className="cn-arrow"
+          onClick={() => goToRelative(-1)}
+          aria-label="Previous consonant"
+        >
+          ‹
+        </button>
+
+        <div className="cn-cards">
+          <button
+            type="button"
+            className="cn-letter-card"
+            onClick={() => {
+              setLetterTap((current) => current + 1);
+              speakLetterOnly();
+            }}
+            aria-label={`Read the letter ${selectedItem.letter}`}
+          >
+            {letterTap > 0 ? <span key={letterTap} className="cn-ripple" aria-hidden="true" /> : null}
+            <span key={selectedItem.letter} className="cn-big-letter">
+              {selectedItem.letter}<small>{selectedItem.letter.toLowerCase()}</small>
+            </span>
+            <span className="cn-tap-hint">🔊 Tap to hear</span>
+          </button>
+
+          <div
+            className="cn-object-card"
+            onClick={() => speakCurrent()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                speakCurrent();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Read the word ${selectedItem.word}`}
+          >
+            <span key={`${selectedItem.letter}-icon`} className="cn-object-icon" aria-hidden="true">
+              {selectedItem.icon}
+            </span>
+            <p key={`${selectedItem.letter}-word`} className="cn-object-word">
+              <b>{selectedItem.word.charAt(0)}</b>{selectedItem.word.slice(1)}
+            </p>
+            <span className="cn-object-sound">Say the object name.</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="cn-arrow"
+          onClick={() => goToRelative(1)}
+          aria-label="Next consonant"
+        >
+          ›
+        </button>
+      </section>
+
+      <div className="cn-actions">
+        <p key={feedback} className="cn-feedback" aria-live="polite">{feedback}</p>
+        <button type="button" className="cn-btn" onClick={speakCurrent}>
+          🔊 Listen to Object
+        </button>
+        <button
+          type="button"
+          className={`cn-btn cn-btn-mic ${showVoicePractice ? 'active' : ''}`}
+          onClick={() => setShowVoicePractice(!showVoicePractice)}
+          aria-expanded={showVoicePractice}
+        >
+          🎤 {showVoicePractice ? 'Hide Practice' : 'Practice Pronunciation'}
+        </button>
       </div>
 
-      {mode === 'learning' ? (
-        <div className="learning-materials">
-          {currentVideoIndex !== null ? (
-            <div className="video-player-modal">
-              <button
-                type="button"
-                className="video-close-btn"
-                onClick={closeVideoPlayer}
-              >
-                ✕
-              </button>
-              <div className="video-player-container">
-                <div className="video-player">
-                  <video
-                    key={`video-${videos[currentVideoIndex].id}`}
-                    width="100%"
-                    height="100%"
-                    controls
-                    autoPlay
-                    onEnded={() => handleVideoEnd(videos[currentVideoIndex].id)}
-                  >
-                    <source src={videos[currentVideoIndex].url} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-                <div className="video-player-info">
-                  <h3>{videos[currentVideoIndex].title}</h3>
-                  <p>{videos[currentVideoIndex].description}</p>
-                  <div className="video-watched-notice">
-                    <p className="watched-notice-text">
-                      ✓ The video will be marked as watched once you finish watching it completely.
-                    </p>
-                  </div>
-                </div>
-                <div className="video-navigation" aria-label="Video navigation">
-                  <button
-                    type="button"
-                    className="video-navigation-btn"
-                    onClick={handlePreviousVideo}
-                    disabled={currentVideoIndex === 0}
-                  >
-                    ← Previous Video
-                  </button>
-                  <span className="video-navigation-status">
-                    Video {currentVideoIndex + 1} of {videos.length}
-                  </span>
-                  <button
-                    type="button"
-                    className="video-navigation-btn"
-                    onClick={handleNextVideo}
-                    disabled={currentVideoIndex === videos.length - 1}
-                  >
-                    Next Video →
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="learning-header">
-                <h3>Learning Video Materials</h3>
-                <p>Watch all 6 videos to unlock Explore Consonants</p>
-              </div>
-
-              <div className="videos-grid">
-                {videos.map((video, index) => (
-                  <div key={video.id} className="video-card">
-                    <div className="video-thumbnail">
-                      <span className="video-icon">🎬</span>
-                      {videosWatched.includes(video.id) && (
-                        <span className="video-watched-badge">✓ Watched</span>
-                      )}
-                    </div>
-                    <div className="video-info">
-                      <h4>{video.title}</h4>
-                      <p>{video.description}</p>
-                      <span className="video-duration">{video.duration}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className={`video-play-btn${videosWatched.includes(video.id) ? ' watched' : ''}`}
-                      onClick={() => handlePlayVideo(index)}
-                    >
-                      ▶ {videosWatched.includes(video.id) ? 'REWATCH' : 'PLAY'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="learning-progress">
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${(videosWatched.length / videos.length) * 100}%` }}
-                  />
-                </div>
-                <p>
-                  {videosWatched.length} of {videos.length} videos watched
-                </p>
-                {allVideosWatched && (
-                  <p className="progress-unlocked">
-                    ✓ Explore Consonants unlocked! Click the Explore Consonants tab to continue.
-                  </p>
-                )}
-              </div>
-            </>
-          )}
+      {showVoicePractice && (
+        <div className="cn-voice-panel">
+          <VoicePractice
+            targetWord={selectedItem.word}
+            onResult={(result) => {
+              if (result.success) {
+                setFeedback(`Great! You pronounced "${selectedItem.word}" correctly!`);
+              } else {
+                setFeedback(result.feedback);
+              }
+            }}
+            showTranscript={true}
+          />
         </div>
-      ) : mode === 'explore' ? (
-        <>
-          <div className="consonants-picker" aria-label="Consonant choices">
-            {consonants.map((item) => (
-              <button
-                key={item.letter}
-                type="button"
-                className={item.letter === selectedLetter ? 'consonant-tile active' : 'consonant-tile'}
-                onClick={() => handlePick(item.letter)}
-              >
-                <span className="consonant-tile-letter">{item.letter}</span>
-                <span className="consonant-tile-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-              </button>
-            ))}
-          </div>
+      )}
 
-          <div className="consonants-stage">
-            <span
-              className="consonants-letter"
-              onClick={() => speakLetterOnly()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  speakLetterOnly();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Read the letter ${selectedItem.letter}`}
+      <section className="cn-grid-panel">
+        <div className="cn-grid-head">
+          <h2>🧩 Pick a consonant</h2>
+          <span>✓ = already explored</span>
+        </div>
+        <div className="cn-picker" aria-label="Consonant choices">
+          {consonants.map((item, index) => (
+            <button
+              key={item.letter}
+              type="button"
+              className={[
+                'cn-tile',
+                `cn-c${index % 5}`,
+                item.letter === selectedLetter ? 'active' : '',
+                exploredConsonants.includes(item.letter) ? 'explored' : '',
+              ].join(' ')}
+              style={{ '--i': index }}
+              onClick={() => handlePick(item.letter)}
             >
-              {selectedItem.letter}
-            </span>
+              <span className="cn-tile-letter">{item.letter}</span>
+              <span className="cn-tile-icon" aria-hidden="true">{item.icon}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </>
+  );
 
-            <div
-              className="consonants-object"
-              onClick={() => speakCurrent()}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  speakCurrent();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Read the word ${selectedItem.word}`}
-            >
-              <span className="consonants-object-icon" aria-hidden="true">
-                {selectedItem.icon}
-              </span>
-              <p className="consonants-object-word">{selectedItem.word}</p>
-              <p className="consonants-object-sound">Say the object name.</p>
-            </div>
-
-            <div className="consonants-button-group">
-              <button type="button" className="consonants-listen" onClick={speakCurrent}>
-                🔊 LISTEN TO OBJECT
-              </button>
-              <button
-                type="button"
-                className="consonants-voice-practice-btn"
-                onClick={() => setShowVoicePractice(!showVoicePractice)}
-                aria-expanded={showVoicePractice}
-              >
-                🎤 PRACTICE PRONUNCIATION
-              </button>
-            </div>
-
-            {showVoicePractice && (
-              <div className="consonants-voice-practice-wrapper">
-                <VoicePractice
-                  targetWord={selectedItem.word}
-                  onResult={(result) => {
-                    if (result.success) {
-                      setFeedback(`Great! You pronounced "${selectedItem.word}" correctly!`);
-                    } else {
-                      setFeedback(result.feedback);
-                    }
-                  }}
-                  showTranscript={true}
-                />
-              </div>
-            )}
-
-            <p className="game-feedback">{feedback}</p>
-          </div>
-        </>
-      ) : null}
+  return (
+    <div className="cn-page">
+      {mode === 'explore' ? renderExplore() : renderLearning()}
     </div>
   );
 }
