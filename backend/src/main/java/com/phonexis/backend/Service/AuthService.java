@@ -33,7 +33,7 @@ public class AuthService {
 	}
 
 	public void logout(String email, String deviceId) {
-		userService.logout(email, deviceId);
+		userService.releaseDevice(email, deviceId);
 	}
 
 	public void requestPasswordReset(String email) {

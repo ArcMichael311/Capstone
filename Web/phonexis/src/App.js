@@ -11,20 +11,26 @@ import AlphabetRecognition from './components/Modules/AlphabetRecognition';
 import CVCWords from './components/Modules/CVCWords';
 import Vowels from './components/Modules/Vowels';
 import Consonants from './components/Modules/Consonants';
-import Admin from './components/Admin/Admin';
+import AdminSidebar from './components/Admin/AdminSidebar';
+import AdminDashboard from './components/Admin/AdminDashboard';
+import AdminStudents from './components/Admin/AdminStudents';
+import AdminTeachers from './components/Admin/AdminTeachers';
 import Teacher from './components/Teacher/Teacher';
+import TeacherSidebar from './components/Teacher/TeacherSidebar';
 import Sidebar from './components/Sidebar/Sidebar';
+import StudentClassModal from './components/Dashboard/StudentClassModal';
 import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
 import {
   supabase,
   fetchBackendUsers,
   fetchBackendProgress,
-  recordBackendActivity,
+  fetchStudentClass,
+  fetchLearningMaterials,
   joinBackendClass,
   updateBackendModuleProgress,
-  updateBackendModuleVideos,
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
+  isLocalDevelopment,
 } from './lib/supabaseClient';
 
 function App() {
@@ -33,6 +39,7 @@ function App() {
   const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
+  const progressSyncRef = useRef(Promise.resolve());
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [theme, setTheme] = useState(() => {
@@ -57,6 +64,11 @@ function App() {
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
   const [isProgressHydrated, setIsProgressHydrated] = useState(false);
   const [backendUserId, setBackendUserId] = useState(null);
+  const [studentClassInfo, setStudentClassInfo] = useState(null);
+  const [studentMaterials, setStudentMaterials] = useState([]);
+  const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
+  const isAdminUser = normalizedRole === 'admin';
+  const isTeacherUser = normalizedRole === 'teacher';
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -92,12 +104,12 @@ function App() {
       return null;
     }
 
-    try {
-      const email = String(profile.email || profile.user_metadata?.email || '').trim().toLowerCase();
-      if (!email) {
-        return profile;
-      }
+    const email = String(profile.email || profile.user_metadata?.email || '').trim().toLowerCase();
+    if (!email) {
+      return profile;
+    }
 
+    try {
       const backendUsers = await fetchBackendUsers();
       if (backendUsers.error || !Array.isArray(backendUsers.data)) {
         return profile;
@@ -234,12 +246,9 @@ function App() {
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
-      const deviceResult = await verifySupabaseUserDevice(sessionUser.email);
+      const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
         await supabase.auth.signOut();
-        if (deviceResult.error.message === 'Account is already signed in') {
-          setActiveView('login');
-        }
         return;
       }
       const roleAwareUser = await applyBackendRole(mappedUser);
@@ -256,8 +265,12 @@ function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session?.user) {
+        if (event !== 'SIGNED_OUT') {
+          return;
+        }
+
         setIsAuthenticated(false);
         setCurrentUser(null);
         setNavigationHistory([]);
@@ -267,12 +280,9 @@ function App() {
 
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
-        const deviceResult = await verifySupabaseUserDevice(session.user.email);
+        const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
           await supabase.auth.signOut();
-          if (deviceResult.error.message === 'Account is already signed in') {
-            setActiveView('login');
-          }
           return;
         }
         const roleAwareUser = await applyBackendRole(mappedUser);
@@ -343,8 +353,16 @@ function App() {
     const vowelsProgress = byModule.get('vowels');
     const consonantsProgress = byModule.get('consonants');
     const cvcProgress = byModule.get('cvc');
+    let alphabetScores = {};
+    try {
+      const parsedScores = JSON.parse(alphabetProgress?.assessmentScores || '{}');
+      alphabetScores = parsedScores && typeof parsedScores === 'object' ? parsedScores : {};
+    } catch (error) {
+      alphabetScores = {};
+    }
 
     return {
+      alphabetScores,
       completedPretests: [
         alphabetProgress?.easyModeCompleted ? 'easy' : null,
         alphabetProgress?.mediumModeCompleted ? 'medium' : null,
@@ -405,14 +423,6 @@ function App() {
     return matchedUser?.id ?? null;
   }, []);
 
-  const recordActivity = useCallback((moduleName, action, details = null) => {
-    if (!backendUserId) {
-      return;
-    }
-
-    void recordBackendActivity(backendUserId, moduleName, action, details);
-  }, [backendUserId]);
-
   const refreshCurrentUserFromBackend = useCallback(async () => {
     setCurrentUser((current) => current);
     if (!currentUser) {
@@ -437,7 +447,6 @@ function App() {
 
     const loadProgress = async () => {
       resetProgressState();
-      let localSnapshot = {};
 
       const resolvedBackendUserId = await resolveBackendUserId(currentUser);
 
@@ -445,40 +454,22 @@ function App() {
         setBackendUserId(resolvedBackendUserId);
       }
 
-      try {
-        const key = getProgressKey(currentUser);
-        const raw = key ? localStorage.getItem(key) : null;
-        if (raw) {
-          localSnapshot = JSON.parse(raw);
-        }
-      } catch (error) {
-        localSnapshot = {};
-      }
-
-      applyProgressSnapshot(localSnapshot);
-
+      let backendProgressLoaded = false;
       if (resolvedBackendUserId) {
         const backendResult = await fetchBackendProgress(resolvedBackendUserId);
-        if (!cancelled && !backendResult.error && Array.isArray(backendResult.data)) {
-          const backendSnapshot = mapBackendProgressToSnapshot(backendResult.data);
-          const backendHasProgress = backendResult.data.some((progress) => (
-            Number(progress?.completionPercentage || 0) > 0
-            || progress?.pretestCompleted
-            || progress?.easyModeCompleted
-            || progress?.mediumModeCompleted
-            || progress?.hardModeCompleted
-            || parseVideoIds(progress?.videosWatched).length > 0
-          ));
-          const localHasProgress = localSnapshot.completedPretests?.length > 0
-            || localSnapshot.completedAlphabetModes?.length > 0
-            || localSnapshot.vowelsCompleted
-            || localSnapshot.consonantsCompleted
-            || localSnapshot.cvcCompleted
-            || localSnapshot.vowelsWatchedVideos?.length > 0
-            || localSnapshot.consonantsWatchedVideos?.length > 0
-            || localSnapshot.cvcWatchedVideos?.length > 0;
+        if (!cancelled && !backendResult.error && Array.isArray(backendResult.data) && backendResult.data.length > 0) {
+          applyProgressSnapshot(mapBackendProgressToSnapshot(backendResult.data));
+          backendProgressLoaded = true;
+        }
+      }
 
-          applyProgressSnapshot(!backendHasProgress && localHasProgress ? localSnapshot : backendSnapshot);
+      if (!backendProgressLoaded) {
+        try {
+          const key = getProgressKey(currentUser);
+          const raw = key ? localStorage.getItem(key) : null;
+          applyProgressSnapshot(raw ? JSON.parse(raw) : {});
+        } catch (error) {
+          applyProgressSnapshot({});
         }
       }
 
@@ -492,7 +483,44 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, parseVideoIds, resolveBackendUserId, resetProgressState]);
+  }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, resolveBackendUserId, resetProgressState]);
+
+  // Load the student's assigned class (if any) and the materials their teacher shared with it.
+  useEffect(() => {
+    if (isAdminUser || isTeacherUser || !backendUserId) {
+      setStudentClassInfo(null);
+      setStudentMaterials([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadClassInfo = async () => {
+      const classResult = await fetchStudentClass(backendUserId);
+      if (cancelled) {
+        return;
+      }
+
+      const classInfo = !classResult.error && classResult.data ? classResult.data : null;
+      setStudentClassInfo(classInfo);
+
+      if (!classInfo?.classId) {
+        setStudentMaterials([]);
+        return;
+      }
+
+      const materialsResult = await fetchLearningMaterials(classInfo.classId);
+      if (!cancelled) {
+        setStudentMaterials(!materialsResult.error && Array.isArray(materialsResult.data) ? materialsResult.data : []);
+      }
+    };
+
+    void loadClassInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [backendUserId, isAdminUser, isTeacherUser]);
 
   useEffect(() => {
     if (!currentUser || !isProgressHydrated) return;
@@ -522,25 +550,29 @@ function App() {
     }
 
     const syncBackendProgress = async () => {
-      await updateBackendModuleProgress(backendUserId, 'alphabet', {
-        easyModeCompleted: completedAlphabetModes.includes('easy'),
-        mediumModeCompleted: completedAlphabetModes.includes('medium'),
-        hardModeCompleted: completedAlphabetModes.includes('hard'),
-      });
-
-      const syncModuleProgress = async (moduleName, videoIds, pretestCompleted) => {
-        await updateBackendModuleVideos(backendUserId, moduleName, videoIds);
-        await updateBackendModuleProgress(backendUserId, moduleName, { pretestCompleted });
-      };
-
       await Promise.all([
-        syncModuleProgress('vowels', vowelsWatchedVideos, vowelsCompleted),
-        syncModuleProgress('consonants', consonantsWatchedVideos, consonantsCompleted),
-        syncModuleProgress('cvc', cvcWatchedVideos, cvcCompleted),
+        updateBackendModuleProgress(backendUserId, 'alphabet', {
+          easyModeCompleted: completedPretests.includes('easy'),
+          mediumModeCompleted: completedPretests.includes('medium'),
+          hardModeCompleted: completedPretests.includes('hard'),
+          assessmentScores: JSON.stringify(alphabetScores),
+        }),
+        updateBackendModuleProgress(backendUserId, 'vowels', {
+          pretestCompleted: vowelsCompleted,
+          videosWatched: vowelsWatchedVideos,
+        }),
+        updateBackendModuleProgress(backendUserId, 'consonants', {
+          pretestCompleted: consonantsCompleted,
+          videosWatched: consonantsWatchedVideos,
+        }),
+        updateBackendModuleProgress(backendUserId, 'cvc', {
+          pretestCompleted: cvcCompleted,
+          videosWatched: cvcWatchedVideos,
+        }),
       ]);
     };
 
-    void syncBackendProgress();
+    progressSyncRef.current = progressSyncRef.current.then(syncBackendProgress, syncBackendProgress);
   }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
   // Keep one music instance playing across authenticated views.
@@ -553,7 +585,7 @@ function App() {
     const audio = audioRef.current;
 
     const playAudio = () => {
-      if (!isAuthenticated || audio.volume <= 0) {
+      if (!isAuthenticated || isAdminUser || isTeacherUser || audio.volume <= 0) {
         audio.pause();
         return;
       }
@@ -567,7 +599,7 @@ function App() {
       audio.pause();
     };
 
-    if (isAuthenticated && audio.volume > 0) {
+    if (isAuthenticated && !isAdminUser && !isTeacherUser && audio.volume > 0) {
       playAudio();
       window.addEventListener('pointerdown', playAudio, { once: true });
       window.addEventListener('keydown', playAudio, { once: true });
@@ -578,14 +610,14 @@ function App() {
     return () => {
       window.removeEventListener('pointerdown', playAudio);
       window.removeEventListener('keydown', playAudio);
-      if (!isAuthenticated) stopAudio();
+      if (!isAuthenticated || isAdminUser || isTeacherUser) stopAudio();
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAdminUser, isTeacherUser]);
 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = musicVolume;
-      if (musicVolume === 0) {
+      if (musicVolume === 0 || isAdminUser || isTeacherUser) {
         audioRef.current.pause();
       } else if (isAuthenticated) {
         audioRef.current.play().catch(() => {
@@ -593,7 +625,7 @@ function App() {
         });
       }
     }
-  }, [isAuthenticated, musicVolume]);
+  }, [isAuthenticated, isAdminUser, isTeacherUser, musicVolume]);
 
   // Module progress is driven by the user's completed steps.
   const alphabetProgress = Math.min(100, Math.round((completedAlphabetModes.length / 3) * 100));
@@ -610,7 +642,6 @@ function App() {
       ...currentScores,
       [difficulty]: { score, total },
     }));
-    recordActivity('alphabet', 'pretest_completed', `${difficulty}: ${score}/${total}`);
     if (score !== total) {
       return;
     }
@@ -625,7 +656,6 @@ function App() {
   };
 
   const handleAlphabetModeComplete = (mode) => {
-    recordActivity('alphabet', 'mode_completed', mode);
     setCompletedAlphabetModes((currentModes) => {
       if (currentModes.includes(mode)) {
         return currentModes;
@@ -650,25 +680,20 @@ function App() {
     setActiveModule(moduleKey);
     setActiveView(moduleKey);
     setActiveSection('learning');
-    recordActivity(moduleKey, 'module_opened');
   };
 
   const handleVowelsComplete = () => {
     setVowelsCompleted(true);
-    recordActivity('vowels', 'module_completed');
     setActiveView('dashboard');
   };
 
   const handleConsonantsComplete = () => {
     setConsonantsCompleted(true);
-    recordActivity('consonants', 'module_completed');
     setActiveView('dashboard');
   };
 
   const handleCvcComplete = () => {
     setCvcCompleted(true);
-    recordActivity('cvc', 'module_completed');
-    setActiveView('dashboard');
   };
 
   const handleAuthSuccess = (userProfile) => {
@@ -681,10 +706,12 @@ function App() {
     setIsAuthenticated(true);
     setNavigationHistory([]);
     setActiveView(getLandingViewByRole(mappedProfile));
+    setActiveSection(null);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
+      await progressSyncRef.current;
       if (currentUser?.email) {
         await releaseSupabaseUserDevice(currentUser.email);
       }
@@ -697,7 +724,47 @@ function App() {
     setCurrentUser(null);
     setNavigationHistory([]);
     setActiveView('login');
-  };
+    setActiveSection(null);
+  }, [currentUser]);
+
+  // Auto-logout after 30 minutes with no user activity, and heartbeat the backend
+  // periodically so the account's device lock doesn't stay held by a closed/crashed tab.
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser?.email) {
+      return undefined;
+    }
+
+    const IDLE_LIMIT_MS = 30 * 60 * 1000;
+    const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+    const email = currentUser.email;
+
+    let idleTimer;
+    let lastHeartbeatAt = 0;
+
+    const resetIdleTimer = () => {
+      const now = Date.now();
+      if (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
+        lastHeartbeatAt = now;
+        verifySupabaseUserDevice(email).catch(() => {
+          // ignore transient heartbeat failures
+        });
+      }
+
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        handleLogout();
+      }, IDLE_LIMIT_MS);
+    };
+
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetIdleTimer));
+    resetIdleTimer();
+
+    return () => {
+      clearTimeout(idleTimer);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+    };
+  }, [isAuthenticated, currentUser, handleLogout]);
 
   const handleJoinClass = async () => {
     const classCodeInput = window.prompt('Enter class code from your teacher:');
@@ -746,21 +813,51 @@ function App() {
       }
     }
 
-    const normalizedRole = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase();
-    const isAdminUser = normalizedRole === 'admin';
-    const isTeacherUser = normalizedRole === 'teacher';
+    if (!isAdminUser && !isTeacherUser && !isProgressHydrated) {
+      return <section className="app-loading" aria-live="polite">Loading your progress...</section>;
+    }
 
     if (isAdminUser) {
-      return (
-        <Admin
-          onNavigate={navigateTo}
-          onLogout={handleLogout}
-          currentUser={currentUser}
-        />
-      );
+      if (activeView === 'profile') {
+        return (
+          <Profile
+            onNavigate={navigateTo}
+            onBack={() => navigateTo('admin')}
+            user={currentUser}
+            onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            initialTab={activeSection || 'info'}
+          />
+        );
+      }
+
+      if (activeSection === 'students') {
+        return <AdminStudents />;
+      }
+
+      if (activeSection === 'teachers') {
+        return <AdminTeachers />;
+      }
+
+      return <AdminDashboard onNavigate={navigateTo} />;
     }
 
     if (isTeacherUser) {
+      if (activeView === 'profile') {
+        return (
+          <Profile
+            onNavigate={navigateTo}
+            onBack={() => navigateTo('teacher')}
+            user={currentUser}
+            onLogout={handleLogout}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            initialTab={activeSection || 'info'}
+          />
+        );
+      }
+
       return (
         <Teacher
           onNavigate={navigateTo}
@@ -768,11 +865,24 @@ function App() {
           user={currentUser}
           backendUserId={backendUserId}
           onProfileRefresh={refreshCurrentUserFromBackend}
+          activeSection={activeSection}
         />
       );
     }
 
     switch (activeView) {
+      case 'class':
+        return studentClassInfo ? (
+          <StudentClassModal
+            studentClassInfo={studentClassInfo}
+            studentMaterials={studentMaterials}
+            studentId={backendUserId}
+            activeSection={activeSection}
+            onNavigate={navigateTo}
+          />
+        ) : (
+          <section className="app-loading" aria-live="polite">Loading your classroom...</section>
+        );
       case 'alphabet':
         return (
           <AlphabetRecognition
@@ -789,7 +899,7 @@ function App() {
         if (!cvcUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -803,6 +913,9 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -813,14 +926,14 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
-            initialType={activeSection || 'learning'}
+            initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'vowels':
         if (!vowelsUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -834,6 +947,9 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -844,14 +960,14 @@ function App() {
             onBack={() => goBack('dashboard')}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
-            initialMode={activeSection || 'learning'}
+            initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'consonants':
         if (!consonantsUnlocked) {
           return (
             <Dashboard
-              onNavigate={setActiveView}
+              onNavigate={navigateTo}
               onSelectModule={openModule}
               user={currentUser}
               overallProgress={overallProgress}
@@ -865,6 +981,9 @@ function App() {
               onLogout={handleLogout}
               onJoinClass={handleJoinClass}
               classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+              studentClassInfo={studentClassInfo}
+              studentMaterials={studentMaterials}
+              studentId={backendUserId}
             />
           );
         }
@@ -876,14 +995,14 @@ function App() {
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}
-            initialMode={activeSection || 'learning'}
+            initialMode={['learning', 'explore', 'wordblast'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
       case 'modules':
         return (
           <Modules
             activeModule={activeModule}
-            onNavigate={setActiveView}
+            onNavigate={navigateTo}
             onSelectModule={openModule}
             vowelsUnlocked={vowelsUnlocked}
             consonantsUnlocked={consonantsUnlocked}
@@ -923,25 +1042,6 @@ function App() {
             initialTab={activeSection || 'info'}
           />
         );
-      case 'admin':
-        return (
-          <Admin
-            onNavigate={setActiveView}
-            onLogout={handleLogout}
-            onJoinClass={handleJoinClass}
-            classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
-          />
-        );
-      case 'teacher':
-        return (
-          <Teacher
-            onNavigate={setActiveView}
-            onLogout={handleLogout}
-            user={currentUser}
-            backendUserId={backendUserId}
-            onProfileRefresh={refreshCurrentUserFromBackend}
-          />
-        );
       case 'dashboard':
       default:
         return (
@@ -960,12 +1060,13 @@ function App() {
             onLogout={handleLogout}
             onJoinClass={handleJoinClass}
             classroom={currentUser?.classroom || currentUser?.user_metadata?.classroom || null}
+            studentClassInfo={studentClassInfo}
+            studentMaterials={studentMaterials}
+            studentId={backendUserId}
           />
         );
     }
   };
-
-  const isAdminLayout = String(currentUser?.role || currentUser?.user_metadata?.role || '').toLowerCase() === 'admin';
 
   if (!isAuthenticated) {
     return (
@@ -994,13 +1095,34 @@ function App() {
       onNavigate={navigateTo}
     >
       <div className="app-shell app-shell-authenticated">
-        {!isAdminLayout && (
+        {isAdminUser ? (
+          <AdminSidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        ) : normalizedRole === 'teacher' ? (
+          <TeacherSidebar
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
+            activeView={activeView}
+            activeSection={activeSection}
+            currentUser={currentUser}
+            onNavigate={navigateTo}
+            onLogout={handleLogout}
+          />
+        ) : (
           <Sidebar
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen((isOpen) => !isOpen)}
             activeView={activeView}
             activeSection={activeSection}
             currentUser={currentUser}
+            studentClassInfo={studentClassInfo}
             onNavigate={navigateTo}
             onSelectModule={openModule}
             alphabetProgress={alphabetProgress}
@@ -1008,10 +1130,11 @@ function App() {
             consonantsProgress={consonantsProgress}
             cvcProgress={cvcProgress}
             alphabetScores={alphabetScores}
+            completedAlphabetModes={completedAlphabetModes}
             onLogout={handleLogout}
           />
         )}
-        <main className={isAdminLayout || isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
+        <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
       </div>
     </Routing>
   );

@@ -1,6 +1,8 @@
 import './Login.css';
 import { useState } from 'react';
-import { supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import logo from './logoB.png';
+import { getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
@@ -13,9 +15,32 @@ export default function Login({ onNavigate, onSuccess }) {
     setError(null);
 
     try {
+      if (!getSessionDeviceId()) {
+        setError('This browser cannot create a secure login session. Please enable site storage and try again.');
+        return;
+      }
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
-        setError(authError.message || 'Login failed');
+        const backendResult = await loginBackendUser(email, password);
+        if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
+          setError(formatLoginError(backendResult.error, authError.message));
+          return;
+        }
+
+        const backendUser = backendResult.data?.user;
+        onSuccess({
+          ...backendUser,
+          firstname: backendUser?.firstName || backendUser?.firstname || '',
+          lastname: backendUser?.lastName || backendUser?.lastname || '',
+          user_metadata: {
+            ...(backendUser?.user_metadata || {}),
+            firstname: backendUser?.firstName || backendUser?.firstname || '',
+            lastname: backendUser?.lastName || backendUser?.lastname || '',
+            role: backendUser?.role || 'student',
+            email: backendUser?.email || email,
+          },
+        });
         return;
       }
 
@@ -26,9 +51,9 @@ export default function Login({ onNavigate, onSuccess }) {
           role: data.user.user_metadata?.role || 'student',
         });
 
-        if (backendResult?.error) {
+        if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
           await supabase.auth.signOut();
-          setError(backendResult.error.message || 'Unable to verify this device with the backend');
+          setError(formatLoginError(backendResult.error, 'Login failed'));
           return;
         }
 
@@ -61,10 +86,22 @@ export default function Login({ onNavigate, onSuccess }) {
     }
   };
 
+  function formatLoginError(backendError, fallbackMessage) {
+    if (backendError?.status === 409) {
+      return 'This account is already logged in on another device.';
+    }
+    if (backendError?.status >= 500 || backendError?.message === 'Backend unavailable') {
+      return 'The login service is temporarily unavailable. Please try again after the backend redeploys.';
+    }
+    return backendError?.message || fallbackMessage || 'Login failed';
+  }
+
   return (
-    <section className="login-card" aria-label="Login form">
+    <>
+      <AuthLetterBackground />
+      <section className="login-card" aria-label="Login form">
       <div className="login-badge" aria-hidden="true">
-        <span>📖</span>
+        <img src={logo} alt="Phonics Learning logo" className="login-logo" />
       </div>
 
       <div className="login-copy">
@@ -117,6 +154,7 @@ export default function Login({ onNavigate, onSuccess }) {
           Don't have an account? <span>Register here</span>
         </button>
       </form>
-    </section>
+      </section>
+    </>
   );
 }

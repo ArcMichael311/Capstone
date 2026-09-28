@@ -6,10 +6,10 @@
 .alphabet-module {
   border-radius: 2rem;
   padding: 2rem;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 255, 240, 0.95));
-  border: 3px solid #FFD700;
+  background: linear-gradient(135deg, rgba(255, 251, 245, 0.98), rgba(244, 239, 223, 0.96));
+  border: 3px solid #e5c76d;
   min-height: 40rem;
-  box-shadow: 0 12px 40px rgba(77, 150, 255, 0.15), 0 20px 60px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 40px rgba(127, 110, 62, 0.12), 0 20px 60px rgba(0, 0, 0, 0.08);
   animation: fadeIn 0.5s ease-out;
 }
 
@@ -407,6 +407,100 @@
   background: rgba(255, 255, 255, 0.8);
 }
 
+.fry-words-section {
+  width: 100%;
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.8rem;
+}
+
+.fry-words-header-wrap {
+  display: grid;
+  gap: 0.3rem;
+  text-align: center;
+}
+
+.fry-words-title {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.7rem, 2.6vw, 2.35rem);
+  color: #2f2f2f;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.fry-words-subtitle {
+  margin: 0;
+  color: #5a5a5a;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fry-words-panel {
+  width: 100%;
+  border: 2px solid rgba(134, 116, 60, 0.7);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(238, 233, 225, 0.98), rgba(219, 215, 206, 0.96));
+  padding: 1rem 1.1rem 1rem;
+  box-shadow: 0 8px 24px rgba(90, 75, 35, 0.08), inset 0 0 0 1px rgba(120, 98, 46, 0.05);
+}
+
+.fry-words-header-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.fry-words-column-header {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #3d3d3d;
+  text-align: left;
+}
+
+.fry-words-list-wrap {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.15rem 1.5rem;
+  align-items: start;
+}
+
+.fry-words-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.1rem;
+  align-items: start;
+}
+
+.fry-word-item {
+  font-size: 1.02rem;
+  line-height: 1.7;
+  color: #2a2a2a;
+  font-weight: 500;
+  min-height: 2rem;
+  padding: 0 0.25rem;
+  text-transform: lowercase;
+  cursor: pointer;
+  border-radius: 0.35rem;
+  transition: background-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.fry-word-item:hover,
+.fry-word-item:focus-visible {
+  background: rgba(86, 120, 61, 0.12);
+  color: #1c3f1d;
+  transform: translateX(2px);
+  outline: none;
+}
+
 @media (max-width: 640px) {
   .letter-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -428,5 +522,9 @@
 
   .alphabet-object-panel {
     flex-direction: column;
+  }
+
+  .fry-words-list-wrap {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }

@@ -248,6 +248,7 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
     || 'Learner';
   const email = user?.email || '';
   const role = user?.role || user?.user_metadata?.role || 'student';
+  const isStudent = role === 'student';
 
   const handleSendProgressToGmail = () => {
     if (!email) {
@@ -266,7 +267,8 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
       '',
       'Learning Progress:',
       `- Alphabet Recognition: ${alphabetProgress}%`,
-      `- Vowels & Consonants: ${Math.round((vowelsProgress + consonantsProgress) / 2)}%`,
+      `- Vowels: ${vowelsProgress}%`,
+      `- Consonants: ${consonantsProgress}%`,
       `- CVC Words: ${cvcProgress}%`,
       `- Overall Progress: ${overallProgress}%`,
       '',
@@ -380,28 +382,34 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             </div>
           </div>
 
-          <div className="profile-learning-progress">
-            <h3>Learning Progress</h3>
-            <div className="profile-progress-item">
-              <span>Alphabet Recognition</span>
-              <span className="profile-progress-percentage">{alphabetProgress}%</span>
+          {isStudent && (
+            <div className="profile-learning-progress">
+              <h3>Learning Progress</h3>
+              <div className="profile-progress-item">
+                <span>Alphabet Recognition</span>
+                <span className="profile-progress-percentage">{alphabetProgress}%</span>
+              </div>
+              <div className="profile-progress-item">
+                <span>Vowels</span>
+                <span className="profile-progress-percentage">{vowelsProgress}%</span>
+              </div>
+              <div className="profile-progress-item">
+                <span>Consonants</span>
+                <span className="profile-progress-percentage">{consonantsProgress}%</span>
+              </div>
+              <div className="profile-progress-item">
+                <span>CVC Words</span>
+                <span className="profile-progress-percentage">{cvcProgress}%</span>
+              </div>
+              <div className="profile-progress-item">
+                <span>Overall Progress</span>
+                <span className="profile-progress-percentage">{overallProgress}%</span>
+              </div>
+              <button type="button" className="profile-send-progress-btn" onClick={handleSendProgressToGmail} disabled={!email}>
+                Send to Gmail
+              </button>
             </div>
-            <div className="profile-progress-item">
-              <span>Vowels & Consonants</span>
-              <span className="profile-progress-percentage">{Math.round((vowelsProgress + consonantsProgress) / 2)}%</span>
-            </div>
-            <div className="profile-progress-item">
-              <span>CVC Words</span>
-              <span className="profile-progress-percentage">{cvcProgress}%</span>
-            </div>
-            <div className="profile-progress-item">
-              <span>Overall Progress</span>
-              <span className="profile-progress-percentage">{overallProgress}%</span>
-            </div>
-            <button type="button" className="profile-send-progress-btn" onClick={handleSendProgressToGmail} disabled={!email}>
-              Send to Gmail
-            </button>
-          </div>
+          )}
         </div>
       )}
 
@@ -466,6 +474,7 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             </form>
           </div>
 
+          {isStudent && (
           <div className="profile-settings-section profile-audio-section">
             <div className="profile-settings-header">
               <span className="profile-settings-icon" aria-hidden="true">🎵</span>
@@ -577,6 +586,7 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
               </div>
             </div>
           </div>
+          )}
 
           <div className="profile-settings-section profile-background-section">
             <div className="profile-settings-header">
@@ -637,12 +647,6 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             </div>
           </div>
 
-          <div className="profile-sign-out-section">
-            <p>Need help with your account?</p>
-            <button type="button" className="profile-sign-out-btn" onClick={onLogout}>
-              SIGN OUT
-            </button>
-          </div>
         </div>
       )}
     </section>

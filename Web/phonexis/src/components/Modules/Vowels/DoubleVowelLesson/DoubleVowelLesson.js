@@ -14,6 +14,19 @@ function speakWord(text) {
   return true;
 }
 
+function renderHighlightedWord(word, pair) {
+  const pairStart = word.toLowerCase().indexOf(pair.toLowerCase());
+
+  return [...word].map((character, index) => {
+    const isHighlighted = pairStart >= 0 && index >= pairStart && index < pairStart + pair.length;
+    return (
+      <span key={`${word}-${index}`} className={isHighlighted ? 'dv-highlight' : undefined}>
+        {character}
+      </span>
+    );
+  });
+}
+
 export default function DoubleVowelLesson({ onFeedback }) {
   const [selectedLetters, setSelectedLetters] = useState(doubleVowelExamples[0].letters);
 
@@ -29,6 +42,13 @@ export default function DoubleVowelLesson({ onFeedback }) {
 
     if (typeof onFeedback === 'function') {
       onFeedback(message);
+    }
+  };
+
+  const handleWordListen = (word) => {
+    const spoke = speakWord(word);
+    if (typeof onFeedback === 'function') {
+      onFeedback(spoke ? `Listen: ${word}.` : `Say "${word}" aloud.`);
     }
   };
 
@@ -78,17 +98,19 @@ export default function DoubleVowelLesson({ onFeedback }) {
           {selected.icon}
         </span>
 
-        <p className="double-vowel-word">
-          {selected.parts.map((part, index) =>
-            part === selected.letters ? (
-              <span key={`${selected.letters}-part-${index}`} className="dv-highlight">
-                {part}
-              </span>
-            ) : (
-              <span key={`${selected.letters}-part-${index}`}>{part}</span>
-            )
-          )}
-        </p>
+        <div className="double-vowel-word-list" aria-label={`${selected.letters} example words`}>
+          {selected.words.map((word) => (
+            <button
+              key={word}
+              type="button"
+              className="double-vowel-word"
+              onClick={() => handleWordListen(word)}
+              aria-label={`Listen to ${word}`}
+            >
+              {renderHighlightedWord(word, selected.letters)}
+            </button>
+          ))}
+        </div>
 
         <p className="double-vowel-tip">{selected.tip}</p>
       </div>

@@ -43,6 +43,7 @@
 .wordblast-word { display: flex; align-items: center; color: var(--wb-ink); font-size: clamp(2.8rem, 8vw, 4.5rem); font-weight: 900; letter-spacing: 0.04em; }
 .wordblast-word strong { font-style: normal; }
 .wordblast-word .wordblast-blank { display: grid; place-items: center; width: 1.1em; height: 1.1em; color: var(--wb-coral); border-bottom: 0.1em solid var(--wb-coral); }
+.wordblast-word .wordblast-filled { color: #07392f; background: rgba(53, 199, 159, 0.35); border-bottom-color: var(--wb-mint); border-radius: 0.18em; box-shadow: 0 0 0 0.08em rgba(53, 199, 159, 0.2); }
 .wordblast-word .wordblast-fixed { color: var(--wb-ink); }
 .wordblast-answer-side > p { margin: 0.7rem 0 1.2rem; color: var(--wb-muted); font-weight: 700; }
 .wordblast-blocks { display: grid; grid-template-columns: repeat(4, minmax(3.2rem, 1fr)); gap: 0.7rem; width: 100%; }

@@ -95,7 +95,7 @@ export default function VoicePractice({
     }
     const voiceMode = savedSettings.mode || 'isolation';
     const microphoneSensitivity = Number(savedSettings.sensitivity) || 60;
-    await startRecording({
+    const recordingStarted = await startRecording({
       audio: {
         noiseSuppression: voiceMode === 'isolation' ? { ideal: true } : false,
         echoCancellation: voiceMode !== 'studio',
@@ -103,6 +103,12 @@ export default function VoicePractice({
         volume: microphoneSensitivity / 100,
       },
     });
+
+    if (!recordingStarted) {
+      setFeedback('Could not start recording. Please check your microphone permissions.');
+      return;
+    }
+
     pronunciationSessionRef.current = startPronunciationSession(targetWord, language);
   };
 
@@ -165,34 +171,23 @@ export default function VoicePractice({
           🔊 Hear It First
         </button>
 
-        {!isRecording && !result && (
+        {!result && !isChecking && (
           <button
             type="button"
-            className="voice-btn voice-btn-start"
-            onClick={handleStartRecording}
-            disabled={isChecking || isSpeaking}
-            aria-label="Start recording"
+            className={isRecording ? 'voice-btn voice-btn-stop' : 'voice-btn voice-btn-start'}
+            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            disabled={isSpeaking}
+            aria-label={isRecording ? 'Stop and check recording' : 'Start recording'}
           >
-            🎤 Start Recording
+            {isRecording ? '⏹ Stop & Check' : '🎤 Start Recording'}
           </button>
         )}
 
         {isRecording && (
-          <>
-            <div className="voice-timer" aria-live="polite">
-              <span className="voice-timer-dot">●</span>
-              Recording: {formatTime(recordingTime)}
-            </div>
-            <button
-              type="button"
-              className="voice-btn voice-btn-stop"
-              onClick={handleStopRecording}
-              disabled={isChecking}
-              aria-label="Stop recording"
-            >
-              ⏹ Stop & Check
-            </button>
-          </>
+          <div className="voice-timer" aria-live="polite">
+            <span className="voice-timer-dot">●</span>
+            Recording: {formatTime(recordingTime)}
+          </div>
         )}
 
         {isChecking && (

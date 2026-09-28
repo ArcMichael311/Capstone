@@ -1,4 +1,5 @@
 import './Dashboard.css';
+import logo from '../Login/logoB.png';
 
 const moduleCards = [
   {
@@ -35,7 +36,7 @@ const moduleCards = [
   },
 ];
 
-export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false }) {
+export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoinClass, classroom = null, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, vowelsUnlocked = false, consonantsUnlocked = false, cvcUnlocked = false, studentClassInfo = null, studentMaterials = [], studentId = null }) {
   const openGame = (moduleKey) => {
     if (moduleKey === 'vowels' && !vowelsUnlocked) {
       return;
@@ -65,7 +66,7 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
       <header className="dashboard-topbar">
         <div className="dashboard-user">
           <div className="dashboard-avatar" aria-hidden="true">
-            <span>🎓</span>
+            <img src={logo} alt="Phonics Learning logo" className="dashboard-logo" />
           </div>
           <div>
             <h2>Welcome, {displayName}!</h2>
@@ -103,7 +104,30 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
         </div>
       </section>
 
-      <section className="dashboard-cards" aria-label="Game modules">
+      <section className="dashboard-cards" aria-label="Class and game modules">
+        {studentClassInfo && (
+          <div className="dashboard-card dashboard-card-classroom" aria-label="Your class">
+            <div className="dashboard-card-icon" aria-hidden="true">
+              <span>🏫</span>
+            </div>
+
+            <div className="dashboard-card-copy">
+              <h3>{studentClassInfo.className}</h3>
+              <p>
+                Teacher: {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'Unknown'}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="dashboard-card-button"
+              onClick={() => onNavigate('class', 'materials')}
+            >
+              OPEN CLASS
+            </button>
+          </div>
+        )}
+
         {moduleCards.map((card) => {
           const isLocked = (card.key === 'vowels' && !vowelsUnlocked) || (card.key === 'consonants' && !consonantsUnlocked) || (card.key === 'cvc' && !cvcUnlocked);
           const cardProgressMap = {
@@ -142,6 +166,7 @@ export default function Dashboard({ onNavigate, onSelectModule, onLogout, onJoin
           );
         })}
       </section>
+
     </section>
   );
 }

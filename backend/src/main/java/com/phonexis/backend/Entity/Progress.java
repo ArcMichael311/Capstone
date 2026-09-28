@@ -13,9 +13,10 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "progress")
+@Table(name = "progress", uniqueConstraints = @UniqueConstraint(columnNames = { "user_id", "module_name" }))
 public class Progress {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -49,6 +50,9 @@ public class Progress {
 
 	@Column(name = "hard_mode_completed", nullable = false)
 	private Boolean hardModeCompleted = false;
+
+	@Column(name = "assessment_scores", columnDefinition = "TEXT")
+	private String assessmentScores;
 
 	@Column(name = "module_completion_percentage", nullable = false)
 	private Integer completionPercentage = 0;
@@ -154,6 +158,14 @@ public class Progress {
 
 	public void setHardModeCompleted(Boolean hardModeCompleted) {
 		this.hardModeCompleted = hardModeCompleted;
+	}
+
+	public String getAssessmentScores() {
+		return assessmentScores;
+	}
+
+	public void setAssessmentScores(String assessmentScores) {
+		this.assessmentScores = assessmentScores;
 	}
 
 	public Integer getCompletionPercentage() {

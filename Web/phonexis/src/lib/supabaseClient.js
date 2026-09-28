@@ -3,29 +3,51 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
-const backendUrl = (configuredBackendUrl || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080')).replace(/\/$/, '');
+const defaultBackendUrl = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:8080'
+  : 'https://phonexis-backend.onrender.com';
+const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
+export const isLocalDevelopment = process.env.NODE_ENV === 'development';
+let memoryDeviceId = '';
+
+const createDeviceId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `phonexis-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
 
 const getDeviceId = () => {
   if (typeof window === 'undefined') {
-    return '';
+    return memoryDeviceId || (memoryDeviceId = createDeviceId());
   }
 
-  const storageKey = 'phonexis_device_id';
+  const storageKey = 'phonexis_session_id';
   try {
-    const existingId = window.localStorage.getItem(storageKey);
+    const existingId = window.localStorage.getItem(storageKey) || window.sessionStorage.getItem(storageKey);
     if (existingId) {
+      window.localStorage.setItem(storageKey, existingId);
       return existingId;
     }
 
-    const generatedId = typeof crypto?.randomUUID === 'function'
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const generatedId = createDeviceId();
     window.localStorage.setItem(storageKey, generatedId);
+    window.sessionStorage.setItem(storageKey, generatedId);
     return generatedId;
   } catch (error) {
-    return '';
+    try {
+      const fallbackId = window.sessionStorage.getItem(storageKey);
+      if (fallbackId) {
+        return fallbackId;
+      }
+    } catch (storageError) {
+      // Storage can be blocked by private browsing or browser policy.
+    }
+    return memoryDeviceId || (memoryDeviceId = createDeviceId());
   }
 };
+
+export const getSessionDeviceId = getDeviceId;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   // eslint-disable-next-line no-console
@@ -37,11 +59,16 @@ export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 const readBackendError = async (response) => {
   try {
     const payload = await response.json();
-    return payload?.message || payload?.error || 'Backend request failed';
+    return {
+      message: payload?.message || payload?.error || 'Backend request failed',
+      status: response.status,
+    };
   } catch (error) {
-    return 'Backend request failed';
+    return { message: 'Backend request failed', status: response.status };
   }
 };
+
+export const isBackendUnavailable = (error) => error?.message === 'Backend unavailable';
 
 const requestToBackend = async (path, options = {}) => {
   try {
@@ -60,11 +87,11 @@ const requestToBackend = async (path, options = {}) => {
     console.log(`[Backend Response] Status: ${response.status}`);
 
     if (!response.ok) {
-      const errorMessage = await readBackendError(response);
-      console.error(`[Backend Error] ${response.status}: ${errorMessage}`);
+      const backendError = await readBackendError(response);
+      console.error(`[Backend Error] ${response.status}: ${backendError.message}`);
       return {
         data: null,
-        error: { message: errorMessage },
+        error: backendError,
       };
     }
 
@@ -85,8 +112,6 @@ const requestToBackend = async (path, options = {}) => {
   }
 };
 
-export const isBackendUnavailableError = (error) => error?.message === 'Backend unavailable';
-
 const postToBackend = async (path, body) => requestToBackend(path, {
   method: 'POST',
   body: JSON.stringify(body),
@@ -100,12 +125,14 @@ const putToBackend = async (path, body) => requestToBackend(path, {
 });
 
 const getNameParts = (user, profile = {}) => {
-  const firstname = profile.firstname || user?.user_metadata?.firstname || user?.user_metadata?.firstName || user?.firstName || '';
-  const lastname = profile.lastname || user?.user_metadata?.lastname || user?.user_metadata?.lastName || user?.lastName || '';
+  const emailName = (user?.email || '').split('@')[0].replace(/[^a-zA-Z0-9 ]/g, ' ').trim();
+  const firstname = profile.firstname || user?.user_metadata?.firstname || user?.user_metadata?.firstName || user?.firstName || emailName || 'Student';
+  const lastname = profile.lastname || user?.user_metadata?.lastname || user?.user_metadata?.lastName || user?.lastName || 'User';
   return { firstname, lastname };
 };
 
 const isConflictError = (message) => /already exists|conflict|duplicate/i.test(message || '');
+const isAccountNotFoundError = (error) => error?.status === 404 || /account not found|user not found/i.test(error?.message || '');
 
 const syncBackendUser = async (user, password, profile = {}) => {
   if (!user?.email || !password) {
@@ -123,6 +150,18 @@ const syncBackendUser = async (user, password, profile = {}) => {
     role,
     deviceId: '',
   };
+
+  // Existing Supabase users should authenticate through the backend first.
+  // Registration is only needed when the backend has no matching account.
+  const loginResult = await postToBackend('/api/auth/login', {
+    email: user.email,
+    password,
+    deviceId: payload.deviceId,
+  });
+
+  if (!loginResult.error || !isAccountNotFoundError(loginResult.error)) {
+    return loginResult;
+  }
 
   const createResult = await postToBackend('/api/auth/register', payload);
 
@@ -161,6 +200,11 @@ const syncBackendPassword = async (email, currentPassword, password) => {
 };
 
 export const syncSupabaseUserToBackend = syncBackendUser;
+export const loginBackendUser = (email, password) => postToBackend('/api/auth/login', {
+  email,
+  password,
+  deviceId: getDeviceId(),
+});
 export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/verify-device', {
   email,
   deviceId: getDeviceId(),
@@ -180,16 +224,93 @@ export const recordBackendActivity = (userId, moduleName, action, details = null
 });
 export const fetchBackendModuleProgress = (userId, moduleName) => getFromBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}`);
 export const fetchBackendModuleGames = () => getFromBackend('/api/module-games');
+export const fetchTeacherActivities = (teacherId) => getFromBackend(`/api/teacher-activities/teacher/${teacherId}`);
+export const createTeacherActivity = (teacherId, payload) => postToBackend(`/api/teacher-activities/teacher/${teacherId}`, payload);
 export const fetchBackendGamesByModule = (moduleKey) => getFromBackend(`/api/module-games/module/${encodeURIComponent(moduleKey)}`);
 export const fetchBackendGameByKey = (gameKey) => getFromBackend(`/api/module-games/key/${encodeURIComponent(gameKey)}`);
 export const createBackendGame = (payload) => postToBackend('/api/module-games', payload);
 export const updateBackendGame = (gameId, payload) => putToBackend(`/api/module-games/${gameId}`, payload);
 export const deleteBackendGame = (gameId) => requestToBackend(`/api/module-games/${gameId}`, { method: 'DELETE' });
-export const updateBackendModuleVideos = (userId, moduleName, videoIds) => postToBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}/videos`, {
-  videoIds,
-});
 export const updateBackendModuleProgress = (userId, moduleName, payload) => putToBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}`, payload);
 export const updateBackendUser = (userId, payload) => putToBackend(`/api/users/${userId}`, payload);
 export const deleteBackendUser = (userId) => requestToBackend(`/api/users/${userId}`, { method: 'DELETE' });
 export const generateBackendClassCode = (userId) => postToBackend(`/api/users/${userId}/generate-class-code`, {});
 export const joinBackendClass = (userId, classCode) => postToBackend(`/api/users/${userId}/join-class`, { classCode });
+
+export const fetchTeacherClasses = (teacherId) => getFromBackend(`/api/classes/teacher/${teacherId}`);
+export const createTeacherClass = (teacherId, name) => postToBackend(`/api/classes/teacher/${teacherId}`, { name });
+export const deleteTeacherClass = (classId, teacherId) => requestToBackend(`/api/classes/${classId}?teacherId=${teacherId}`, { method: 'DELETE' });
+export const fetchClassStudents = (classId) => getFromBackend(`/api/classes/${classId}/students`);
+export const addClassStudents = (classId, teacherId, emails) => postToBackend(`/api/classes/${classId}/students?teacherId=${teacherId}`, { emails });
+export const removeClassStudent = (classId, teacherId, studentId) => requestToBackend(`/api/classes/${classId}/students/${studentId}?teacherId=${teacherId}`, { method: 'DELETE' });
+export const fetchAvailableStudents = () => getFromBackend('/api/classes/available-students');
+export const fetchStudentClass = (studentId) => getFromBackend(`/api/classes/student/${studentId}`);
+
+export const fetchLearningMaterials = (classId) => getFromBackend(`/api/learning-materials/class/${classId}`);
+export const deleteLearningMaterial = (materialId, teacherId) => requestToBackend(`/api/learning-materials/${materialId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const uploadLearningMaterial = async (classId, teacherId, file, title) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (title) {
+    formData.append('title', title);
+  }
+
+  try {
+    const url = `${backendUrl}/api/learning-materials/class/${classId}?teacherId=${teacherId}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-Device-Id': getDeviceId() },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      return { data: null, error: await readBackendError(response) };
+    }
+
+    const responseText = await response.text();
+    return { data: responseText ? JSON.parse(responseText) : null, error: null };
+  } catch (error) {
+    return { data: null, error: { message: 'Backend unavailable' } };
+  }
+};
+
+// Pretests (teacher-authored quizzes: multiple choice, matching, identification, true/false, fill-in-the-blank)
+export const fetchTeacherPretests = (classId) => getFromBackend(`/api/pretests/class/${classId}`);
+export const createPretest = (classId, teacherId, payload) => postToBackend(`/api/pretests/class/${classId}?teacherId=${teacherId}`, payload);
+export const fetchPretestDetail = (pretestId, teacherId) => getFromBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`);
+export const updatePretest = (pretestId, teacherId, payload) => putToBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`, payload);
+export const deletePretest = (pretestId, teacherId) => requestToBackend(`/api/pretests/${pretestId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const addPretestQuestion = (pretestId, teacherId, payload) => postToBackend(`/api/pretests/${pretestId}/questions?teacherId=${teacherId}`, payload);
+export const updatePretestQuestion = (questionId, teacherId, payload) => putToBackend(`/api/pretests/questions/${questionId}?teacherId=${teacherId}`, payload);
+export const deletePretestQuestion = (questionId, teacherId) => requestToBackend(`/api/pretests/questions/${questionId}?teacherId=${teacherId}`, { method: 'DELETE' });
+
+export const fetchPretestAttempts = (pretestId, teacherId) => getFromBackend(`/api/pretests/${pretestId}/attempts?teacherId=${teacherId}`);
+
+export const fetchStudentPretests = (classId, studentId) => getFromBackend(`/api/pretests/class/${classId}/student/${studentId}`);
+export const fetchPretestForStudent = (pretestId, studentId) => getFromBackend(`/api/pretests/${pretestId}/take?studentId=${studentId}`);
+export const submitPretestAttempt = (pretestId, studentId, payload) => postToBackend(`/api/pretests/${pretestId}/submit?studentId=${studentId}`, payload);
+
+export const uploadPretestAudio = async (pretestId, teacherId, blob, fileName = 'recording.webm') => {
+  const formData = new FormData();
+  formData.append('file', blob, fileName);
+
+  try {
+    const url = `${backendUrl}/api/pretests/${pretestId}/audio?teacherId=${teacherId}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'X-Device-Id': getDeviceId() },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      return { data: null, error: await readBackendError(response) };
+    }
+
+    const responseText = await response.text();
+    return { data: responseText ? JSON.parse(responseText) : null, error: null };
+  } catch (error) {
+    return { data: null, error: { message: 'Backend unavailable' } };
+  }
+};

@@ -11,25 +11,24 @@ const moduleSections = {
     { key: 'easy', label: 'Easy' },
     { key: 'medium', label: 'Medium' },
     { key: 'hard', label: 'Hard' },
-    { key: 'alphaquest', label: 'AlphaQuest' },
+    { key: 'frywords', label: 'Fry Words' },
+    { key: 'alphaquest', label: 'Game: AlphaQuest' },
   ],
   vowels: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'lesson', label: 'Basics of Vowels' },
-    { key: 'pretest', label: 'Teacher Activity' },
-    { key: 'vowelrush', label: 'VowelRush' },
+    { key: 'vowelrush', label: 'Game: VowelRush' },
   ],
   consonants: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'explore', label: 'Explore Consonants' },
-    { key: 'teacher', label: 'Teacher Activity' },
-    { key: 'wordblast', label: 'WordBlast' },
+    { key: 'wordblast', label: 'Game: WordBlast' },
   ],
   cvc: [
     { key: 'learning', label: 'Learning Video Materials' },
     { key: 'families', label: 'Simpler CVC Words' },
-    { key: 'selection', label: 'Word Selection' },
-    { key: 'building', label: 'Word Building' },
+    { key: 'selection', label: 'CVC Word Selection' },
+    { key: 'building', label: 'Game:Balloon Pop' },
   ],
 };
 
@@ -40,7 +39,7 @@ const modules = [
   { key: 'cvc', label: 'CVC Words' },
 ];
 
-export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {} }) {
+export default function Sidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, studentClassInfo = null, onNavigate, onSelectModule, onLogout, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, alphabetScores = {}, completedAlphabetModes = [] }) {
   const displayName = [currentUser?.firstname || currentUser?.user_metadata?.firstname, currentUser?.lastname || currentUser?.user_metadata?.lastname]
     .filter(Boolean)
     .join(' ') || currentUser?.email?.split('@')[0] || 'Learner';
@@ -73,6 +72,7 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
         </button>
 
         <div className="sidebar-section sidebar-module-list">
+          <p className="sidebar-section-title">Modules</p>
           {modules.map((module) => (
             <button
               key={module.key}
@@ -86,6 +86,20 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
           ))}
         </div>
 
+        {studentClassInfo?.classId && (
+          <div className="sidebar-section sidebar-classroom-list">
+            <p className="sidebar-section-title">Class</p>
+            <button
+              type="button"
+              className={activeView === 'class' ? 'sidebar-sub-link active' : 'sidebar-sub-link'}
+              onClick={() => onNavigate('class', 'materials')}
+            >
+              <span className="sidebar-classroom-name">{studentClassInfo.className || studentClassInfo.name || 'My Class'}</span>
+              <span className="sidebar-classroom-action"></span>
+            </button>
+          </div>
+        )}
+
         {sections.length > 0 && (
           <div className="sidebar-section">
             <p className="sidebar-section-title">{activeView === 'alphabet' ? 'Alphabet Recognition' : activeView === 'cvc' ? 'CVC Words' : activeView.charAt(0).toUpperCase() + activeView.slice(1)}</p>
@@ -95,7 +109,9 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
             {sections.map((section) => {
               const isAlphabetLevel = activeView === 'alphabet' && ['easy', 'medium', 'hard'].includes(section.key);
               const score = alphabetScores[section.key];
-              const isPassed = score && score.score === score.total;
+              const isPassed = completedAlphabetModes.includes(section.key) || (score && score.score === score.total);
+              const expectedTotals = { easy: 10, medium: 8, hard: 5 };
+              const displayScore = score || (isPassed ? { score: expectedTotals[section.key], total: expectedTotals[section.key] } : null);
 
               return (
                 <button
@@ -108,7 +124,7 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
                     <>
                       <span>{section.label}</span>
                       <strong className="sidebar-pretest-check">{isPassed ? '✓' : ''}</strong>
-                      <strong className="sidebar-pretest-score">{score ? `${score.score}/${score.total}` : ''}</strong>
+                      <strong className="sidebar-pretest-score">{displayScore ? `${displayScore.score}/${displayScore.total}` : ''}</strong>
                     </>
                   ) : section.label}
                 </button>

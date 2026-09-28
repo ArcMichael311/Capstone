@@ -30,18 +30,19 @@ public class ProgressService {
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		return new ProgressDTO(progress);
 	}
 
 	@Transactional
-	public ProgressDTO updateVideosWatched(Long userId, String moduleName, List<Integer> videoIds) {
+	public ProgressDTO updateVideosWatched(Long userId, String moduleName, String deviceId, List<Integer> videoIds) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		// Update videos watched
 		Set<Integer> uniqueVideoIds = new LinkedHashSet<>(videoIds == null ? List.of() : videoIds);
@@ -52,7 +53,9 @@ public class ProgressService {
 		int requiredVideos = getRequiredVideosCount(moduleName);
 		if (requiredVideos > 0) {
 			int watchedCount = Math.min(uniqueVideoIds.size(), requiredVideos);
-			progress.setCompletionPercentage(Math.round((watchedCount / (float) requiredVideos) * 100));
+			int learningCompletion = Math.round((watchedCount / (float) requiredVideos) * 100);
+			int assessmentCompletion = Boolean.TRUE.equals(progress.getPretestCompleted()) ? 100 : 0;
+			progress.setCompletionPercentage(Math.max(learningCompletion, assessmentCompletion));
 		}
 		if (requiredVideos > 0 && uniqueVideoIds.size() >= requiredVideos) {
 			progress.setLessonUnlocked(true);
@@ -64,9 +67,10 @@ public class ProgressService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean canAccessLesson(Long userId, String moduleName) {
+	public boolean canAccessLesson(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -75,9 +79,10 @@ public class ProgressService {
 	}
 
 	@Transactional(readOnly = true)
-	public boolean canAccessPretest(Long userId, String moduleName) {
+	public boolean canAccessPretest(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -86,12 +91,13 @@ public class ProgressService {
 	}
 
 	@Transactional
-	public ProgressDTO updateModuleCompletion(Long userId, String moduleName, UpdateProgressRequest request) {
+	public ProgressDTO updateModuleCompletion(Long userId, String moduleName, String deviceId, UpdateProgressRequest request) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
-			.orElse(createDefaultProgress(user, moduleName));
+			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
 		// Update completion flags
 		if (request.easyModeCompleted() != null) {
@@ -111,6 +117,9 @@ public class ProgressService {
 			String videosJson = "[" + String.join(",", uniqueVideoIds.stream().map(String::valueOf).toList()) + "]";
 			progress.setVideosWatched(videosJson);
 		}
+		if (request.assessmentScores() != null) {
+			progress.setAssessmentScores(request.assessmentScores());
+		}
 
 		// Calculate completion percentage for alphabet (needs all 3 modes completed)
 		if ("alphabet".equalsIgnoreCase(moduleName)) {
@@ -124,10 +133,10 @@ public class ProgressService {
 				progress.setCompletionPercentage(Math.round((completed / 3.0f) * 100));
 			}
 		} else {
-			// Preserve video-based completion until the module pretest is complete.
-			if (progress.getPretestCompleted()) {
-				progress.setCompletionPercentage(100);
-			}
+			// Keep learning-material progress when assessment progress is updated.
+			int learningCompletion = progress.getCompletionPercentage() == null ? 0 : progress.getCompletionPercentage();
+			int assessmentCompletion = Boolean.TRUE.equals(progress.getPretestCompleted()) ? 100 : 0;
+			progress.setCompletionPercentage(Math.max(learningCompletion, assessmentCompletion));
 		}
 
 		progressRepository.save(progress);
@@ -168,6 +177,15 @@ public class ProgressService {
 		};
 	}
 
+	private void assertActiveDevice(User user, String deviceId) {
+		String activeDeviceId = user.getActiveDeviceId();
+		String requestedDeviceId = deviceId == null ? "" : deviceId.trim();
+		if (activeDeviceId == null || activeDeviceId.isBlank() || requestedDeviceId.isEmpty()
+			|| !activeDeviceId.equals(requestedDeviceId)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This device is not authorized for the account");
+		}
+	}
+
 	// DTOs
 	public record ProgressDTO(
 		Long progressId,
@@ -180,6 +198,7 @@ public class ProgressService {
 		Boolean mediumModeCompleted,
 		Boolean hardModeCompleted,
 		Integer completionPercentage,
+		String assessmentScores,
 		java.time.LocalDateTime createdAt,
 		java.time.LocalDateTime updatedAt
 	) {
@@ -195,6 +214,7 @@ public class ProgressService {
 				progress.getMediumModeCompleted(),
 				progress.getHardModeCompleted(),
 				progress.getCompletionPercentage(),
+				progress.getAssessmentScores(),
 				progress.getCreatedAt(),
 				progress.getUpdatedAt()
 			);
@@ -206,7 +226,8 @@ public class ProgressService {
 		Boolean mediumModeCompleted,
 		Boolean hardModeCompleted,
 		Boolean pretestCompleted,
-		List<Integer> videosWatched
+		List<Integer> videosWatched,
+		String assessmentScores
 	) {
 	}
 }

@@ -11,6 +11,7 @@ export const routes = {
   vowels: '/vowels',
   consonants: '/consonants',
   cvc: '/cvc',
+  class: '/class',
   profile: '/profile',
   admin: '/admin',
   teacher: '/teacher',
@@ -19,11 +20,14 @@ export const routes = {
 const viewsByPath = Object.fromEntries(Object.entries(routes).map(([view, path]) => [path, view]));
 
 const sectionsByView = {
-  alphabet: ['easy', 'medium', 'hard', 'alphaquest'],
+  alphabet: ['easy', 'medium', 'hard', 'frywords', 'alphaquest'],
   vowels: ['learning', 'lesson', 'pretest', 'vowelrush'],
   consonants: ['learning', 'explore', 'teacher', 'wordblast'],
   cvc: ['learning', 'families', 'selection', 'building'],
+  class: ['materials', 'pretests'],
   profile: ['info', 'settings'],
+  admin: ['students', 'teachers'],
+  teacher: ['dashboard', 'materials', 'pretest', 'progress'],
 };
 
 export function getViewFromPath(pathname) {

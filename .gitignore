@@ -1,0 +1,3 @@
+# Root-level env file used by the backend's local run config (.vscode/launch.json).
+# Never commit real Supabase service-role keys or DB credentials.
+/.env

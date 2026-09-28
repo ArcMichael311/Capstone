@@ -3,6 +3,7 @@ export const doubleVowelExamples = [
   {
     letters: 'ee',
     word: 'Tree',
+    words: ['see', 'meet', 'tree', 'feet', 'green'],
     icon: '🌳',
     soundLabel: 'long E',
     tip: 'Two e\'s together say "ee"!',
@@ -11,6 +12,7 @@ export const doubleVowelExamples = [
   {
     letters: 'oo',
     word: 'Moon',
+    words: ['moon', 'book', 'pool', 'food', 'door'],
     icon: '🌙',
     soundLabel: 'long O',
     tip: 'Two o\'s together say "oo"!',
@@ -23,6 +25,7 @@ export const doubleVowelExamples = [
     soundLabel: 'ay',
     tip: 'A and I work as a team!',
     parts: ['R', 'ai', 'n'],
+    words: ['rain'],
   },
   {
     letters: 'oa',
@@ -31,6 +34,7 @@ export const doubleVowelExamples = [
     soundLabel: 'oh',
     tip: 'O and A float like a boat!',
     parts: ['B', 'oa', 't'],
+    words: ['boat'],
   },
   {
     letters: 'ay',
@@ -39,5 +43,24 @@ export const doubleVowelExamples = [
     soundLabel: 'ay',
     tip: 'A and Y love to play!',
     parts: ['Pl', 'ay'],
+    words: ['play'],
+  },
+  {
+    letters: 'aa',
+    word: 'Aardvark',
+    words: ['aardvark', 'baa'],
+    icon: '🦣',
+    soundLabel: 'long A',
+    tip: 'A and A can work together in special words!',
+    parts: ['Aa', 'rdvark'],
+  },
+  {
+    letters: 'ii',
+    word: 'Skiing',
+    words: ['skiing', 'radii'],
+    icon: '⛷️',
+    soundLabel: 'long I',
+    tip: 'I and I appear together in a few special words!',
+    parts: ['Sk', 'ii', 'ng'],
   },
 ];

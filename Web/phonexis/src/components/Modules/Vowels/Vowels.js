@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import './Vowels.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
+import VoicePractice from '../../VoicePractice/VoicePractice';
 
 const vowels = [
-  { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
-  { letter: 'E', sound: 'eh', word: 'Elephant', icon: '🐘' },
-  { letter: 'I', sound: 'ih', word: 'Ice cream', icon: '🍦' },
-  { letter: 'O', sound: 'oh', word: 'Octopus', icon: '🐙' },
+  { letter: 'A', sound: 'ah', word: 'Cat', icon: '🐱' },
+  { letter: 'E', sound: 'eh', word: 'Egg', icon: '🥚' },
+  { letter: 'I', sound: 'ih', word: 'Ice', icon: '🧊' },
+  { letter: 'O', sound: 'oh', word: 'Owl', icon: '🦉' },
   { letter: 'U', sound: 'uh', word: 'Umbrella', icon: '☂️' },
 ];
 
@@ -64,6 +65,49 @@ const vowelTeamBoards = {
   ],
 };
 
+const vowelTeamIcons = {
+  rain: '🌧️',
+  tail: '🐒',
+  maid: '🧹',
+  bait: '🎣',
+  cake: '🎂',
+  gate: '🚪',
+  game: '🎮',
+  plane: '✈️',
+  peach: '🍑',
+  meat: '🥩',
+  bread: '🍞',
+  team: '👥',
+  sleep: '😴',
+  bean: '🫘',
+  wheel: '🛞',
+  pear: '🍐',
+  light: '💡',
+  rice: '🍚',
+  slide: '🛝',
+  time: '⏰',
+  pine: '🌲',
+  pipe: '🪈',
+  fire: '🔥',
+  kite: '🪁',
+  boat: '⛵',
+  oak: '🌳',
+  soap: '🧼',
+  road: '🛣️',
+  oar: '🚣',
+  goal: '🥅',
+  shore: '🏖️',
+  stone: '🪨',
+  blue: '🔵',
+  fruit: '🍇',
+  stew: '🍲',
+  cube: '🧊',
+  flute: '🎶',
+  tune: '🎵',
+  mule: '🫏',
+  suit: '👔',
+};
+
 const videos = [
   {
     id: 1,
@@ -91,20 +135,11 @@ const videos = [
 export default function Vowels({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
-  const [teacherActivityTitle, setTeacherActivityTitle] = useState('Vowel team word sort');
-  const [teacherActivityFocus, setTeacherActivityFocus] = useState('A, E, I, O, U');
-  const [teacherActivityInstructions, setTeacherActivityInstructions] = useState('Ask students to sort picture cards by vowel sound and read each word aloud.');
-  const [teacherActivities, setTeacherActivities] = useState([
-    {
-      id: 1,
-      title: 'Missing vowel challenge',
-      focus: 'A and E',
-      instructions: 'Students fill in missing vowels to complete each word, then read the word to the class.',
-    },
-  ]);
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
+  const [showDoubleVowelModal, setShowDoubleVowelModal] = useState(false);
+  const [showVoicePractice, setShowVoicePractice] = useState(false);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -137,38 +172,8 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
       return;
     }
 
-    if (nextMode === 'pretest') {
-      setFeedback('Teacher activity panel: create vowel tasks for students.');
-      return;
-    }
-
     if (!allVideosWatched) {
-      setFeedback('Watch all videos to unlock Lesson and Teacher Activity.');
-    }
-  };
-
-  const handleAddPretestActivity = () => {
-    const title = teacherActivityTitle.trim();
-    const focus = teacherActivityFocus.trim();
-    const instructions = teacherActivityInstructions.trim();
-
-    if (!title || !focus || !instructions) {
-      setFeedback('Complete title, focus vowels, and instructions before adding an activity.');
-      return;
-    }
-
-    const nextActivity = {
-      id: Date.now(),
-      title,
-      focus,
-      instructions,
-    };
-
-    setTeacherActivities((current) => [nextActivity, ...current]);
-    setFeedback('Teacher activity added for the vowel pretest section.');
-
-    if (typeof onComplete === 'function') {
-      onComplete();
+      setFeedback('Watch all videos to unlock the Lesson.');
     }
   };
 
@@ -211,11 +216,16 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const handlePick = (letter) => {
     const nextItem = vowels.find((item) => item.letter === letter) ?? vowels[0];
     setSelectedLetter(nextItem.letter);
+    setShowVoicePractice(false);
     setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };
 
   const speakCurrent = () => {
     speakText(`${selectedItem.letter}, ${selectedItem.sound}`, `Speaking ${selectedItem.letter} sound.`);
+  };
+
+  const speakSelectedWord = () => {
+    speakText(selectedItem.word, `Speaking word: ${selectedItem.word}`);
   };
 
   const getPairLetters = (team, word) => {
@@ -319,7 +329,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
             <>
               <div className="learning-header">
                 <h3>Learning Video Materials</h3>
-                <p>Watch all videos to unlock Basics of the Vowels and Teacher Activity</p>
+                <p>Watch all videos to unlock Basics of the Vowels.</p>
               </div>
 
               <div className="videos-grid">
@@ -359,7 +369,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                 </p>
                 {allVideosWatched && (
                   <p className="progress-unlocked">
-                    ✓ Basics of the Vowels and Teacher Activity unlocked! Click the Lesson or Teacher Activity tab to proceed.
+                    ✓ Basics of the Vowels unlocked! Click the Lesson tab to proceed.
                   </p>
                 )}
               </div>
@@ -392,11 +402,23 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
           <div className="vowels-stage">
             <span className="vowels-letter">{selectedItem.letter}</span>
 
-            <div className="vowels-object">
-              <span className="vowels-object-icon" aria-hidden="true">
+            <div
+              className="vowels-object"
+              onClick={speakSelectedWord}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  speakSelectedWord();
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`Read the word ${selectedItem.word}`}
+            >
+              <span className="vowels-object-icon" aria-hidden="true" onClick={speakSelectedWord}>
                 {selectedItem.icon}
               </span>
-              <p className="vowels-object-word">{selectedItem.word}</p>
+              <p className="vowels-object-word" onClick={speakSelectedWord}>{selectedItem.word}</p>
               <p className="vowels-object-sound">Sound: "{selectedItem.sound}"</p>
             </div>
 
@@ -417,6 +439,9 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                       aria-label={`Listen to the word ${item.word}`}
                     >
                       <span className="vowel-team-chunk">{item.team}</span>
+                      <span className="vowel-team-icon" aria-hidden="true">
+                        {vowelTeamIcons[item.word]}
+                      </span>
                       <span className="vowel-team-word">{renderHighlightedWord(item.word, pairLetters)}</span>
                     </button>
                   );
@@ -424,71 +449,81 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
               </div>
             </div>
 
-            <button type="button" className="vowels-listen" onClick={speakCurrent}>
-              🔊 LISTEN TO SOUND
-            </button>
-
-            <DoubleVowelLesson onFeedback={setFeedback} />
-
-            <p className="game-feedback">{feedback}</p>
-          </div>
-        </div>
-      ) : mode === 'pretest' ? (
-        <div className="pretest-stage">
-          <div className="pretest-teacher-panel-stage">
-            <div className="pretest-header">
-              <h3>Pretest Teacher Activity</h3>
-              <p>Create vowel activities to give students before assessment.</p>
-            </div>
-
-            <div className="pretest-teacher-panel-form">
-              <label className="pretest-teacher-field">
-                <span>Activity title</span>
-                <input
-                  type="text"
-                  value={teacherActivityTitle}
-                  onChange={(event) => setTeacherActivityTitle(event.target.value)}
-                  placeholder="Example: Vowel sound matching"
-                />
-              </label>
-
-              <label className="pretest-teacher-field">
-                <span>Focus vowels</span>
-                <input
-                  type="text"
-                  value={teacherActivityFocus}
-                  onChange={(event) => setTeacherActivityFocus(event.target.value)}
-                  placeholder="Example: A, E, I"
-                />
-              </label>
-
-              <label className="pretest-teacher-field">
-                <span>Student instructions</span>
-                <textarea
-                  value={teacherActivityInstructions}
-                  onChange={(event) => setTeacherActivityInstructions(event.target.value)}
-                  rows={4}
-                  placeholder="Write clear vowel activity instructions for students."
-                />
-              </label>
-
-              <button type="button" className="pretest-teacher-create" onClick={handleAddPretestActivity}>
-                + ADD ACTIVITY
+            <div className="vowels-button-group">
+              <button
+                type="button"
+                className="vowels-voice-practice-btn"
+                onClick={() => setShowVoicePractice(!showVoicePractice)}
+                aria-expanded={showVoicePractice}
+              >
+                🎤 PRACTICE VOWEL SOUND
               </button>
             </div>
 
-            <div className="pretest-teacher-activity-list" aria-label="Vowel teacher activity list">
-              {teacherActivities.map((activity) => (
-                <article key={activity.id} className="pretest-teacher-activity-item">
-                  <h4>{activity.title}</h4>
-                  <p className="pretest-teacher-activity-focus">Focus: {activity.focus}</p>
-                  <p className="pretest-teacher-activity-instructions">{activity.instructions}</p>
-                </article>
-              ))}
-            </div>
+            {showVoicePractice && (
+              <div className="vowels-voice-practice-wrapper">
+                <VoicePractice
+                  targetWord={selectedItem.letter}
+                  onResult={(result) => {
+                    if (result.success) {
+                      setFeedback(`Great! You pronounced the vowel "${selectedItem.letter}" correctly!`);
+                    } else {
+                      setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                    }
+                  }}
+                  showTranscript={true}
+                />
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="double-vowels-open-button"
+              onClick={() => setShowDoubleVowelModal(true)}
+              aria-haspopup="dialog"
+              aria-expanded={showDoubleVowelModal}
+            >
+              ✨ EXPLORE DOUBLE VOWELS
+            </button>
 
             <p className="game-feedback">{feedback}</p>
           </div>
+
+          {showDoubleVowelModal && (
+            <div
+              className="double-vowels-modal-backdrop"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  setShowDoubleVowelModal(false);
+                }
+              }}
+            >
+              <div
+                className="double-vowels-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="double-vowels-modal-title"
+              >
+                <div className="double-vowels-modal-header">
+                  <h3 id="double-vowels-modal-title">Double Vowels</h3>
+                  <button
+                    type="button"
+                    className="double-vowels-modal-close"
+                    onClick={() => setShowDoubleVowelModal(false)}
+                    aria-label="Close double vowels"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <DoubleVowelLesson
+                  onFeedback={(message) => {
+                    setFeedback(message);
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : mode === 'vowelrush' ? (
         <div className="vowelrush-stage">

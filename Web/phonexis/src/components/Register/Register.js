@@ -1,6 +1,8 @@
 import './Register.css';
 import { useState } from 'react';
+import logo from '../Login/logoB.png';
 import { supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
 
 export default function Register({ onNavigate, onSuccess }) {
   const [firstname, setFirstname] = useState('');
@@ -66,9 +68,11 @@ export default function Register({ onNavigate, onSuccess }) {
   };
 
   return (
-    <section className="register-card" aria-label="Registration form">
+    <>
+      <AuthLetterBackground />
+      <section className="register-card" aria-label="Registration form">
       <div className="register-badge" aria-hidden="true">
-        <span>📖</span>
+        <img src={logo} alt="Phonics Learning logo" className="register-logo" />
       </div>
 
       <div className="register-copy">
@@ -155,6 +159,7 @@ export default function Register({ onNavigate, onSuccess }) {
           Already have an account? <span>Sign in</span>
         </button>
       </form>
-    </section>
+      </section>
+    </>
   );
 }

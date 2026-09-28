@@ -1,5 +1,6 @@
 package com.phonexis.backend.Service;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.phonexis.backend.Entity.ClassSection;
 import com.phonexis.backend.Entity.User;
 import com.phonexis.backend.Entity.User.Role;
 import com.phonexis.backend.Entity.Progress;
+import com.phonexis.backend.Repository.ClassEnrollmentRepository;
+import com.phonexis.backend.Repository.ClassSectionRepository;
 import com.phonexis.backend.Repository.ProgressRepository;
+import com.phonexis.backend.Repository.TeacherActivityRepository;
 import com.phonexis.backend.Repository.UserRepository;
 
 @Service
@@ -22,14 +27,30 @@ public class UserService {
 	private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
+	private static final int DEVICE_LOCK_STALE_MINUTES = 30;
 	private static final Random RANDOM = new Random();
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
+	private final ClassSectionRepository classSectionRepository;
+	private final ClassEnrollmentRepository classEnrollmentRepository;
+	private final TeacherActivityRepository teacherActivityRepository;
+	private final LearningMaterialService learningMaterialService;
 
-	public UserService(UserRepository userRepository, ProgressRepository progressRepository) {
+	public UserService(
+		UserRepository userRepository,
+		ProgressRepository progressRepository,
+		ClassSectionRepository classSectionRepository,
+		ClassEnrollmentRepository classEnrollmentRepository,
+		TeacherActivityRepository teacherActivityRepository,
+		LearningMaterialService learningMaterialService
+	) {
 		this.userRepository = userRepository;
 		this.progressRepository = progressRepository;
+		this.classSectionRepository = classSectionRepository;
+		this.classEnrollmentRepository = classEnrollmentRepository;
+		this.teacherActivityRepository = teacherActivityRepository;
+		this.learningMaterialService = learningMaterialService;
 	}
 
 	@Transactional(readOnly = true)
@@ -73,8 +94,8 @@ public class UserService {
 		user.setLastName(lastName);
 		user.setEmail(email);
 		user.setPasswordHash(PASSWORD_ENCODER.encode(request.password()));
-		user.setRole(resolveRole(email, request.role()));
-		user.setActiveDeviceId(null);
+		user.setRole(normalizeRole(request.role()));
+		user.setActiveDeviceId(normalizeDeviceId(request.deviceId()));
 
 		User savedUser = userRepository.save(user);
 		for (String moduleName : List.of("alphabet", "vowels", "consonants", "cvc")) {
@@ -111,7 +132,7 @@ public class UserService {
 		user.setEmail(email);
 
 		if (request.role() != null) {
-			user.setRole(resolveRole(email, request.role()));
+			user.setRole(normalizeRole(request.role()));
 		}
 
 		if (request.classroom() != null) {
@@ -176,7 +197,19 @@ public class UserService {
 
 	@Transactional
 	public void deleteUser(Long id) {
-		userRepository.delete(getUserEntity(id));
+		User user = getUserEntity(id);
+
+		progressRepository.deleteByUser(user);
+		classEnrollmentRepository.deleteByStudent(user);
+		teacherActivityRepository.deleteByTeacher(user);
+
+		for (ClassSection classSection : classSectionRepository.findByTeacherOrderByCreatedAtDesc(user)) {
+			learningMaterialService.deleteAllForClass(classSection);
+			classEnrollmentRepository.deleteByClassSection(classSection);
+			classSectionRepository.delete(classSection);
+		}
+
+		userRepository.delete(user);
 	}
 
 	@Transactional
@@ -189,33 +222,42 @@ public class UserService {
 		if (normalizedDeviceId.isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
 		}
-		if (userRepository.claimActiveDevice(user.getId(), normalizedDeviceId) == 0) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
+
+		// Claims the device slot when it's free, already ours, or stale (no heartbeat
+		// for DEVICE_LOCK_STALE_MINUTES - e.g. the previous tab was closed without logging out).
+		LocalDateTime staleBefore = LocalDateTime.now().minusMinutes(DEVICE_LOCK_STALE_MINUTES);
+		if (userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
 
-		return toUserProfile(user);
+		user.setActiveDeviceId(normalizedDeviceId);
+		user.setLastActiveAt(LocalDateTime.now());
+		return toUserProfile(userRepository.save(user));
 	}
 
 	@Transactional
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		if (normalizedDeviceId.isEmpty()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+		if (normalizedDeviceId.isEmpty() || user.getActiveDeviceId() == null
+			|| !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
 		}
-		if (userRepository.claimActiveDevice(user.getId(), normalizedDeviceId) == 0) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Account is already signed in");
-		}
+
+		user.setLastActiveAt(LocalDateTime.now());
+		userRepository.save(user);
 	}
 
 	@Transactional
-	public void logout(String email, String deviceId) {
+	public void releaseDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		if (!normalizedDeviceId.isEmpty() && normalizedDeviceId.equals(user.getActiveDeviceId())) {
-			user.setActiveDeviceId(null);
-			userRepository.save(user);
+		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This device is not active for the account");
 		}
+
+		user.setActiveDeviceId(null);
+		userRepository.save(user);
 	}
 
 	@Transactional
@@ -259,9 +301,8 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
 		}
 
-		User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+		return userRepository.findByEmailIgnoreCase(normalizedEmail)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
-		return user;
 	}
 
 	private String normalizeEmail(String email) {
@@ -276,6 +317,19 @@ public class UserService {
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
 		return !normalizedDeviceId.isEmpty() && (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()
 			|| normalizedDeviceId.equals(user.getActiveDeviceId()));
+	}
+
+	private void claimDevice(User user, String deviceId) {
+		if (!deviceMatches(user, deviceId)) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
+		}
+		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
+			String normalizedDeviceId = normalizeDeviceId(deviceId);
+			if (normalizedDeviceId.isEmpty()) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+			}
+			user.setActiveDeviceId(normalizedDeviceId);
+		}
 	}
 
 	private String normalizeOptionalValue(String value) {
@@ -315,16 +369,12 @@ public class UserService {
 		};
 	}
 
-	private Role resolveRole(String email, String role) {
-		return normalizeRole(role);
-	}
-
 	private UserProfile toUserProfile(User user) {
-		Role effectiveRole = user.getRole();
+		Role role = user.getRole();
 		Map<String, Object> userMetadata = new LinkedHashMap<>();
 		userMetadata.put("firstName", user.getFirstName());
 		userMetadata.put("lastName", user.getLastName());
-		userMetadata.put("role", effectiveRole.name().toLowerCase());
+		userMetadata.put("role", role.name().toLowerCase());
 		userMetadata.put("email", user.getEmail());
 		userMetadata.put("classroom", user.getClassroom());
 		userMetadata.put("classCode", user.getClassCode());
@@ -334,7 +384,7 @@ public class UserService {
 			user.getEmail(),
 			user.getFirstName(),
 			user.getLastName(),
-			effectiveRole.name().toLowerCase(),
+			role.name().toLowerCase(),
 			user.getClassroom(),
 			user.getClassCode(),
 			user.getCreatedAt(),

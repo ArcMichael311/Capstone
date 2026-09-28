@@ -3,9 +3,6 @@ package com.phonexis.backend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -27,30 +24,18 @@ public class BackendApplication {
 	}
 
 	@Bean
-	@Order(Ordered.HIGHEST_PRECEDENCE)
-	public CommandLineRunner ensureDatabaseCompatibility(JdbcTemplate jdbcTemplate) {
-		return args -> {
-			try {
-				jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128)");
-			} catch (Exception e) {
-				System.err.println("Failed to ensure active device column: " + e.getMessage());
-			}
-		};
-	}
-
-	@Bean
 	public CommandLineRunner createAdminIfMissing(UserRepository userRepository) {
 		return args -> {
 			try {
-				final String adminEmail = getEnv("ADMIN_EMAIL");
-				final String adminPassword = getEnv("ADMIN_PASSWORD");
+				final String adminEmail = System.getenv("ADMIN_EMAIL");
+				final String adminPassword = System.getenv("ADMIN_PASSWORD");
 				final String adminFirstName = getEnvOrDefault("ADMIN_FIRST_NAME", "Admin");
-				final String adminLastName = getEnvOrDefault("ADMIN_LAST_NAME", "Phonexis");
+				final String adminLastName = getEnvOrDefault("ADMIN_LAST_NAME", "User");
 				final String supabaseUrl = getEnvOrDefault("SUPABASE_URL", getEnvOrDefault("REACT_APP_SUPABASE_URL", ""));
 				final String supabaseServiceKey = getEnvOrDefault("SUPABASE_SERVICE_ROLE_KEY", "");
 
-				if (adminEmail.isBlank() || adminPassword.isBlank()) {
-					System.out.println("ADMIN_EMAIL or ADMIN_PASSWORD not set; skipping admin provisioning.");
+				if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
+					System.out.println("ADMIN_EMAIL or ADMIN_PASSWORD not set; skipping admin creation.");
 					return;
 				}
 
@@ -69,7 +54,7 @@ public class BackendApplication {
 					return;
 				}
 
-				ensureSupabaseAdminUser(supabaseUrl, supabaseServiceKey, adminEmail, adminPassword, adminFirstName, adminLastName);
+				ensureSupabaseAdminUser(supabaseUrl, supabaseServiceKey, adminEmail, adminPassword);
 			} catch (Exception e) {
 				System.err.println("Failed to ensure admin account: " + e.getMessage());
 			}
@@ -84,11 +69,6 @@ public class BackendApplication {
 		return value;
 	}
 
-	private static String getEnv(String key) {
-		String value = System.getenv(key);
-		return value == null ? "" : value.trim();
-	}
-
 	private static String jsonEscape(String value) {
 		return value
 			.replace("\\", "\\\\")
@@ -98,7 +78,7 @@ public class BackendApplication {
 			.replace("\t", "\\t");
 	}
 
-	private static void ensureSupabaseAdminUser(String supabaseUrl, String supabaseServiceKey, String adminEmail, String adminPassword, String adminFirstName, String adminLastName) {
+	private static void ensureSupabaseAdminUser(String supabaseUrl, String supabaseServiceKey, String adminEmail, String adminPassword) {
 		try {
 			HttpClient http = HttpClient.newHttpClient();
 			String baseUrl = supabaseUrl.replaceAll("/+$", "");
@@ -107,7 +87,7 @@ public class BackendApplication {
 				+ "\"email\":\"" + jsonEscape(adminEmail) + "\"," 
 				+ "\"password\":\"" + jsonEscape(adminPassword) + "\"," 
 				+ "\"email_confirm\":true,"
-				+ "\"user_metadata\":{\"role\":\"admin\",\"firstName\":\"" + jsonEscape(adminFirstName) + "\",\"lastName\":\"" + jsonEscape(adminLastName) + "\"}"
+				+ "\"user_metadata\":{\"role\":\"admin\"}"
 				+ "}";
 
 			HttpRequest createRequest = HttpRequest.newBuilder()
@@ -161,7 +141,7 @@ public class BackendApplication {
 			String userId = listResponse.body().substring(idStart, idEnd);
 			String updateBody = "{"
 				+ "\"password\":\"" + jsonEscape(adminPassword) + "\"," 
-				+ "\"user_metadata\":{\"role\":\"admin\",\"firstName\":\"" + jsonEscape(adminFirstName) + "\",\"lastName\":\"" + jsonEscape(adminLastName) + "\"}"
+				+ "\"user_metadata\":{\"role\":\"admin\"}"
 				+ "}";
 
 			HttpRequest updateRequest = HttpRequest.newBuilder()

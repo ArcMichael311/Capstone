@@ -124,6 +124,9 @@
 .sidebar-module-progress, .sidebar-pretest-check, .sidebar-pretest-score { font-weight: 800; text-align: right; }
 .sidebar-pretest-check { text-align: center; }
 .sidebar-sub-link:hover, .sidebar-sub-link.active { border-left-color: #ffcf56; background: var(--sidebar-hover); color: var(--sidebar-text); }
+.sidebar-classroom-list .sidebar-sub-link { grid-template-columns: minmax(0, 1fr) auto; gap: 0.5rem; padding-left: 1.25rem; }
+.sidebar-classroom-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-classroom-action { color: var(--sidebar-accent); font-size: 0.72rem; font-weight: 800; text-transform: uppercase; }
 .sidebar-account { margin-top: 1.5rem; }
 .sidebar-logout { display: flex; gap: 0.75rem; align-items: center; padding: 0.8rem 0.75rem; border-top: 1px solid var(--sidebar-border); color: var(--sidebar-danger); font-weight: 800; }
 .sidebar-logout:hover { color: var(--sidebar-text); }
