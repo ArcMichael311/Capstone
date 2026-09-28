@@ -1,6 +1,15 @@
 import './Profile.css';
+import './StudentProfile.css';
 import { useEffect, useRef, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
+import { getLevel, getNextRank, getRank, getStars, getXpInLevel } from '../Dashboard/playerProgress';
+
+const studentModules = [
+  { key: 'alphabet', icon: '🔤', title: 'Alphabet Recognition', world: 'Letter Land', color: 'blue' },
+  { key: 'vowels', icon: '🗣️', title: 'Vowels', world: 'Vowel Valley', color: 'purple' },
+  { key: 'consonants', icon: '🧩', title: 'Consonants', world: 'Consonant Canyon', color: 'green' },
+  { key: 'cvc', icon: '🏗️', title: 'CVC Words', world: 'Word Kingdom', color: 'orange' },
+];
 
 export default function Profile({ onNavigate, onBack, user, overallProgress = 0, alphabetProgress = 0, vowelsProgress = 0, consonantsProgress = 0, cvcProgress = 0, onLogout, theme = 'light', onThemeChange, initialTab = 'info' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -325,38 +334,161 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
     }
   };
 
-  return (
-    <section className="profile-shell">
-      <div className="profile-header">
-        <div className="profile-header-content">
-          <div className="profile-header-avatar" aria-hidden="true">
-            <span>👤</span>
+  const progressByModule = {
+    alphabet: alphabetProgress,
+    vowels: vowelsProgress,
+    consonants: consonantsProgress,
+    cvc: cvcProgress,
+  };
+  const rank = getRank(overallProgress);
+  const nextRank = getNextRank(overallProgress);
+  const level = getLevel(overallProgress);
+  const totalStars = studentModules.reduce((sum, module) => sum + getStars(progressByModule[module.key]), 0);
+  const worldsCleared = studentModules.filter((module) => progressByModule[module.key] >= 100).length;
+
+  const renderStudentHero = () => (
+    <header className="sp-hero">
+      <div className="sp-avatar">
+        <span>{displayName.charAt(0).toUpperCase()}</span>
+        <em aria-label={`Level ${level}`}>Lv {level}</em>
+      </div>
+      <div className="sp-hero-copy">
+        <p className="sp-kicker">{activeTab === 'settings' ? '⚙️ Game settings' : '🪪 Player profile'}</p>
+        <h1>{displayName}</h1>
+        <div className="sp-hero-chips">
+          <span className="sp-chip"><b aria-hidden="true">{rank.icon}</b> {rank.title}</span>
+          {email ? <span className="sp-chip sp-chip-soft">📧 {email}</span> : null}
+        </div>
+        <div className="sp-xp">
+          <div className="sp-xp-track">
+            <div className="sp-xp-fill" style={{ '--p': `${getXpInLevel(overallProgress)}%` }} />
           </div>
-          <div>
-            <h2>{displayName}</h2>
-            <p>{role.charAt(0).toUpperCase() + role.slice(1)} Profile</p>
-          </div>
+          <span>{nextRank ? `${nextRank.min - overallProgress}% to ${nextRank.icon} ${nextRank.title}` : 'Max rank reached! 🎉'}</span>
         </div>
       </div>
+      <div className="sp-hero-ring" style={{ '--p': overallProgress }} aria-label={`Overall progress ${overallProgress}%`}>
+        <strong>{overallProgress}%</strong>
+        <span>Overall</span>
+      </div>
+    </header>
+  );
+
+  const renderStudentInfo = () => (
+    <div className="profile-info-tab sp-info">
+      <section className="sp-section">
+        <h2 className="sp-section-title">🪪 Player Card</h2>
+        <div className="sp-info-grid">
+          <div className="sp-info-card sp-blue">
+            <span className="sp-info-icon" aria-hidden="true">🧑</span>
+            <div>
+              <span>Full Name</span>
+              <strong>{displayName}</strong>
+            </div>
+          </div>
+          <div className="sp-info-card sp-purple">
+            <span className="sp-info-icon" aria-hidden="true">📧</span>
+            <div>
+              <span>Email Address</span>
+              <strong title={email}>{email || '—'}</strong>
+            </div>
+          </div>
+          <div className="sp-info-card sp-green">
+            <span className="sp-info-icon" aria-hidden="true">🎒</span>
+            <div>
+              <span>Role</span>
+              <strong>Student</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="sp-section">
+        <div className="sp-section-head">
+          <h2 className="sp-section-title">📈 My Progress</h2>
+          <div className="sp-mini-stats">
+            <span>⭐ {totalStars}/12 stars</span>
+            <span>🗺️ {worldsCleared}/4 worlds</span>
+          </div>
+        </div>
+
+        <div className="sp-progress-list">
+          {studentModules.map((module, index) => {
+            const progress = progressByModule[module.key];
+            const stars = getStars(progress);
+            return (
+              <div key={module.key} className={`sp-progress-card sp-${module.color}`} style={{ '--i': index }}>
+                <span className="sp-progress-icon" aria-hidden="true">{module.icon}</span>
+                <div className="sp-progress-copy">
+                  <span className="sp-progress-world">{module.world}</span>
+                  <strong>{module.title}</strong>
+                  <div className="sp-progress-track">
+                    <div style={{ '--p': `${progress}%` }} />
+                  </div>
+                </div>
+                <div className="sp-progress-side">
+                  <div className="sp-stars" aria-label={`${stars} of 3 stars`}>
+                    {[1, 2, 3].map((value) => (
+                      <span key={value} className={value <= stars ? 'earned' : ''}>★</span>
+                    ))}
+                  </div>
+                  <strong>{progress >= 100 ? '✓ 100%' : `${progress}%`}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="sp-share">
+          <div>
+            <strong>Share your progress 📬</strong>
+            <span>Send a progress summary to your Gmail.</span>
+          </div>
+          <button type="button" className="sp-btn" onClick={handleSendProgressToGmail} disabled={!email}>
+            📧 Send to Gmail
+          </button>
+        </div>
+        {error && <p className="profile-form-error">{error}</p>}
+        {success && <p className="profile-form-success">✓ {success}</p>}
+      </section>
+    </div>
+  );
+
+  return (
+    <section className={isStudent ? 'profile-shell student-profile' : 'profile-shell'}>
+      {isStudent ? renderStudentHero() : (
+        <div className="profile-header">
+          <div className="profile-header-content">
+            <div className="profile-header-avatar" aria-hidden="true">
+              <span>👤</span>
+            </div>
+            <div>
+              <h2>{displayName}</h2>
+              <p>{role.charAt(0).toUpperCase() + role.slice(1)} Profile</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="profile-tabs">
-        <button 
-          type="button" 
+        <button
+          type="button"
           className={`profile-tab ${activeTab === 'info' ? 'active' : ''}`}
           onClick={() => setActiveTab('info')}
         >
-          PROFILE INFO
+          {isStudent ? '🪪 My Profile' : 'PROFILE INFO'}
         </button>
-        <button 
-          type="button" 
+        <button
+          type="button"
           className={`profile-tab ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
-          SETTINGS
+          {isStudent ? '⚙️ Settings' : 'SETTINGS'}
         </button>
       </div>
 
-      {activeTab === 'info' && (
+      {activeTab === 'info' && isStudent && renderStudentInfo()}
+
+      {activeTab === 'info' && !isStudent && (
         <div className="profile-info-tab">
           <div className="profile-info-field">
             <div className="profile-info-icon" aria-hidden="true">👤</div>
@@ -382,34 +514,6 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
             </div>
           </div>
 
-          {isStudent && (
-            <div className="profile-learning-progress">
-              <h3>Learning Progress</h3>
-              <div className="profile-progress-item">
-                <span>Alphabet Recognition</span>
-                <span className="profile-progress-percentage">{alphabetProgress}%</span>
-              </div>
-              <div className="profile-progress-item">
-                <span>Vowels</span>
-                <span className="profile-progress-percentage">{vowelsProgress}%</span>
-              </div>
-              <div className="profile-progress-item">
-                <span>Consonants</span>
-                <span className="profile-progress-percentage">{consonantsProgress}%</span>
-              </div>
-              <div className="profile-progress-item">
-                <span>CVC Words</span>
-                <span className="profile-progress-percentage">{cvcProgress}%</span>
-              </div>
-              <div className="profile-progress-item">
-                <span>Overall Progress</span>
-                <span className="profile-progress-percentage">{overallProgress}%</span>
-              </div>
-              <button type="button" className="profile-send-progress-btn" onClick={handleSendProgressToGmail} disabled={!email}>
-                Send to Gmail
-              </button>
-            </div>
-          )}
         </div>
       )}
 
