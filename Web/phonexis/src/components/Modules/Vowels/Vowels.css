@@ -71,10 +71,6 @@
   transition: all 0.2s ease;
 }
 
-.vowelrush-stage {
-  width: 100%;
-}
-
 @media (max-width: 720px) {
   .vowels-switch {
     width: 100%;
