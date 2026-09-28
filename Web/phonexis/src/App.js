@@ -924,6 +924,7 @@ function App() {
           <CVCWords
             onComplete={handleCvcComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
             initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
