@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import './CVCWords.css';
 import { speakText } from './speechUtils';
 import VoicePractice from '../../VoicePractice/VoicePractice';
+import BalloonPop from './BalloonPop';
 
 const videos = [
   {
@@ -169,139 +170,6 @@ const createSelectionDeck = () => shuffleItems(wordSelection).map((item) => ({
   choices: shuffleItems(item.choices),
 }));
 
-const wordBuildingDeck = [
-  {
-    target: 'cat',
-    icon: '🐱',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['', 'A', 'T'],
-    choices: ['C', 'A', 'T', 'O', 'E'],
-    description: 'A small pet that says meow.',
-  },
-  {
-    target: 'dog',
-    icon: '🐶',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['D', '', 'G'],
-    choices: ['D', 'O', 'G', 'A', 'U'],
-    description: 'A pet that barks.',
-  },
-  {
-    target: 'sun',
-    icon: '☀️',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['S', 'U', ''],
-    choices: ['S', 'U', 'N', 'A', 'E'],
-    description: 'The bright star in the sky.',
-  },
-  {
-    target: 'pig',
-    icon: '🐷',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['', 'I', 'G'],
-    choices: ['P', 'I', 'G', 'O', 'E'],
-    description: 'A farm animal that oinks.',
-  },
-  {
-    target: 'bat',
-    icon: '🦇',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['B', '', 'T'],
-    choices: ['B', 'A', 'T', 'I', 'O'],
-    description: 'A night flyer with tiny wings.',
-  },
-  {
-    target: 'man',
-    icon: '🧑',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['M', 'A', ''],
-    choices: ['M', 'A', 'N', 'E', 'I'],
-    description: 'A grown-up person.',
-  },
-  {
-    target: 'fan',
-    icon: '🪭',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['', 'A', 'N'],
-    choices: ['F', 'A', 'N', 'O', 'U'],
-    description: 'It moves air when it spins.',
-  },
-  {
-    target: 'pen',
-    icon: '🖊️',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['P', '', 'N'],
-    choices: ['P', 'E', 'N', 'A', 'O'],
-    description: 'A tool used for writing.',
-  },
-  {
-    target: 'cup',
-    icon: '🥤',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['C', 'U', ''],
-    choices: ['C', 'U', 'P', 'A', 'O'],
-    description: 'A container used for drinking.',
-  },
-  {
-    target: 'bag',
-    icon: '👜',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['B', 'A', ''],
-    choices: ['B', 'A', 'G', 'D', 'R'],
-    description: 'A container you carry your things in.',
-  },
-  {
-    target: 'car',
-    icon: '🚗',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['C', 'A', ''],
-    choices: ['C', 'A', 'R', 'T', 'M'],
-    description: 'A vehicle with four wheels.',
-  },
-  {
-    target: 'bus',
-    icon: '🚌',
-    prompt: 'Build the word by choosing the correct letters',
-    slots: ['B', 'U', 'S'],
-    choices: ['B', 'U', 'S', 'T', 'P'],
-    description: 'A large vehicle that carries many people.',
-  },
-];
-
-const getRandomBuildingWord = () => wordBuildingDeck[Math.floor(Math.random() * wordBuildingDeck.length)];
-
-const createBalloonSet = (word, builtSlots = [], previousLanes = {}, round = 0) => {
-  const remainingTargetLetters = word.target
-    .toUpperCase()
-    .split('')
-    .filter((_, index) => !builtSlots[index]);
-  const targetLetter = remainingTargetLetters.length > 0
-    ? remainingTargetLetters[Math.floor(Math.random() * remainingTargetLetters.length)]
-    : null;
-  const distractorPool = word.choices.filter((letter) => !remainingTargetLetters.includes(letter));
-  const distractorCount = 3;
-  const distractors = Array.from({ length: distractorCount }, (_, index) => (
-    distractorPool[index % distractorPool.length]
-  ));
-  const letters = shuffleItems(targetLetter ? [targetLetter, ...distractors] : distractors);
-  const availableLanes = shuffleItems([0, 1, 2, 3]);
-
-  return letters.map((letter, index) => {
-    const previousLane = previousLanes[letter];
-    const laneOptions = availableLanes.filter((lane) => lane !== previousLane);
-    const lane = laneOptions.length > 0 ? laneOptions[0] : availableLanes[0];
-    availableLanes.splice(availableLanes.indexOf(lane), 1);
-    previousLanes[letter] = lane;
-
-    return {
-      id: `${word.target}-${round}-${index}-${letter}`,
-      letter,
-      lane,
-      delay: `${(index % 5) * 0.35}s`,
-    };
-  });
-};
-
 export default function CVCWords({ onComplete, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
@@ -310,24 +178,10 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   const [selectionIndex, setSelectionIndex] = useState(0);
   const [selectionResult, setSelectionResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState('');
-  const [buildingWord, setBuildingWord] = useState(getRandomBuildingWord());
-  const [builtSlots, setBuiltSlots] = useState(['', '', '']);
-  const balloonLaneHistoryRef = useRef({});
-  const balloonRoundRef = useRef(0);
-  const [balloons, setBalloons] = useState(() => createBalloonSet(buildingWord, [], balloonLaneHistoryRef.current));
-  const [balloonHearts, setBalloonHearts] = useState(4);
-  const [balloonStreak, setBalloonStreak] = useState(0);
-  const [balloonShield, setBalloonShield] = useState(false);
-  const [balloonRewards, setBalloonRewards] = useState([]);
-  const [balloonStatus, setBalloonStatus] = useState('Pop the balloons in order to spell the word.');
-  const [balloonGameOver, setBalloonGameOver] = useState(false);
-  const [poppedBalloons, setPoppedBalloons] = useState({});
   const [feedback, setFeedback] = useState('Watch the learning materials video to unlock the CVC activities.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
-  const [isReadingInstructions, setIsReadingInstructions] = useState(false);
-  const [isReadingHint, setIsReadingHint] = useState(false);
   const [isReadingSelectionWord, setIsReadingSelectionWord] = useState(false);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
@@ -336,12 +190,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   useEffect(() => {
     setActiveType(initialType);
   }, [initialType]);
-
-  const pickRandomBuildingWord = (excludeTarget) => {
-    const availableWords = wordBuildingDeck.filter((item) => item.target !== excludeTarget);
-    const source = availableWords.length > 0 ? availableWords : wordBuildingDeck;
-    return source[Math.floor(Math.random() * source.length)];
-  };
 
   const speakSelectionWord = () => {
     const didSpeak = speakText(currentSelection.word, {
@@ -360,69 +208,10 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     setFeedback(`Listening to ${currentSelection.word}.`);
   };
 
-  const speakBalloonInstructions = () => {
-    const instructions = 'Listen carefully. Pop the one balloon with a letter from the word. You can choose the letters in any order. Wrong balloons take away one heart.';
-
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setBalloonStatus('Speech is not available. Please ask for help reading the instructions.');
-      return;
-    }
-
-    if (isReadingInstructions) {
-      stopSpeech();
-      setBalloonStatus('Stopped reading the game instructions.');
-      return;
-    }
-
-    speakText(instructions, {
-      rate: 0.85,
-      onend: () => setIsReadingInstructions(false),
-      onerror: () => setIsReadingInstructions(false),
-    });
-    setIsReadingInstructions(true);
-    setBalloonStatus('Speaking the game instructions.');
-  };
-
-  const speakBalloonHint = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      setBalloonStatus('Speech is not available. Please ask for help reading the hint.');
-      return;
-    }
-
-    if (isReadingHint) {
-      stopSpeech();
-      setBalloonStatus('Stopped reading the hint.');
-      return;
-    }
-
-    speakText(buildingWord.description, {
-      rate: 0.85,
-      onend: () => setIsReadingHint(false),
-      onerror: () => setIsReadingHint(false),
-    });
-    setIsReadingHint(true);
-    setBalloonStatus('Speaking the word hint.');
-  };
-
-  const stopSpeech = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-    }
-    setIsReadingInstructions(false);
-    setIsReadingHint(false);
-  };
-
-  useEffect(() => {
-    if (activeType !== 'building') {
-      stopSpeech();
-    }
-  }, [activeType]);
-
   useEffect(() => () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    setIsReadingInstructions(false);
   }, []);
 
   const handleVideoWatched = (videoId) => {
@@ -503,161 +292,6 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     setSelectionMessage('');
     setIsReadingSelectionWord(false);
     setFeedback('');
-  };
-
-  const handleNextBuildingWord = () => {
-    const nextBuildingWord = pickRandomBuildingWord(buildingWord.target);
-    setBuildingWord(nextBuildingWord);
-    setBuiltSlots(['', '', '']);
-    balloonLaneHistoryRef.current = {};
-    balloonRoundRef.current += 1;
-    setBalloons(createBalloonSet(nextBuildingWord, [], balloonLaneHistoryRef.current, balloonRoundRef.current));
-    setBalloonGameOver(false);
-    setPoppedBalloons({});
-    setBalloonStatus('Pop the balloons in order to spell the word.');
-  };
-
-  const awardBalloonReward = () => {
-    const rewardTypes = ['shield', 'heal', 'reveal'];
-    const reward = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
-    setBalloonRewards((currentRewards) => [...currentRewards, reward]);
-    setBalloonStatus(`Streak reward: ${reward === 'shield' ? 'Shield' : reward === 'heal' ? 'Extra heart' : 'Reveal letter'} earned!`);
-  };
-
-  const claimBalloonReward = (reward) => {
-    setBalloonRewards((currentRewards) => {
-      const rewardIndex = currentRewards.indexOf(reward);
-      if (rewardIndex === -1) return currentRewards;
-      return currentRewards.filter((_, index) => index !== rewardIndex);
-    });
-
-    if (reward === 'shield') {
-      setBalloonShield(true);
-      setBalloonStatus('Shield ready: one wrong balloon will not cost a heart.');
-      return;
-    }
-
-    if (reward === 'heal') {
-      setBalloonHearts((currentHearts) => Math.min(4, currentHearts + 1));
-      setBalloonStatus('Heart restored!');
-      return;
-    }
-
-    const nextIndex = builtSlots.findIndex((slot) => !slot);
-    if (nextIndex === -1) return;
-    const nextSlots = [...builtSlots];
-    nextSlots[nextIndex] = buildingWord.target[nextIndex].toUpperCase();
-    setBuiltSlots(nextSlots);
-    setBalloonStatus('The next letter was revealed!');
-  };
-
-  const handleBalloonClick = (balloon) => {
-    if (balloonGameOver || builtSlots.every(Boolean) || poppedBalloons[balloon.id]) return;
-
-    speakText(balloon.letter);
-
-    const targetIndex = buildingWord.target
-      .toUpperCase()
-      .split('')
-      .findIndex((letter, index) => letter === balloon.letter && !builtSlots[index]);
-    if (targetIndex !== -1) {
-      const nextSlots = [...builtSlots];
-      nextSlots[targetIndex] = balloon.letter;
-      const nextStreak = balloonStreak + 1;
-      setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'correct' }));
-      setBuiltSlots(nextSlots);
-      setBalloonStreak(nextStreak);
-
-      if (nextSlots.every(Boolean)) {
-        const completedWord = nextSlots.join('');
-        setBalloonStatus('Correct! Word complete!');
-        speakText(completedWord, { rate: 0.8 });
-      } else {
-        const nextRound = createBalloonSet(buildingWord, nextSlots, balloonLaneHistoryRef.current, balloonRoundRef.current + 1);
-        setBalloonStatus('Correct! Next letter is coming!');
-        window.setTimeout(() => {
-          setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
-          setPoppedBalloons((currentPopped) => {
-            const nextPopped = { ...currentPopped };
-            delete nextPopped[balloon.id];
-            return nextPopped;
-          });
-          balloonRoundRef.current += 1;
-          setBalloons(nextRound);
-        }, 400);
-      }
-
-      if (nextSlots.every(Boolean)) {
-        window.setTimeout(() => {
-          setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
-          setPoppedBalloons((currentPopped) => {
-            const nextPopped = { ...currentPopped };
-            delete nextPopped[balloon.id];
-            return nextPopped;
-          });
-        }, 400);
-      }
-      if (nextStreak > 0 && nextStreak % 3 === 0) awardBalloonReward();
-      return;
-    }
-
-    if (balloonShield) {
-      setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'wrong' }));
-      setBalloonShield(false);
-      setBalloonStatus('Wrong balloon! Shield blocked it.');
-      window.setTimeout(() => {
-        setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
-        setPoppedBalloons((currentPopped) => {
-          const nextPopped = { ...currentPopped };
-          delete nextPopped[balloon.id];
-          return nextPopped;
-        });
-      }, 400);
-      return;
-    }
-
-    setPoppedBalloons((currentPopped) => ({ ...currentPopped, [balloon.id]: 'wrong' }));
-    setBalloonHearts((currentHearts) => {
-      const nextHearts = currentHearts - 1;
-      if (nextHearts <= 0) {
-        setBalloonGameOver(true);
-        setBalloonStatus('Out of hearts. Try the word again.');
-      } else {
-        setBalloonStatus('Wrong! That letter is not in the word.');
-      }
-      return nextHearts;
-    });
-    setBalloonStreak(0);
-    window.setTimeout(() => {
-      setBalloons((currentBalloons) => currentBalloons.filter((item) => item.id !== balloon.id));
-      setPoppedBalloons((currentPopped) => {
-        const nextPopped = { ...currentPopped };
-        delete nextPopped[balloon.id];
-        return nextPopped;
-      });
-    }, 400);
-  };
-
-  const handleBalloonCycle = () => {
-    if (balloonGameOver || builtSlots.every(Boolean)) return;
-
-    balloonRoundRef.current += 1;
-    setBalloons(createBalloonSet(buildingWord, builtSlots, balloonLaneHistoryRef.current, balloonRoundRef.current));
-    setBalloonStatus('New balloons are here! Find the one letter from the word.');
-  };
-
-  const restartBalloonGame = () => {
-    setBalloonHearts(4);
-    setBalloonStreak(0);
-    setBalloonShield(false);
-    setBalloonRewards([]);
-    setBalloonGameOver(false);
-    setBuiltSlots(['', '', '']);
-    setPoppedBalloons({});
-    balloonLaneHistoryRef.current = {};
-    balloonRoundRef.current += 1;
-    setBalloons(createBalloonSet(buildingWord, [], balloonLaneHistoryRef.current, balloonRoundRef.current));
-    setBalloonStatus('Pop the balloons in order to spell the word.');
   };
 
   const renderFamilies = () => (
@@ -864,80 +498,9 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     </div>
   );
 
-  const renderBuilding = () => (
-    <div className="cvc-stage cvc-balloon-stage">
-      <div className="cvc-balloon-header">
-        <div className="cvc-balloon-hint">
-          <span className="cvc-building-hint-label">Balloon spelling</span>
-          <h3>{buildingWord.icon} Pop the CVC word</h3>
-          <div className="cvc-building-hint-icon" aria-hidden="true">{buildingWord.icon}</div>
-          <p className="cvc-balloon-hint-sentence">{buildingWord.description}</p>
-          <button type="button" className="cvc-instructions-button" onClick={speakBalloonHint}>
-            {isReadingHint ? '⏹ Stop Hint' : '🔊 Hear Hint'}
-          </button>
-          <p className="cvc-balloon-instructions">
-            Click the one balloon letter from the word. You can choose letters in any order.
-          </p>
-          <button type="button" className="cvc-instructions-button" onClick={speakBalloonInstructions}>
-            {isReadingInstructions ? '⏹ Stop Instructions' : '🔊 Hear Instructions'}
-          </button>
-        </div>
-        <div className="cvc-balloon-stats" aria-label="Game status">
-          <strong>{'♥'.repeat(balloonHearts)}{'♡'.repeat(4 - balloonHearts)}</strong>
-          <span>Streak {balloonStreak}</span>
-          {balloonShield ? <span className="cvc-shield-badge">🛡 Shield ready</span> : null}
-        </div>
-      </div>
-
-      <div className="cvc-build-word" aria-label="Word progress">
-        {builtSlots.map((slot, index) => (
-          <div key={`${index}-${slot}`} className={slot ? 'cvc-build-slot filled' : 'cvc-build-slot'}>{slot || '_'}</div>
-        ))}
-      </div>
-
-      <div className="cvc-balloon-sky" aria-label="Letter balloons" onAnimationIteration={handleBalloonCycle}>
-        {balloons.map((balloon) => (
-          <button
-            key={balloon.id}
-            type="button"
-            className={`cvc-balloon${poppedBalloons[balloon.id] ? ` popped ${poppedBalloons[balloon.id]}` : ''}`}
-            style={{ '--balloon-lane': balloon.lane, '--balloon-delay': balloon.delay }}
-            onClick={() => handleBalloonClick(balloon)}
-            disabled={balloonGameOver || builtSlots.every(Boolean)}
-            aria-label={`Letter ${balloon.letter}`}
-          >
-            {balloon.letter}
-          </button>
-        ))}
-      </div>
-
-      <div className="cvc-balloon-message" aria-live="polite">{balloonStatus}</div>
-      <div className="cvc-reward-tray" aria-label="Streak rewards">
-        <span>Rewards:</span>
-        {['shield', 'heal', 'reveal'].map((reward) => {
-          const count = balloonRewards.filter((item) => item === reward).length;
-          return (
-            <button key={reward} type="button" disabled={!count || balloonGameOver} onClick={() => claimBalloonReward(reward)}>
-              {reward === 'shield' ? '🛡 Shield' : reward === 'heal' ? '♥ Heal' : '✨ Reveal'} {count ? `(${count})` : ''}
-            </button>
-          );
-        })}
-      </div>
-
-      {builtSlots.every(Boolean) ? <button type="button" className="cvc-action-button" onClick={handleNextBuildingWord}>Next Word</button> : null}
-
-      {balloonGameOver ? (
-        <div className="cvc-game-over-modal" role="dialog" aria-modal="true" aria-labelledby="cvc-game-over-title">
-          <div className="cvc-game-over-card">
-            <div className="cvc-game-over-icon" aria-hidden="true">💔</div>
-            <h3 id="cvc-game-over-title">Game Over</h3>
-            <p>You ran out of hearts. Try the word again!</p>
-            <button type="button" className="cvc-action-button" onClick={restartBalloonGame}>Try Again</button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+  if (activeType === 'building') {
+    return <BalloonPop onClose={() => setActiveType('learning')} />;
+  }
 
   return (
     <div className="module-detail cvc-detail">
@@ -947,10 +510,9 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
       {activeType === 'learning' ? renderLearningMaterials() : null}
       {activeType === 'families' ? renderFamilies() : null}
       {activeType === 'selection' ? renderSelection() : null}
-      {activeType === 'building' ? renderBuilding() : null}
 
       <div className="cvc-feedback" aria-live="polite">
-        {activeType === 'selection' || activeType === 'building' ? '' : feedback}
+        {activeType === 'selection' ? '' : feedback}
       </div>
     </div>
   );
