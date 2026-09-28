@@ -184,6 +184,9 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
     speakText(selectedItem.word, `Speaking ${selectedItem.word}.`);
   };
 
+  if (mode === 'wordblast') {
+    return <WordBlast onClose={() => handleModeChange('learning')} />;
+  }
 
   return (
     <div className="module-detail consonants-detail">
@@ -386,8 +389,6 @@ export default function Consonants({ onComplete, onBack, initialVideosWatched = 
             <p className="game-feedback">{feedback}</p>
           </div>
         </>
-      ) : mode === 'wordblast' ? (
-        <WordBlast onClose={() => handleModeChange('learning')} />
       ) : null}
     </div>
   );
