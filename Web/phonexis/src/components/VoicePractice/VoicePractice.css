@@ -129,6 +129,8 @@
   color: #ff6b6b;
   font-weight: 600;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 0.5rem;
 }
@@ -188,9 +190,121 @@
   border-color: #4caf50;
 }
 
+.voice-result-almost {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.14), rgba(255, 224, 130, 0.14));
+  border-color: #ffb300;
+}
+
 .voice-result-fail {
-  background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(239, 154, 154, 0.1));
-  border-color: #f44336;
+  background: linear-gradient(135deg, rgba(77, 150, 255, 0.08), rgba(179, 157, 219, 0.12));
+  border-color: #9fa8da;
+}
+
+.voice-result-stars {
+  margin: 0.25rem 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.voice-star {
+  font-size: 1.5rem;
+  color: #d6d6d6;
+  line-height: 1;
+}
+
+.voice-star-on {
+  color: #ffc107;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.voice-result-stars .voice-result-accuracy {
+  margin: 0 0 0 0.5rem;
+}
+
+.voice-letter-diff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+}
+
+.voice-letter {
+  min-width: 2rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.voice-letter-ok {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.voice-letter-miss {
+  background: #fff3e0;
+  color: #e65100;
+  border: 2px dashed #ff9800;
+}
+
+.voice-letter-space {
+  width: 0.75rem;
+}
+
+.voice-result-tip {
+  margin: 0.6rem 0 0 0;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* Live listening panel */
+.voice-live {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.voice-timer-time {
+  color: #999;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.voice-meter {
+  width: 100%;
+  max-width: 320px;
+  height: 14px;
+  background: #e8eef9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.voice-meter-fill {
+  height: 100%;
+  background: #b0bec5;
+  border-radius: 999px;
+  transition: width 0.08s linear, background-color 0.2s ease;
+}
+
+.voice-meter-fill-active {
+  background: linear-gradient(90deg, #50c878, #4D96FF);
+}
+
+.voice-live-text {
+  margin: 0;
+  font-size: 1rem;
+  color: #555;
+  text-align: center;
+}
+
+.voice-live-text strong {
+  color: #4D96FF;
+  font-size: 1.2rem;
 }
 
 .voice-result-icon {
