@@ -1,6 +1,7 @@
 import './Sidebar.css';
 import './StudentSidebar.css';
 import hideSidebarIcon from './Sidebar Icons/Hide sidebar.png';
+import { getLevel, getXpInLevel } from '../Dashboard/playerProgress';
 
 const moduleSections = {
   alphabet: [
@@ -42,8 +43,8 @@ export default function Sidebar({ isOpen = true, onToggle, activeView, activeSec
   const sections = moduleSections[activeView] || [];
   const progressByModule = { alphabet: alphabetProgress, vowels: vowelsProgress, consonants: consonantsProgress, cvc: cvcProgress };
   const overall = Math.round((alphabetProgress + vowelsProgress + consonantsProgress + cvcProgress) / 4);
-  const level = Math.min(Math.floor(overall / 20) + 1, 6);
-  const xpInLevel = overall >= 100 ? 100 : ((overall % 20) / 20) * 100;
+  const level = getLevel(overall);
+  const xpInLevel = getXpInLevel(overall);
   const activeModule = modules.find((module) => module.key === activeView);
 
   return (
