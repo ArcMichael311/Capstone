@@ -259,6 +259,10 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     });
   };
 
+  if (mode === 'vowelrush') {
+    return <VowelRush onClose={() => handleModeChange('learning')} />;
+  }
+
   return (
     <div className="module-detail vowels-detail">
       <div className="vowels-topbar">
@@ -520,10 +524,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
               </div>
             </div>
           )}
-        </div>
-      ) : mode === 'vowelrush' ? (
-        <div className="vowelrush-stage">
-          <VowelRush onClose={() => handleModeChange('learning')} />
         </div>
       ) : null}
     </div>
