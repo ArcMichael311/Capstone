@@ -220,10 +220,6 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };
 
-  const speakCurrent = () => {
-    speakText(`${selectedItem.letter}, ${selectedItem.sound}`, `Speaking ${selectedItem.letter} sound.`);
-  };
-
   const speakSelectedWord = () => {
     speakText(selectedItem.word, `Speaking word: ${selectedItem.word}`);
   };
