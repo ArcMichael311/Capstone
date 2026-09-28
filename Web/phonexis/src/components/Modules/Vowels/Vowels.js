@@ -464,7 +464,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                     if (result.success) {
                       setFeedback(`Great! You pronounced the vowel "${selectedItem.letter}" correctly!`);
                     } else {
-                      setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                      setFeedback(result.feedback);
                     }
                   }}
                   showTranscript={true}
