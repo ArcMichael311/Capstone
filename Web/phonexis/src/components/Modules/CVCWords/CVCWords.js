@@ -726,7 +726,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
                 if (result.success) {
                   setFeedback(`Great! You pronounced "${selectedWord.word}" correctly!`);
                 } else {
-                  setFeedback(`Try again. You said "${result.recognized}", but aim for "${result.target}".`);
+                  setFeedback(result.feedback);
                 }
               }}
               showTranscript={true}
