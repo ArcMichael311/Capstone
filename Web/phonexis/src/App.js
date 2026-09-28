@@ -958,6 +958,7 @@ function App() {
           <Vowels
             onComplete={handleVowelsComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
             initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}

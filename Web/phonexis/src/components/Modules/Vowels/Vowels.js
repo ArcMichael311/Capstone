@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Vowels.css';
+import './VowelsPage.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
 import VoicePractice from '../../VoicePractice/VoicePractice';
@@ -132,7 +133,7 @@ const videos = [
   },
 ];
 
-export default function Vowels({ onComplete, onBack, initialVideosWatched = [], onVideosWatchedChange, initialMode = 'learning' }) {
+export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
@@ -140,6 +141,9 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showDoubleVowelModal, setShowDoubleVowelModal] = useState(false);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
+  const [exploredVowels, setExploredVowels] = useState([vowels[0].letter]);
+  const [heardPairs, setHeardPairs] = useState([]);
+  const [letterTap, setLetterTap] = useState(0);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -216,6 +220,7 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
   const handlePick = (letter) => {
     const nextItem = vowels.find((item) => item.letter === letter) ?? vowels[0];
     setSelectedLetter(nextItem.letter);
+    setExploredVowels((current) => (current.includes(nextItem.letter) ? current : [...current, nextItem.letter]));
     setShowVoicePractice(false);
     setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };
@@ -263,259 +268,382 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
     return <VowelRush onClose={() => handleModeChange('learning')} />;
   }
 
-  return (
-    <div className="module-detail vowels-detail">
-      <div className="vowels-topbar">
+  const goToLesson = () => {
+    if (typeof onNavigate === 'function') {
+      onNavigate('vowels', 'lesson');
+      return;
+    }
+    handleModeChange('lesson');
+  };
+
+  const renderHero = ({ icon, title, subtitle, stat }) => (
+    <header className="vw-hero">
+      <span className="vw-hero-icon" aria-hidden="true">{icon}</span>
+      <div className="vw-hero-copy">
+        <span className="vw-kicker">🗺️ Vowel Valley</span>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
       </div>
+      {stat}
+    </header>
+  );
 
-      {mode === 'learning' ? (
-        <div className="learning-materials">
-          {currentVideoIndex !== null ? (
-            <div className="video-player-modal">
-              <button
-                type="button"
-                className="video-close-btn"
-                onClick={closeVideoPlayer}
-              >
-                ✕
-              </button>
-              <div className="video-player-container">
-                <div className="video-player">
-                  <video
-                    key={`video-${videos[currentVideoIndex].id}`}
-                    width="100%"
-                    height="100%"
-                    controls
-                    autoPlay
-                    onEnded={() => handleVideoEnd(videos[currentVideoIndex].id)}
-                  >
-                    <source src={videos[currentVideoIndex].url} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
-                <div className="video-player-info">
-                  <h3>{videos[currentVideoIndex].title}</h3>
-                  <p>{videos[currentVideoIndex].description}</p>
-                  <div className="video-watched-notice">
-                    <p className="watched-notice-text">
-                      ✓ The video will be marked as watched once you finish watching it completely.
-                    </p>
-                  </div>
-                </div>
-                <div className="video-navigation" aria-label="Video navigation">
-                  <button
-                    type="button"
-                    className="video-navigation-btn"
-                    onClick={handlePreviousVideo}
-                    disabled={currentVideoIndex === 0}
-                  >
-                    ← Previous Video
-                  </button>
-                  <span className="video-navigation-status">
-                    Video {currentVideoIndex + 1} of {videos.length}
-                  </span>
-                  <button
-                    type="button"
-                    className="video-navigation-btn"
-                    onClick={handleNextVideo}
-                    disabled={currentVideoIndex === videos.length - 1}
-                  >
-                    Next Video →
-                  </button>
-                </div>
-              </div>
+  const renderVideoPlayer = () => {
+    const video = videos[currentVideoIndex];
+    const isWatched = videosWatched.includes(video.id);
+
+    return (
+      <div
+        className="vw-modal-backdrop"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            closeVideoPlayer();
+          }
+        }}
+      >
+        <div className="vw-modal vw-player" role="dialog" aria-modal="true" aria-labelledby="vw-player-title">
+          <div className="vw-modal-head">
+            <div>
+              <span className="vw-kicker">🎬 Episode {currentVideoIndex + 1} of {videos.length}</span>
+              <h3 id="vw-player-title">{video.title}</h3>
             </div>
-          ) : (
-            <>
-              <div className="learning-header">
-                <h3>Learning Video Materials</h3>
-                <p>Watch all videos to unlock Basics of the Vowels.</p>
-              </div>
-
-              <div className="videos-grid">
-                {videos.map((video, index) => (
-                  <div key={video.id} className="video-card">
-                    <div className="video-thumbnail">
-                      <span className="video-icon">🎬</span>
-                      {videosWatched.includes(video.id) && (
-                        <span className="video-watched-badge">✓ Watched</span>
-                      )}
-                    </div>
-                    <div className="video-info">
-                      <h4>{video.title}</h4>
-                      <p>{video.description}</p>
-                      <span className="video-duration">{video.duration}</span>
-                    </div>
-                    <button
-                      type="button"
-                      className={`video-play-btn${videosWatched.includes(video.id) ? ' watched' : ''}`}
-                      onClick={() => handlePlayVideo(index)}
-                    >
-                      ▶ {videosWatched.includes(video.id) ? 'REWATCH' : 'PLAY'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="learning-progress">
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${(videosWatched.length / videos.length) * 100}%` }}
-                  />
-                </div>
-                <p>
-                  {videosWatched.length} of {videos.length} videos watched
-                </p>
-                {allVideosWatched && (
-                  <p className="progress-unlocked">
-                    ✓ Basics of the Vowels unlocked! Click the Lesson tab to proceed.
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      ) : mode === 'lesson' ? (
-        <div className="lesson-stage">
-          <div className="lesson-header">
-            <h3>Basics of the Vowels</h3>
-            <p>Click on a vowel to hear its sound</p>
+            <button type="button" className="vw-close" onClick={closeVideoPlayer} aria-label="Close video">
+              ✕
+            </button>
           </div>
 
-          <div className="vowels-picker" aria-label="Vowel choices">
-            {vowels.map((item) => (
-              <button
-                key={item.letter}
-                type="button"
-                className={item.letter === selectedLetter ? 'vowel-tile active' : 'vowel-tile'}
-                onClick={() => handlePick(item.letter)}
-              >
-                <span className="vowel-tile-letter">{item.letter}</span>
-                <span className="vowel-tile-icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="vowels-stage">
-            <span className="vowels-letter">{selectedItem.letter}</span>
-
-            <div
-              className="vowels-object"
-              onClick={speakSelectedWord}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  speakSelectedWord();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`Read the word ${selectedItem.word}`}
+          <div className="vw-video-frame">
+            <video
+              key={`video-${video.id}`}
+              width="100%"
+              height="100%"
+              controls
+              autoPlay
+              onEnded={() => handleVideoEnd(video.id)}
             >
-              <span className="vowels-object-icon" aria-hidden="true" onClick={speakSelectedWord}>
-                {selectedItem.icon}
-              </span>
-              <p className="vowels-object-word" onClick={speakSelectedWord}>{selectedItem.word}</p>
-              <p className="vowels-object-sound">Sound: "{selectedItem.sound}"</p>
-            </div>
+              <source src={video.url} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
 
-            <div className="vowel-team-board" aria-label={`${selectedItem.letter} vowel team examples`}>
-              <p className="vowel-team-kicker">Pair Vowels</p>
-              <h4 className="vowel-team-heading">{selectedItem.letter} Vowel Pairs</h4>
+          <p className={`vw-watch-note ${isWatched ? 'done' : ''}`}>
+            {isWatched
+              ? '✓ Watched! Great job finishing this episode.'
+              : '⏳ This video is marked as watched once you finish it completely.'}
+          </p>
 
-              <div className="vowel-team-grid">
-                {selectedPairs.map((item) => {
-                  const pairLetters = getPairLetters(item.team, item.word);
-
-                  return (
-                    <button
-                      key={`${selectedItem.letter}-${item.team}`}
-                      type="button"
-                      className="vowel-team-card"
-                      onClick={() => speakText(item.word, `Listening to ${item.word}.`)}
-                      aria-label={`Listen to the word ${item.word}`}
-                    >
-                      <span className="vowel-team-chunk">{item.team}</span>
-                      <span className="vowel-team-icon" aria-hidden="true">
-                        {vowelTeamIcons[item.word]}
-                      </span>
-                      <span className="vowel-team-word">{renderHighlightedWord(item.word, pairLetters)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="vowels-button-group">
-              <button
-                type="button"
-                className="vowels-voice-practice-btn"
-                onClick={() => setShowVoicePractice(!showVoicePractice)}
-                aria-expanded={showVoicePractice}
-              >
-                🎤 PRACTICE VOWEL SOUND
-              </button>
-            </div>
-
-            {showVoicePractice && (
-              <div className="vowels-voice-practice-wrapper">
-                <VoicePractice
-                  targetWord={selectedItem.letter}
-                  onResult={(result) => {
-                    if (result.success) {
-                      setFeedback(`Great! You pronounced the vowel "${selectedItem.letter}" correctly!`);
-                    } else {
-                      setFeedback(result.feedback);
-                    }
-                  }}
-                  showTranscript={true}
-                />
-              </div>
-            )}
-
+          <div className="vw-player-nav" aria-label="Video navigation">
             <button
               type="button"
-              className="double-vowels-open-button"
+              className="vw-btn vw-btn-soft"
+              onClick={handlePreviousVideo}
+              disabled={currentVideoIndex === 0}
+            >
+              ‹ Previous
+            </button>
+            <div className="vw-player-dots" aria-hidden="true">
+              {videos.map((item, index) => (
+                <span
+                  key={item.id}
+                  className={[
+                    index === currentVideoIndex ? 'current' : '',
+                    videosWatched.includes(item.id) ? 'watched' : '',
+                  ].join(' ')}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              className="vw-btn vw-btn-soft"
+              onClick={handleNextVideo}
+              disabled={currentVideoIndex === videos.length - 1}
+            >
+              Next ›
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderLearning = () => {
+    const watchedCount = videosWatched.length;
+    const remaining = videos.length - watchedCount;
+    const upNextIndex = videos.findIndex((video) => !videosWatched.includes(video.id));
+
+    return (
+      <>
+        {renderHero({
+          icon: '🎬',
+          title: 'Learning Videos',
+          subtitle: 'Watch every episode to unlock Basics of the Vowels!',
+          stat: (
+            <div className="vw-hero-stat">
+              <strong key={watchedCount} className="vw-pop">{watchedCount}<small>/{videos.length}</small></strong>
+              <span>Videos watched</span>
+              <div className="vw-meter"><div style={{ '--p': `${(watchedCount / videos.length) * 100}%` }} /></div>
+            </div>
+          ),
+        })}
+
+        <section className="vw-episodes">
+          {videos.map((video, index) => {
+            const isWatched = videosWatched.includes(video.id);
+            const isUpNext = index === upNextIndex;
+
+            return (
+              <article
+                key={video.id}
+                className={`vw-episode ${isWatched ? 'watched' : ''} ${isUpNext ? 'up-next' : ''}`}
+                style={{ '--i': index }}
+              >
+                {isUpNext ? <span className="vw-up-next" aria-hidden="true">⭐ Up next</span> : null}
+                <button
+                  type="button"
+                  className="vw-thumb"
+                  onClick={() => handlePlayVideo(index)}
+                  aria-label={`${isWatched ? 'Rewatch' : 'Play'} ${video.title}`}
+                >
+                  <span className="vw-ep-badge">EP {index + 1}</span>
+                  <span className="vw-duration">⏱ {video.duration}</span>
+                  <span className="vw-play-circle" aria-hidden="true">▶</span>
+                  {isWatched ? <span className="vw-stamp" aria-hidden="true">✓ Watched</span> : null}
+                </button>
+                <div className="vw-episode-body">
+                  <h3>{video.title}</h3>
+                  <p>{video.description}</p>
+                  <button
+                    type="button"
+                    className={`vw-btn ${isWatched ? 'vw-btn-soft' : ''}`}
+                    onClick={() => handlePlayVideo(index)}
+                  >
+                    {isWatched ? '↻ Rewatch' : '▶ Play'}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+
+        <section className={`vw-unlock ${allVideosWatched ? 'open' : ''}`}>
+          <span className="vw-unlock-icon" aria-hidden="true">{allVideosWatched ? '🎁' : '🔒'}</span>
+          <div className="vw-unlock-copy">
+            <strong>{allVideosWatched ? 'Basics of the Vowels unlocked!' : 'Basics of the Vowels'}</strong>
+            <span>
+              {allVideosWatched
+                ? 'You watched every episode. Time for the lesson!'
+                : `Watch ${remaining} more video${remaining === 1 ? '' : 's'} to unlock the lesson.`}
+            </span>
+            <div className="vw-unlock-track">
+              {videos.map((video) => (
+                <span key={video.id} className={videosWatched.includes(video.id) ? 'on' : ''} />
+              ))}
+            </div>
+          </div>
+          {allVideosWatched ? (
+            <button type="button" className="vw-btn vw-pulse" onClick={goToLesson}>
+              Go to Lesson ▶
+            </button>
+          ) : null}
+        </section>
+
+        {currentVideoIndex !== null ? renderVideoPlayer() : null}
+      </>
+    );
+  };
+
+  const renderLesson = () => {
+    const pairsHeardHere = selectedPairs.filter((item) => heardPairs.includes(`${selectedItem.letter}-${item.word}`)).length;
+
+    return (
+      <>
+        {renderHero({
+          icon: '🗣️',
+          title: 'Basics of the Vowels',
+          subtitle: 'Tap a vowel to meet its sound and word friends!',
+          stat: (
+            <div className="vw-hero-stat">
+              <strong key={exploredVowels.length} className="vw-pop">{exploredVowels.length}<small>/5</small></strong>
+              <span>Vowels explored</span>
+              <div className="vw-meter"><div style={{ '--p': `${(exploredVowels.length / 5) * 100}%` }} /></div>
+            </div>
+          ),
+        })}
+
+        <div className="vw-picker" aria-label="Vowel choices">
+          {vowels.map((item, index) => (
+            <button
+              key={item.letter}
+              type="button"
+              className={[
+                'vw-vowel',
+                `vw-v${index}`,
+                item.letter === selectedLetter ? 'active' : '',
+                exploredVowels.includes(item.letter) ? 'explored' : '',
+              ].join(' ')}
+              style={{ '--i': index }}
+              onClick={() => handlePick(item.letter)}
+            >
+              <span className="vw-vowel-letter">{item.letter}</span>
+              <span className="vw-vowel-icon" aria-hidden="true">{item.icon}</span>
+            </button>
+          ))}
+        </div>
+
+        <section className={`vw-spotlight vw-v${vowels.indexOf(selectedItem)}`}>
+          <button
+            type="button"
+            className="vw-letter-card"
+            onClick={() => {
+              setLetterTap((current) => current + 1);
+              speakText(selectedItem.letter, `Speaking vowel: ${selectedItem.letter}.`);
+            }}
+            aria-label={`Hear the vowel ${selectedItem.letter}`}
+          >
+            {letterTap > 0 ? <span key={letterTap} className="vw-ripple" aria-hidden="true" /> : null}
+            <span key={selectedItem.letter} className="vw-big-letter">
+              {selectedItem.letter}<small>{selectedItem.letter.toLowerCase()}</small>
+            </span>
+            <span key={`${selectedItem.letter}-sound`} className="vw-sound-bubble">says “{selectedItem.sound}”</span>
+          </button>
+
+          <div
+            className="vw-object-card"
+            onClick={speakSelectedWord}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                speakSelectedWord();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Read the word ${selectedItem.word}`}
+          >
+            <span key={`${selectedItem.letter}-icon`} className="vw-object-icon" aria-hidden="true">
+              {selectedItem.icon}
+            </span>
+            <p key={`${selectedItem.letter}-word`} className="vw-object-word">
+              {[...selectedItem.word].map((character, index) => (
+                <span
+                  key={`${character}-${index}`}
+                  className={character.toUpperCase() === selectedItem.letter ? 'vw-hl' : undefined}
+                >
+                  {character}
+                </span>
+              ))}
+            </p>
+            <span className="vw-tap-hint">🔊 Tap to hear the word</span>
+          </div>
+
+          <div className="vw-actions">
+            <p key={feedback} className="vw-feedback" aria-live="polite">{feedback}</p>
+            <button
+              type="button"
+              className={`vw-btn vw-btn-mic ${showVoicePractice ? 'active' : ''}`}
+              onClick={() => setShowVoicePractice(!showVoicePractice)}
+              aria-expanded={showVoicePractice}
+            >
+              🎤 {showVoicePractice ? 'Hide Practice' : 'Practice Vowel Sound'}
+            </button>
+            <button
+              type="button"
+              className="vw-btn vw-btn-sparkle"
               onClick={() => setShowDoubleVowelModal(true)}
               aria-haspopup="dialog"
               aria-expanded={showDoubleVowelModal}
             >
-              ✨ EXPLORE DOUBLE VOWELS
+              ✨ Explore Double Vowels
             </button>
-
-            <p className="game-feedback">{feedback}</p>
           </div>
+        </section>
 
-          {showDoubleVowelModal && (
-            <div
-              className="double-vowels-modal-backdrop"
-              role="presentation"
-              onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                  setShowDoubleVowelModal(false);
+        {showVoicePractice && (
+          <div className="vw-voice-panel">
+            <VoicePractice
+              targetWord={selectedItem.letter}
+              onResult={(result) => {
+                if (result.success) {
+                  setFeedback(`Great! You pronounced the vowel "${selectedItem.letter}" correctly!`);
+                } else {
+                  setFeedback(result.feedback);
                 }
               }}
+              showTranscript={true}
+            />
+          </div>
+        )}
+
+        <section className="vw-pairs" aria-label={`${selectedItem.letter} vowel team examples`}>
+          <div className="vw-pairs-head">
+            <div>
+              <span className="vw-kicker vw-kicker-dark">Pair vowels</span>
+              <h2>{selectedItem.letter} Vowel Pairs</h2>
+            </div>
+            <span className="vw-chip">
+              {pairsHeardHere === selectedPairs.length ? '🏅 All heard!' : `🔊 ${pairsHeardHere}/${selectedPairs.length} heard`}
+            </span>
+          </div>
+
+          <div className="vw-pair-grid">
+            {selectedPairs.map((item, index) => {
+              const pairLetters = getPairLetters(item.team, item.word);
+              const key = `${selectedItem.letter}-${item.word}`;
+              const heard = heardPairs.includes(key);
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`vw-pair ${heard ? 'heard' : ''}`}
+                  style={{ '--i': index }}
+                  onClick={() => {
+                    speakText(item.word, `Listening to ${item.word}.`);
+                    setHeardPairs((current) => (current.includes(key) ? current : [...current, key]));
+                  }}
+                  aria-label={`Listen to the word ${item.word}`}
+                >
+                  <span className="vw-pair-chunk">{item.team}</span>
+                  <span className="vw-pair-icon" aria-hidden="true">{vowelTeamIcons[item.word]}</span>
+                  <span className="vw-pair-word">{renderHighlightedWord(item.word, pairLetters)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {showDoubleVowelModal && (
+          <div
+            className="vw-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setShowDoubleVowelModal(false);
+              }
+            }}
+          >
+            <div
+              className="vw-modal vw-double-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="double-vowels-modal-title"
             >
-              <div
-                className="double-vowels-modal"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="double-vowels-modal-title"
-              >
-                <div className="double-vowels-modal-header">
+              <div className="vw-modal-head">
+                <div>
+                  <span className="vw-kicker">✨ Bonus lesson</span>
                   <h3 id="double-vowels-modal-title">Double Vowels</h3>
-                  <button
-                    type="button"
-                    className="double-vowels-modal-close"
-                    onClick={() => setShowDoubleVowelModal(false)}
-                    aria-label="Close double vowels"
-                  >
-                    ✕
-                  </button>
                 </div>
+                <button
+                  type="button"
+                  className="vw-close"
+                  onClick={() => setShowDoubleVowelModal(false)}
+                  aria-label="Close double vowels"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="vw-modal-body">
                 <DoubleVowelLesson
                   onFeedback={(message) => {
                     setFeedback(message);
@@ -523,9 +651,15 @@ export default function Vowels({ onComplete, onBack, initialVideosWatched = [], 
                 />
               </div>
             </div>
-          )}
-        </div>
-      ) : null}
+          </div>
+        )}
+      </>
+    );
+  };
+
+  return (
+    <div className="vw-page">
+      {mode === 'lesson' ? renderLesson() : renderLearning()}
     </div>
   );
 }
