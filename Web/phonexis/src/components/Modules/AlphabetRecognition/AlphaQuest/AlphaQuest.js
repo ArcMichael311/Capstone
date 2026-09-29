@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import './AlphaQuest.css';
+import { playSound } from '../../shared/gameSounds';
+import SoundToggle from '../../shared/SoundToggle';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -80,7 +82,6 @@ export default function AlphaQuest({ onClose }) {
   const [streak, setStreak] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [totalRounds, setTotalRounds] = useState(null);
-  const [gameOverMessage, setGameOverMessage] = useState('');
   const [rewardMessage, setRewardMessage] = useState('');
   const [score, setScore] = useState(0);
   const [rewardClaimed, setRewardClaimed] = useState(false);
@@ -195,22 +196,20 @@ export default function AlphaQuest({ onClose }) {
 
   const showRewardScreen = useCallback(() => {
     setGameState('reward');
+    playSound('sparkle');
     setRewardMessage('You defeated the boss! Choose a reward.');
     setRewardClaimed(false);
     setRevealedHint(null);
   }, []);
 
-  const showVictoryScreen = useCallback(
-    (finalScore) => {
-      setGameState('victory');
-      setGameOverMessage(`🎉 Victory! You defeated all ${totalRounds} bosses!\nFinal Score: ${finalScore}`);
-    },
-    [totalRounds]
-  );
+  const showVictoryScreen = useCallback(() => {
+    setGameState('victory');
+    playSound('victory');
+  }, []);
 
   const advanceToNextRound = useCallback(() => {
     if (round >= totalRounds) {
-      schedule(() => showVictoryScreen(score), 900);
+      schedule(() => showVictoryScreen(), 900);
       return;
     }
 
@@ -225,10 +224,11 @@ export default function AlphaQuest({ onClose }) {
       setFeedback('Next boss incoming! Listen to the letter!');
       setRevealedHint(null);
       playBossAnim('enter');
+      playSound('whoosh');
       showRoundBanner(`Round ${round + 1}`);
       speakLetter(newLetter);
     }, 900);
-  }, [difficulty, getRandomBossEmoji, getRandomLetter, playBossAnim, round, schedule, score, showRoundBanner, showVictoryScreen, speakLetter, totalRounds]);
+  }, [difficulty, getRandomBossEmoji, getRandomLetter, playBossAnim, round, schedule, showRoundBanner, showVictoryScreen, speakLetter, totalRounds]);
 
   const handleRewardChoice = useCallback(
     (rewardType) => {
@@ -243,6 +243,7 @@ export default function AlphaQuest({ onClose }) {
         setRewardClaimed('health');
         setPlayerHealth((currentHealth) => Math.min(currentHealth + 1, maxPlayerHealth));
         setRewardMessage('You gained 1 heart.');
+        playSound('heal');
         playPlayerAnim('heal');
         advanceToNextRound();
         return;
@@ -252,6 +253,7 @@ export default function AlphaQuest({ onClose }) {
         setRewardClaimed('hints');
         setHintCount((currentHintCount) => currentHintCount + 2);
         setRewardMessage('You gained 2 hints.');
+        playSound('powerUp');
         advanceToNextRound();
       }
     },
@@ -264,6 +266,7 @@ export default function AlphaQuest({ onClose }) {
     const hint = getCurrentHint(currentLetter);
     setHintCount((currentHintCount) => Math.max(currentHintCount - 1, 0));
     setRevealedHint(hint);
+    playSound('sparkle');
     setFeedback(hint ? '💡 Hint revealed!' : 'Hint clue is unavailable for this letter.');
   }, [currentLetter, getCurrentHint, hintCount]);
 
@@ -292,6 +295,7 @@ export default function AlphaQuest({ onClose }) {
     playPlayerAnim('');
     playBossAnim('enter');
     showRoundBanner('Round 1');
+    playSound('start');
 
     const letter = getRandomLetter();
     const boss = getRandomBossEmoji(mode.emojis);
@@ -338,6 +342,7 @@ export default function AlphaQuest({ onClose }) {
           setScore(newScore);
           setIsLocked(true);
           playBossAnim('defeated');
+          playSound('enemyDefeated');
           addFloater(`+${10 + streak}`, 'boss', 'score');
 
           if (newStreak % 3 === 0 && (difficulty === 'intermediate' || difficulty === 'endless')) {
@@ -354,7 +359,7 @@ export default function AlphaQuest({ onClose }) {
           schedule(() => {
             setIsLocked(false);
             if (round >= totalRounds) {
-              showVictoryScreen(newScore);
+              showVictoryScreen();
             } else {
               showRewardScreen();
             }
@@ -364,6 +369,7 @@ export default function AlphaQuest({ onClose }) {
           setBossHealth(newBossHealth);
           setStreak(newStreak);
           playBossAnim('hit');
+          playSound(newStreak >= 3 ? 'combo' : 'hit');
           setFeedback(`✓ Correct! Boss took damage!`);
           const newLetter = getRandomLetter();
           setCurrentLetter(newLetter);
@@ -378,6 +384,7 @@ export default function AlphaQuest({ onClose }) {
         launchAttack('to-player');
         addFloater('-1', 'player', 'damage');
         shakeBattle();
+        playSound('hurt');
 
         if (newPlayerHealth <= 0) {
           // Game over
@@ -387,7 +394,7 @@ export default function AlphaQuest({ onClose }) {
           schedule(() => {
             setIsLocked(false);
             setGameState('gameOver');
-            setGameOverMessage('You Died');
+            playSound('lose');
           }, PLAYER_DEFEAT_DELAY);
         } else {
           playPlayerAnim('hit');
@@ -417,280 +424,311 @@ export default function AlphaQuest({ onClose }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, handleLetterPress]);
 
+  const difficultyCards = [
+    { key: 'beginner', icon: '🟢', color: 'green', preview: '👾' },
+    { key: 'intermediate', icon: '🟡', color: 'amber', preview: '🐉' },
+    { key: 'endless', icon: '🔴', color: 'red', preview: '👹' },
+  ];
+  const roundLabel = totalRounds === Infinity ? '∞' : totalRounds;
+
   return (
-    <div className="alpha-quest-container">
-      {gameState === 'menu' && (
-        <div className="alpha-quest-menu">
-          <div className="alpha-quest-title">
-            <span className="alpha-quest-icon">⚔️</span>
-            <h1>AlphaQuest</h1>
-            <span className="alpha-quest-icon">🎮</span>
-          </div>
-          <p className="alpha-quest-subtitle">Listen to the pronunciation and type the correct letter!</p>
+    <div className="aq-page">
+      <div className="aq-sky" aria-hidden="true">
+        <span className="aq-moon" />
+        {Array.from({ length: 14 }).map((_, i) => (
+          <span
+            key={i}
+            className="aq-star"
+            style={{ '--i': i, top: `${4 + ((i * 37) % 45)}%`, left: `${3 + ((i * 53) % 94)}%` }}
+          />
+        ))}
+        <span className="aq-castle left" />
+        <span className="aq-castle right" />
+      </div>
 
-          <div className="alpha-quest-difficulty-buttons">
-            <button
-              className="alpha-quest-difficulty-btn beginner-btn"
-              onClick={() => startGame('beginner')}
-            >
-              <div className="difficulty-icon">🟢</div>
-              <div className="difficulty-name">Beginner</div>
-              <div className="difficulty-desc">3 Rounds | 4 ❤️</div>
-            </button>
-            <button
-              className="alpha-quest-difficulty-btn intermediate-btn"
-              onClick={() => startGame('intermediate')}
-            >
-              <div className="difficulty-icon">🟡</div>
-              <div className="difficulty-name">Intermediate</div>
-              <div className="difficulty-desc">4 Rounds | 4 ❤️</div>
-            </button>
-            <button
-              className="alpha-quest-difficulty-btn endless-btn"
-              onClick={() => startGame('endless')}
-            >
-              <div className="difficulty-icon">🔴</div>
-              <div className="difficulty-name">Endless</div>
-              <div className="difficulty-desc">∞ Rounds | 4 ❤️</div>
+      <div className="aq-shell">
+        <div className="aq-topbar">
+          <div className="aq-brand">
+            <span className="aq-brand-icon" aria-hidden="true">⚔️</span>
+            <div>
+              <h1>AlphaQuest</h1>
+              <span>Hear the letter. Strike the boss!</span>
+            </div>
+          </div>
+          <div className="aq-topbar-actions">
+            <SoundToggle />
+            <button type="button" className="aq-ghost-btn" onClick={onClose}>
+              ← Alphabet
             </button>
           </div>
-
-          <button type="button" className="alpha-quest-close-btn" onClick={onClose}>
-            ← Return to Alphabet Module
-          </button>
         </div>
-      )}
 
-      {(gameState === 'playing' || gameState === 'reward') && (
-        <div className="alpha-quest-game">
-          <div className="alpha-quest-header">
-            <div className="game-info">
-              <p className="game-round">Round {round} / {totalRounds === Infinity ? '∞' : totalRounds}</p>
-              <p className="game-difficulty">{DIFFICULTY_MODES[difficulty].name}</p>
+        {gameState === 'menu' && (
+          <section className="aq-card aq-menu">
+            <div className="aq-menu-hero" aria-hidden="true">
+              <span className="aq-menu-hero-player">🧙</span>
+              <span className="aq-menu-hero-vs">⚔️</span>
+              <span className="aq-menu-hero-boss">👾</span>
             </div>
-            <div className="game-score">Score: {score}</div>
-            <button type="button" className="alpha-quest-quit-btn" onClick={returnToMenu}>
-              ← Return
-            </button>
-          </div>
 
-          {gameState === 'reward' &&
-            createPortal(
-              <div className="alpha-quest-reward-overlay" role="dialog" aria-modal="true" aria-label="Boss reward selection">
-                <div className="alpha-quest-reward-card">
-                  <div className="alpha-quest-reward-trophy">
-                    <span className="alpha-quest-reward-sparkle s1" aria-hidden="true">✨</span>
-                    <span className="alpha-quest-reward-sparkle s2" aria-hidden="true">⭐</span>
-                    <span className="alpha-quest-reward-sparkle s3" aria-hidden="true">✨</span>
-                    <span className="alpha-quest-reward-sparkle s4" aria-hidden="true">⭐</span>
-                    <div className="alpha-quest-reward-emoji">🏆</div>
-                  </div>
-                  <h2 key={rewardMessage}>{rewardMessage || 'You defeated the boss!'}</h2>
-                  <p>Choose one reward before the next boss appears.</p>
+            <div className="aq-menu-copy">
+              <p className="aq-kicker">Letter battle</p>
+              <h2>Choose your quest!</h2>
+              <p>Listen to each letter, then type or tap it to attack the boss.</p>
+            </div>
 
-                  <div className="alpha-quest-reward-options">
-                    <button
-                      type="button"
-                      className={`alpha-quest-reward-btn health ${rewardClaimed === 'health' ? 'claimed' : ''}`}
-                      onClick={() => handleRewardChoice('health')}
-                      disabled={Boolean(rewardClaimed)}
-                    >
-                      <span className="reward-icon" aria-hidden="true">❤️</span>
-                      <span className="reward-title">Health</span>
-                      <span className="reward-subtitle">+1 heart</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`alpha-quest-reward-btn hints ${rewardClaimed === 'hints' ? 'claimed' : ''}`}
-                      onClick={() => handleRewardChoice('hints')}
-                      disabled={Boolean(rewardClaimed)}
-                    >
-                      <span className="reward-icon" aria-hidden="true">💡</span>
-                      <span className="reward-title">Hints</span>
-                      <span className="reward-subtitle">+2 hints</span>
-                    </button>
-                  </div>
+            <div className="aq-rules">
+              <span>🔊 Listen</span>
+              <span>⌨️ Type the letter</span>
+              <span>⚡ Hit the boss</span>
+              <span>🏆 Defeat them all</span>
+            </div>
 
-                  <p className="alpha-quest-reward-note">
-                    {playerHealth >= maxPlayerHealth
-                      ? 'You still have full health, so choose hints instead.'
-                      : 'Health restores 1 heart only when you are damaged.'}
-                  </p>
+            <div className="aq-difficulties">
+              {difficultyCards.map((card, index) => {
+                const mode = DIFFICULTY_MODES[card.key];
+                return (
+                  <button
+                    key={card.key}
+                    type="button"
+                    className={`aq-difficulty aq-${card.color}`}
+                    style={{ '--i': index }}
+                    onClick={() => startGame(card.key)}
+                  >
+                    <span className="aq-difficulty-boss" aria-hidden="true">{card.preview}</span>
+                    <strong>{card.icon} {mode.name}</strong>
+                    <span>{mode.rounds === Infinity ? '∞' : mode.rounds} rounds · {mode.maxHealth} ❤️</span>
+                    <em>▶ Start</em>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {(gameState === 'playing' || gameState === 'reward') && (
+          <section className="aq-game">
+            <div className="aq-hud">
+              <div className="aq-hud-chip">
+                <span>Round</span>
+                <strong>{round}/{roundLabel}</strong>
+              </div>
+              <div className="aq-hud-chip">
+                <span>Mode</span>
+                <strong>{DIFFICULTY_MODES[difficulty].name}</strong>
+              </div>
+              <div className="aq-hud-chip aq-hud-score">
+                <span>Score</span>
+                <strong key={score} className="aq-pop">⭐ {score}</strong>
+              </div>
+              <div className={`aq-hud-chip ${streak >= 3 ? 'on-fire' : ''}`}>
+                <span>Streak</span>
+                <strong key={streak} className="aq-pop">{streak >= 3 ? '🔥' : '⚡'} {streak}</strong>
+              </div>
+              <button type="button" className="aq-ghost-btn aq-hud-quit" onClick={returnToMenu}>
+                ✕ Quit
+              </button>
+            </div>
+
+            <div className={`aq-arena ${isShaking ? 'shake' : ''}`}>
+              {roundBanner && (
+                <div key={roundBanner.id} className="aq-round-banner" aria-hidden="true">
+                  ⚔️ {roundBanner.text} ⚔️
                 </div>
-              </div>,
-              document.body
-            )}
+              )}
 
-          <div className={`alpha-quest-battle ${isShaking ? 'shake' : ''}`}>
-            {roundBanner && (
-              <div key={roundBanner.id} className="aq-round-banner" aria-hidden="true">
-                ⚔️ {roundBanner.text} ⚔️
-              </div>
-            )}
-
-            {attack && (
-              <span key={attack.id} className={`aq-projectile ${attack.direction}`} aria-hidden="true">
-                {attack.direction === 'to-boss' ? '⚡' : '💥'}
-              </span>
-            )}
-
-            {/* Player Side */}
-            <div className="alpha-quest-player-side">
-              <div key={`player-${playerAnim.id}`} className={`aq-actor player-anim-${playerAnim.type || 'idle'}`}>
-                <div className="player-emoji">{getPlayerEmoji()}</div>
-              </div>
-              <div className="player-health">
-                {Array.from({ length: maxPlayerHealth }).map((_, i) => (
-                  <span key={i} className={`heart ${i < playerHealth ? 'full' : 'empty'}`}>
-                    ❤️
-                  </span>
-                ))}
-              </div>
-              {floaters
-                .filter((floater) => floater.side === 'player')
-                .map((floater) => (
-                  <span key={floater.id} className={`aq-floater ${floater.kind}`} aria-hidden="true">
-                    {floater.text}
-                  </span>
-                ))}
-            </div>
-
-            {/* Boss Side */}
-            <div className="alpha-quest-boss-side">
-              <div className="boss-display">
-                <div key={`boss-${bossAnim.id}`} className={`aq-actor boss-anim-${bossAnim.type || 'idle'}`}>
-                  <div className="boss-emoji">{currentBoss}</div>
-                </div>
-              </div>
-              <div className="boss-health">
-                {Array.from({ length: maxBossHealth }).map((_, i) => (
-                  <span key={i} className={`heart ${i < bossHealth ? 'full' : 'empty'}`}>
-                    ❤️
-                  </span>
-                ))}
-              </div>
-              {floaters
-                .filter((floater) => floater.side === 'boss')
-                .map((floater) => (
-                  <span key={floater.id} className={`aq-floater ${floater.kind}`} aria-hidden="true">
-                    {floater.text}
-                  </span>
-                ))}
-            </div>
-          </div>
-
-          <div
-            key={feedback}
-            className={`alpha-quest-feedback ${feedback.startsWith('✓') ? 'good' : ''} ${feedback.startsWith('✗') ? 'bad' : ''}`}
-          >
-            {feedback}
-          </div>
-
-          <div className="alpha-quest-hint-status">
-            <div key={hintCount} className="alpha-quest-hint-count">💡 Hints: {hintCount}</div>
-            {revealedHint && (
-              <div className="alpha-quest-hint-card" aria-live="polite">
-                <span className="alpha-quest-hint-icon" aria-hidden="true">
-                  {revealedHint.icon}
+              {attack && (
+                <span key={attack.id} className={`aq-projectile ${attack.direction}`} aria-hidden="true">
+                  {attack.direction === 'to-boss' ? '⚡' : '💥'}
                 </span>
-                <span className="alpha-quest-hint-sr-only">Object clue revealed</span>
+              )}
+
+              <div className="aq-fighter aq-player">
+                <span className="aq-nameplate">🧙 You</span>
+                <div key={`player-${playerAnim.id}`} className={`aq-actor player-anim-${playerAnim.type || 'idle'}`}>
+                  <div className="aq-fighter-emoji">{getPlayerEmoji()}</div>
+                </div>
+                <div className="aq-hearts">
+                  {Array.from({ length: maxPlayerHealth }).map((_, i) => (
+                    <span key={i} className={`aq-heart ${i < playerHealth ? 'full' : 'empty'}`}>❤️</span>
+                  ))}
+                </div>
+                {floaters
+                  .filter((floater) => floater.side === 'player')
+                  .map((floater) => (
+                    <span key={floater.id} className={`aq-floater ${floater.kind}`} aria-hidden="true">
+                      {floater.text}
+                    </span>
+                  ))}
+              </div>
+
+              <span className="aq-vs" aria-hidden="true">VS</span>
+
+              <div className="aq-fighter aq-boss">
+                <span className="aq-nameplate">👑 Boss</span>
+                <div key={`boss-${bossAnim.id}`} className={`aq-actor boss-anim-${bossAnim.type || 'idle'}`}>
+                  <div className="aq-fighter-emoji">{currentBoss}</div>
+                </div>
+                <div className="aq-hearts">
+                  {Array.from({ length: maxBossHealth }).map((_, i) => (
+                    <span key={i} className={`aq-heart ${i < bossHealth ? 'full' : 'empty'}`}>❤️</span>
+                  ))}
+                </div>
+                {floaters
+                  .filter((floater) => floater.side === 'boss')
+                  .map((floater) => (
+                    <span key={floater.id} className={`aq-floater ${floater.kind}`} aria-hidden="true">
+                      {floater.text}
+                    </span>
+                  ))}
+              </div>
+            </div>
+
+            <p
+              key={feedback}
+              className={`aq-feedback ${feedback.startsWith('✓') ? 'good' : ''} ${feedback.startsWith('✗') ? 'bad' : ''}`}
+            >
+              {feedback}
+            </p>
+
+            <div className="aq-controls">
+              <button
+                type="button"
+                className="aq-btn aq-listen"
+                onClick={() => currentLetter && speakLetter(currentLetter)}
+                disabled={gameState === 'reward'}
+              >
+                🔊 Listen Again
+              </button>
+              <button
+                type="button"
+                className="aq-btn aq-hint"
+                onClick={handleUseHint}
+                disabled={gameState === 'reward' || hintCount <= 0}
+              >
+                💡 Use Hint <b key={hintCount}>{hintCount}</b>
+              </button>
+              {revealedHint && (
+                <div className="aq-hint-card" aria-live="polite">
+                  <span aria-hidden="true">{revealedHint.icon}</span>
+                  <span className="aq-sr-only">Object clue revealed</span>
+                </div>
+              )}
+            </div>
+
+            <div className="aq-keyboard">
+              <span className="aq-keyboard-hint">⌨️ Type the letter or tap it below</span>
+              <div className="aq-letters">
+                {ALPHABET.map((letter, index) => (
+                  <button
+                    key={letter}
+                    type="button"
+                    className={`aq-letter ${
+                      pressedKey && pressedKey.letter === letter ? (pressedKey.correct ? 'correct' : 'wrong') : ''
+                    }`}
+                    style={{ '--i': index }}
+                    onClick={() => handleLetterPress(letter)}
+                    disabled={gameState === 'reward' || isLocked}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {gameState === 'reward' &&
+              createPortal(
+                <div className="aq-modal-backdrop" role="dialog" aria-modal="true" aria-label="Boss reward selection">
+                  <div className="aq-modal">
+                    <div className="aq-modal-trophy">
+                      <span className="aq-sparkle s1" aria-hidden="true">✨</span>
+                      <span className="aq-sparkle s2" aria-hidden="true">⭐</span>
+                      <span className="aq-sparkle s3" aria-hidden="true">✨</span>
+                      <span className="aq-sparkle s4" aria-hidden="true">⭐</span>
+                      <div className="aq-modal-emoji">🏆</div>
+                    </div>
+                    <h2 key={rewardMessage}>{rewardMessage || 'You defeated the boss!'}</h2>
+                    <p>Choose one reward before the next boss appears.</p>
+
+                    <div className="aq-rewards">
+                      <button
+                        type="button"
+                        className={`aq-reward health ${rewardClaimed === 'health' ? 'claimed' : ''}`}
+                        onClick={() => handleRewardChoice('health')}
+                        disabled={Boolean(rewardClaimed)}
+                      >
+                        <span className="aq-reward-icon" aria-hidden="true">❤️</span>
+                        <strong>Health</strong>
+                        <span>+1 heart</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`aq-reward hints ${rewardClaimed === 'hints' ? 'claimed' : ''}`}
+                        onClick={() => handleRewardChoice('hints')}
+                        disabled={Boolean(rewardClaimed)}
+                      >
+                        <span className="aq-reward-icon" aria-hidden="true">💡</span>
+                        <strong>Hints</strong>
+                        <span>+2 hints</span>
+                      </button>
+                    </div>
+
+                    <p className="aq-modal-note">
+                      {playerHealth >= maxPlayerHealth
+                        ? 'You still have full health, so choose hints instead.'
+                        : 'Health restores 1 heart only when you are damaged.'}
+                    </p>
+                  </div>
+                </div>,
+                document.body
+              )}
+          </section>
+        )}
+
+        {(gameState === 'gameOver' || gameState === 'victory') && (
+          <section className={`aq-card aq-end ${gameState === 'victory' ? 'victory' : 'defeat'}`}>
+            {gameState === 'victory' && (
+              <div className="aq-confetti" aria-hidden="true">
+                {CONFETTI_PIECES.map((piece, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      left: `${piece.left}%`,
+                      background: piece.color,
+                      animationDelay: `${piece.delay}s`,
+                      animationDuration: `${piece.duration}s`,
+                    }}
+                  />
+                ))}
               </div>
             )}
-          </div>
 
-          <div className="alpha-quest-controls">
-            <button
-              type="button"
-              className="alpha-quest-listen-btn"
-              onClick={() => currentLetter && speakLetter(currentLetter)}
-              disabled={gameState === 'reward'}
-            >
-              🔊 Listen Again
-            </button>
-            <button
-              type="button"
-              className="alpha-quest-hint-btn"
-              onClick={handleUseHint}
-              disabled={gameState === 'reward' || hintCount <= 0}
-            >
-              💡 Use Hint
-            </button>
-          </div>
+            <div className="aq-end-emoji" aria-hidden="true">{gameState === 'victory' ? '🏆' : '😵'}</div>
+            <p className="aq-kicker">{gameState === 'victory' ? 'Quest complete' : 'Game over'}</p>
+            <h2>{gameState === 'victory' ? 'Victory!' : 'You were defeated!'}</h2>
+            <p className="aq-end-message">
+              {gameState === 'victory'
+                ? `You defeated all ${roundLabel} bosses!`
+                : 'The boss was too strong this time. Try again!'}
+            </p>
 
-          <div key={streak} className={`alpha-quest-streak ${streak >= 3 ? 'on-fire' : ''}`}>
-            {streak >= 3 && <span className="aq-fire" aria-hidden="true">🔥</span>}
-            Streak: {streak}
-          </div>
-
-          <div className="alpha-quest-keyboard-hint">
-            Type the letter or click below
-          </div>
-
-          {/* On-screen letter buttons */}
-          <div className="alpha-quest-letter-buttons">
-            {ALPHABET.map((letter) => (
-              <button
-                key={letter}
-                className={`alpha-quest-letter-btn ${
-                  pressedKey && pressedKey.letter === letter ? (pressedKey.correct ? 'correct' : 'wrong') : ''
-                }`}
-                onClick={() => handleLetterPress(letter)}
-                disabled={gameState === 'reward' || isLocked}
-              >
-                {letter}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {(gameState === 'gameOver' || gameState === 'victory') && (
-        <div className="alpha-quest-game-over">
-          {gameState === 'victory' && (
-            <div className="aq-confetti" aria-hidden="true">
-              {CONFETTI_PIECES.map((piece, i) => (
-                <span
-                  key={i}
-                  style={{
-                    left: `${piece.left}%`,
-                    background: piece.color,
-                    animationDelay: `${piece.delay}s`,
-                    animationDuration: `${piece.duration}s`,
-                  }}
-                />
-              ))}
+            <div className="aq-end-stats">
+              <div><span>Score</span><strong>⭐ {score}</strong></div>
+              <div><span>Round</span><strong>⚔️ {round}/{roundLabel}</strong></div>
+              <div><span>Mode</span><strong>{difficulty ? DIFFICULTY_MODES[difficulty].name : '-'}</strong></div>
             </div>
-          )}
-          <div className={`game-over-modal ${gameState === 'victory' ? 'victory' : 'defeat'}`}>
-            {gameState === 'gameOver' && (
-              <>
-                <div className="game-over-emoji">😵</div>
-                <h2 className="game-over-title">{gameOverMessage}</h2>
-                <p className="game-over-stats">
-                  Made it to Round {round}/{totalRounds === Infinity ? '∞' : totalRounds}
-                  <br />
-                  Final Score: {score}
-                </p>
-              </>
-            )}
-            {gameState === 'victory' && (
-              <>
-                <div className="game-over-emoji">🎉</div>
-                <h2 className="game-over-title">{gameOverMessage}</h2>
-              </>
-            )}
 
-            <div className="game-over-buttons">
-              <button type="button" className="game-over-btn play-again" onClick={() => setGameState('menu')}>
-                Play Again
+            <div className="aq-end-actions">
+              <button type="button" className="aq-btn aq-btn-soft" onClick={onClose}>
+                ← Alphabet
               </button>
-              <button type="button" className="game-over-btn back-to-alpha" onClick={onClose}>
-                Return to Alphabet Module
+              <button type="button" className="aq-btn aq-pulse" onClick={() => setGameState('menu')}>
+                ↻ Play Again
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

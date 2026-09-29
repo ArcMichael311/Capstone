@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './VowelRush.css';
+import { playSound } from '../../shared/gameSounds';
+import SoundToggle from '../../shared/SoundToggle';
 import { doubleVowelExamples } from '../DoubleVowelLesson/doubleVowelData';
 
 const vowelLetters = new Set(['A', 'E', 'I', 'O', 'U']);
@@ -261,6 +263,7 @@ export default function VowelRush({ onClose }) {
     setEffectState('');
     setComboFlash(false);
     setScreen(nextScreen);
+    playSound(nextScreen === 'gameover' ? 'lose' : 'victory');
   };
 
   const scheduleNextStar = () => {
@@ -307,9 +310,10 @@ export default function VowelRush({ onClose }) {
 
   const beginCountdown = () => {
     setCountdown(3);
-    scheduleFx(() => setCountdown(2), 700);
-    scheduleFx(() => setCountdown(1), 1400);
-    scheduleFx(() => setCountdown('GO!'), 2100);
+    playSound('countdown');
+    scheduleFx(() => { setCountdown(2); playSound('countdown'); }, 700);
+    scheduleFx(() => { setCountdown(1); playSound('countdown'); }, 1400);
+    scheduleFx(() => { setCountdown('GO!'); playSound('go'); }, 2100);
     scheduleFx(() => setCountdown(null), 2700);
     starTimerRef.current = window.setTimeout(spawnStar, 2500);
   };
@@ -412,6 +416,7 @@ export default function VowelRush({ onClose }) {
       setStatusMessage('⭐ +1 Point');
       pulseEffect('correct');
       addEffect('catch', star.lane, '+1');
+      playSound('coin');
 
       if (nextStreak >= comboTarget) {
         const nextHearts = Math.min(heartsRef.current + 1, maxHearts);
@@ -422,6 +427,7 @@ export default function VowelRush({ onClose }) {
         setCombos((current) => current + 1);
         setStatusMessage('🔥 COMBO x5  ❤️ +1 Heart');
         addEffect('heal', star.lane, '+1 ❤️');
+        playSound('combo');
         handleCombo();
       }
     } else if (caught && basketMatches && !star.isVowel) {
@@ -434,6 +440,7 @@ export default function VowelRush({ onClose }) {
       setStatusMessage(`💔 ${star.letter} is a consonant! -1 Heart`);
       pulseEffect('wrong');
       addEffect('hit', star.lane, '-1 ❤️');
+      playSound('hurt');
 
       if (nextHearts <= 0) {
         clearTimers();
@@ -445,6 +452,7 @@ export default function VowelRush({ onClose }) {
       setStreak(0);
       setStatusMessage(`${star.letter} was a vowel — it slipped past!`);
       addEffect('miss', star.lane, 'MISS');
+      playSound('whoosh');
     } else {
       streakRef.current = 0;
       setStreak(0);
@@ -479,20 +487,23 @@ export default function VowelRush({ onClose }) {
           <span>Fast vowels, sharp eyes.</span>
         </div>
       </div>
-      {typeof onClose === 'function' ? (
-        <button
-          type="button"
-          className="rush-secondary-btn"
-          onClick={() => {
-            stopSpeech();
-            clearTimers();
-            clearFxTimers();
-            onClose();
-          }}
-        >
-          ← Return to Vowels
-        </button>
-      ) : null}
+      <div className="rush-topbar-actions">
+        <SoundToggle />
+        {typeof onClose === 'function' ? (
+          <button
+            type="button"
+            className="rush-secondary-btn"
+            onClick={() => {
+              stopSpeech();
+              clearTimers();
+              clearFxTimers();
+              onClose();
+            }}
+          >
+            ← Return to Vowels
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 
