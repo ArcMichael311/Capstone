@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,9 @@ import com.phonexis.backend.Repository.UserRepository;
 public class ProgressService {
 	private final ProgressRepository progressRepository;
 	private final UserRepository userRepository;
+
+	@Value("${app.device-lock.enabled:true}")
+	private boolean deviceLockEnabled = true;
 
 	public ProgressService(ProgressRepository progressRepository, UserRepository userRepository) {
 		this.progressRepository = progressRepository;
@@ -178,6 +182,9 @@ public class ProgressService {
 	}
 
 	private void assertActiveDevice(User user, String deviceId) {
+		if (!deviceLockEnabled) {
+			return;
+		}
 		String activeDeviceId = user.getActiveDeviceId();
 		String requestedDeviceId = deviceId == null ? "" : deviceId.trim();
 		if (activeDeviceId == null || activeDeviceId.isBlank() || requestedDeviceId.isEmpty()

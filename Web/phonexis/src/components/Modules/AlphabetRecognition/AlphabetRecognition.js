@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './AlphabetRecognition.css';
+import './AlphabetPage.css';
 import AlphaQuest from './AlphaQuest';
 import VoicePractice from '../../VoicePractice/VoicePractice';
 
@@ -32,10 +33,34 @@ const alphabet = [
   { letter: 'Z', word: 'Zebra', icon: '🦓' },
 ];
 
+const difficultyInfo = {
+  easy: { label: 'Easy', icon: '🟢', color: 'green', range: 'Letters A – M', next: 'medium' },
+  medium: { label: 'Medium', icon: '🟡', color: 'amber', range: 'Letters N – Z', next: 'hard' },
+  hard: { label: 'Hard', icon: '🔴', color: 'red', range: 'All letters A – Z', next: null },
+};
+
+const fryListColors = ['blue', 'purple', 'green', 'orange'];
+
+const confettiColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#fbbf24', '#ec4899'];
+const confettiPieces = Array.from({ length: 36 }, (_, i) => ({
+  left: (i * 29) % 100,
+  delay: (i % 10) * 0.12,
+  duration: 2.2 + (i % 5) * 0.35,
+  color: confettiColors[i % confettiColors.length],
+}));
+
+const getResultStars = (score, max) => {
+  const ratio = max > 0 ? score / max : 0;
+  if (ratio >= 1) return 3;
+  if (ratio >= 0.7) return 2;
+  if (ratio >= 0.4) return 1;
+  return 0;
+};
+
 export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], alphabetScores = {}, initialSection = null, onNavigate }) {
   const [selectedLetter, setSelectedLetter] = useState(alphabet[0]);
   const [feedback, setFeedback] = useState('Choose a letter to see its sample object.');
-  const [mode, setMode] = useState('learning'); // 'learning' or 'pretest'
+  const [mode, setMode] = useState('learning'); // 'learning', 'pretest' or 'result'
   const [difficulty, setDifficulty] = useState(null); // 'easy', 'medium', 'hard'
   const [currentPretestLetter, setCurrentPretestLetter] = useState(null);
   const [hasListened, setHasListened] = useState(false);
@@ -46,6 +71,16 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const [wrongPromptLetters, setWrongPromptLetters] = useState([]); // Track spoken letters answered incorrectly
   const [completedPromptLetters, setCompletedPromptLetters] = useState([]); // Track spoken letters that should not be replayed
   const [showAlphaQuest, setShowAlphaQuest] = useState(false); // Track if AlphaQuest is active
+
+  // Gamification + animation state
+  const [exploredLetters, setExploredLetters] = useState(['A']);
+  const [heardFryWords, setHeardFryWords] = useState([]);
+  const [attemptHistory, setAttemptHistory] = useState([]);
+  const [lastAnswer, setLastAnswer] = useState(null);
+  const [pretestResult, setPretestResult] = useState(null);
+  const [letterTap, setLetterTap] = useState(0);
+  const answerIdRef = useRef(0);
+
   const letters = useMemo(() => alphabet.map((item) => item.letter), []);
   const selectedIndex = letters.indexOf(selectedLetter.letter);
   const isFryWordsView = initialSection === 'frywords';
@@ -58,6 +93,11 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     ],
     []
   );
+  const totalFryWords = fryWordColumns.reduce((sum, column) => sum + column.length, 0);
+
+  const markExplored = (letter) => {
+    setExploredLetters((current) => (current.includes(letter) ? current : [...current, letter]));
+  };
 
   const speakLetter = (letterToSpeak = selectedLetter) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -114,9 +154,15 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setFeedback(`Speaking word: ${word}`);
   };
 
+  const handleFryWord = (key, word) => {
+    speakFryWord(word);
+    setHeardFryWords((current) => (current.includes(key) ? current : [...current, key]));
+  };
+
   const handlePick = (letter) => {
     const nextSelected = alphabet.find((item) => item.letter === letter) ?? alphabet[0];
     setSelectedLetter(nextSelected);
+    markExplored(nextSelected.letter);
     speakLetterAndWord(nextSelected);
   };
 
@@ -124,6 +170,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     const nextIndex = (selectedIndex + offset + alphabet.length) % alphabet.length;
     const nextSelected = alphabet[nextIndex];
     setSelectedLetter(nextSelected);
+    markExplored(nextSelected.letter);
     setFeedback(`Selected ${nextSelected.letter} - ${nextSelected.word}.`);
   };
 
@@ -173,6 +220,9 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setWrongPromptLetters([]);
     setCompletedPromptLetters([]);
     setHasListened(false);
+    setAttemptHistory([]);
+    setLastAnswer(null);
+    setPretestResult(null);
 
     const range = diff === 'easy'
       ? alphabet.slice(0, 13).map((item) => item.letter)
@@ -195,8 +245,17 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     if (showAlphaQuest) {
       setShowAlphaQuest(false);
     }
-    if (['easy', 'medium', 'hard'].includes(initialSection) && (mode !== 'pretest' || difficulty !== initialSection)) {
-      resetPretestState(initialSection);
+
+    if (['easy', 'medium', 'hard'].includes(initialSection)) {
+      // Keep the results screen up until the student chooses what to do next.
+      if (difficulty !== initialSection || (mode !== 'pretest' && mode !== 'result')) {
+        resetPretestState(initialSection);
+      }
+      return;
+    }
+
+    if (mode !== 'learning') {
+      setMode('learning');
     }
   }, [difficulty, initialSection, mode, resetPretestState, showAlphaQuest]);
 
@@ -238,6 +297,9 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     const nextCompletedPromptLetters = [...new Set([...completedPromptLetters, currentLetter])];
     const nextLetter = pickNextPretestLetter(range, nextCorrectLetters, nextWrongPromptLetters, nextCompletedPromptLetters);
 
+    answerIdRef.current += 1;
+    setLastAnswer({ id: answerIdRef.current, letter, correct: isCorrect });
+    setAttemptHistory((current) => [...current, isCorrect]);
     setCorrectLetters(nextCorrectLetters);
     setWrongPromptLetters(nextWrongPromptLetters);
     setCompletedPromptLetters(nextCompletedPromptLetters);
@@ -246,19 +308,21 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     setFeedback(isCorrect ? `✓ Check! ${letter} is correct.` : `✗ Wrong! ${currentLetter} is incorrect.`);
 
     if (newTotalAttempts >= maxAttempts || !nextLetter) {
+      const finishedDifficulty = difficulty;
+      setCurrentPretestLetter(null);
+      setHasListened(false);
       setTimeout(() => {
         setFeedback(`Pretest Complete! Score: ${nextScore}/${maxAttempts}`);
-        setMode('learning');
-        setCurrentPretestLetter(null);
-        setHasListened(false);
+        setPretestResult({ difficulty: finishedDifficulty, score: nextScore, max: maxAttempts });
+        setMode('result');
 
         // Notify parent of mode completion and update progress
         if (typeof onProgressUpdate === 'function') {
-          onProgressUpdate(difficulty);
+          onProgressUpdate(finishedDifficulty);
         }
 
         if (typeof onPretestComplete === 'function') {
-          onPretestComplete(difficulty, nextScore, maxAttempts);
+          onPretestComplete(finishedDifficulty, nextScore, maxAttempts);
         }
       }, 1500);
       return;
@@ -272,65 +336,53 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     }, 1000);
   };
 
-  return (
-    <div className="module-detail alphabet-module">
-      <div className="alphabet-topbar">
-        <p className="module-detail-label">
-          {isFryWordsView ? 'Alphabet Recognition' : mode === 'learning' ? 'Alphabet Recognition' : `Pretest - ${difficulty?.toUpperCase()}`}
-        </p>
+  const renderHero = ({ icon, kicker, title, subtitle, stat, color = 'blue' }) => (
+    <header className={`ar-hero ar-${color}`}>
+      <span className="ar-hero-icon" aria-hidden="true">{icon}</span>
+      <div className="ar-hero-copy">
+        <span className="ar-hero-kicker">{kicker}</span>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
       </div>
+      {stat}
+    </header>
+  );
 
-      {isFryWordsView ? (
-        <div className="alphabet-stage">
-          <div className="fry-words-section">
-            <div className="fry-words-header-wrap">
-              <h3 className="fry-words-title">Fry Words – The First Hundred</h3>
-              <p className="fry-words-subtitle">High-frequency sight words for reading practice</p>
+  const renderLearning = () => {
+    const exploredPercent = Math.round((exploredLetters.length / letters.length) * 100);
+
+    return (
+      <>
+        {renderHero({
+          icon: '🔤',
+          kicker: '🗺️ Letter Land',
+          title: 'Learn the Alphabet',
+          subtitle: 'Tap a letter to hear it and meet its friend!',
+          stat: (
+            <div className="ar-hero-stat">
+              <strong key={exploredLetters.length} className="ar-pop">{exploredLetters.length}<small>/26</small></strong>
+              <span>Letters explored</span>
+              <div className="ar-meter"><div style={{ '--p': `${exploredPercent}%` }} /></div>
             </div>
+          ),
+        })}
 
-            <div className="fry-words-panel">
-              <div className="fry-words-header-row">
-                {['List 1', 'List 2', 'List 3', 'List 4'].map((label) => (
-                  <span key={label} className="fry-words-column-header">{label}</span>
-                ))}
-              </div>
+        <section className="ar-stage">
+          <button type="button" className="ar-arrow" onClick={() => goToRelativeLetter(-1)} aria-label="Previous letter">
+            ‹
+          </button>
 
-              <div className="fry-words-list-wrap">
-                {fryWordColumns.map((column, columnIndex) => (
-                  <ul key={`fry-column-${columnIndex}`} className="fry-words-list" aria-label={`Fry words list ${columnIndex + 1}`}>
-                    {column.map((word, index) => (
-                      <li
-                        key={`${columnIndex}-${word}-${index}`}
-                        className="fry-word-item"
-                        onClick={() => speakFryWord(word)}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            speakFryWord(word);
-                          }
-                        }}
-                        aria-label={`Read the word ${word}`}
-                      >
-                        {word}
-                      </li>
-                    ))}
-                  </ul>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : mode === 'learning' ? (
-        <div className="alphabet-stage">
-          <div className="alphabet-display">
+          <div className="ar-cards">
             <div
-              className="alphabet-letter-panel"
-              onClick={() => speakLetter()}
+              className="ar-letter-card"
+              onClick={() => {
+                setLetterTap((current) => current + 1);
+                speakLetter();
+              }}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
+                  setLetterTap((current) => current + 1);
                   speakLetter();
                 }
               }}
@@ -338,11 +390,16 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
               tabIndex={0}
               aria-label={`Read the letter ${selectedLetter.letter}`}
             >
-              <span className="alphabet-letter">{selectedLetter.letter}</span>
+              {letterTap > 0 ? <span key={letterTap} className="ar-ripple" aria-hidden="true" /> : null}
+              <span key={selectedLetter.letter} className="ar-big-letter">
+                {selectedLetter.letter}
+                <small>{selectedLetter.letter.toLowerCase()}</small>
+              </span>
+              <span className="ar-tap-hint">🔊 Tap to hear</span>
             </div>
 
             <div
-              className="alphabet-object-panel"
+              className="ar-object-card"
               onClick={() => speakObjectWord()}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
@@ -354,118 +411,293 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
               tabIndex={0}
               aria-label={`Read the word ${selectedLetter.word}`}
             >
-              <span className="alphabet-object-icon" aria-hidden="true">
+              <span key={`${selectedLetter.letter}-icon`} className="ar-object-icon" aria-hidden="true">
                 {selectedLetter.icon}
               </span>
-              <div>
-                <p className="alphabet-object-word">{selectedLetter.word}</p>
-                <p className="alphabet-object-caption">Sample object</p>
-              </div>
+              <p key={`${selectedLetter.letter}-word`} className="ar-object-word">
+                <b>{selectedLetter.word.charAt(0)}</b>{selectedLetter.word.slice(1)}
+              </p>
+              <span className="ar-tap-hint">🔊 Tap to hear the word</span>
             </div>
           </div>
 
-          <div className="alphabet-actions">
-            <button 
-              type="button" 
-              className="alphabet-voice-practice-btn"
-              onClick={() => setShowVoicePractice(!showVoicePractice)}
-              aria-expanded={showVoicePractice}
-            >
-              🎤 Practice Pronunciation
-            </button>
-            <p className="game-feedback">{feedback}</p>
+          <button type="button" className="ar-arrow" onClick={() => goToRelativeLetter(1)} aria-label="Next letter">
+            ›
+          </button>
+        </section>
+
+        <div className="ar-toolbar">
+          <p key={feedback} className="ar-feedback" aria-live="polite">{feedback}</p>
+          <button
+            type="button"
+            className={`ar-btn ar-btn-mic ${showVoicePractice ? 'active' : ''}`}
+            onClick={() => setShowVoicePractice(!showVoicePractice)}
+            aria-expanded={showVoicePractice}
+          >
+            🎤 {showVoicePractice ? 'Hide Practice' : 'Practice Pronunciation'}
+          </button>
+        </div>
+
+        {showVoicePractice && (
+          <div className="ar-voice-panel">
+            <VoicePractice
+              targetWord={selectedLetter.letter}
+              onResult={(result) => {
+                if (result.success) {
+                  setFeedback(`Great! You pronounced ${selectedLetter.letter} correctly!`);
+                } else {
+                  setFeedback(result.feedback);
+                }
+              }}
+              showTranscript={true}
+            />
           </div>
+        )}
 
-          {showVoicePractice && (
-            <div className="alphabet-voice-practice-wrapper">
-              <VoicePractice 
-                targetWord={selectedLetter.letter}
-                onResult={(result) => {
-                  if (result.success) {
-                    setFeedback(`Great! You pronounced ${selectedLetter.letter} correctly!`);
-                  } else {
-                    setFeedback(result.feedback);
-                  }
-                }}
-                showTranscript={true}
-              />
-            </div>
-          )}
-
-          <div className="alphabet-controls">
-            <button type="button" className="alphabet-nav-button" onClick={() => goToRelativeLetter(-1)}>
-              Previous
-            </button>
-            <button type="button" className="alphabet-nav-button" onClick={() => goToRelativeLetter(1)}>
-              Next
-            </button>
+        <section className="ar-grid-panel">
+          <div className="ar-grid-head">
+            <h2>🧩 Pick a letter</h2>
+            <span>✨ = already explored</span>
           </div>
-
-          <div className="letter-grid" aria-label="Alphabet choices">
-            {letters.map((letter) => (
+          <div className="ar-letter-grid" aria-label="Alphabet choices">
+            {letters.map((letter, index) => (
               <button
                 key={letter}
                 type="button"
-                className={letter === selectedLetter.letter ? 'letter-tile active' : 'letter-tile'}
+                className={[
+                  'ar-tile',
+                  letter === selectedLetter.letter ? 'active' : '',
+                  exploredLetters.includes(letter) ? 'explored' : '',
+                ].join(' ')}
+                style={{ '--i': index }}
                 onClick={() => handlePick(letter)}
               >
                 {letter}
               </button>
             ))}
           </div>
+        </section>
+      </>
+    );
+  };
 
+  const renderPretest = () => {
+    const info = difficultyInfo[difficulty] || difficultyInfo.easy;
+    const maxAttempts = getMaxAttempts(difficulty);
+    const isWaiting = !currentPretestLetter;
+
+    return (
+      <>
+        {renderHero({
+          icon: info.icon,
+          kicker: `🎯 Pretest · ${info.range}`,
+          title: `${info.label} Challenge`,
+          subtitle: 'Listen to the letter, then tap the one you heard!',
+          color: info.color,
+          stat: (
+            <div className="ar-hero-stat ar-score-stat">
+              <strong key={pretestScore} className="ar-pop">⭐ {pretestScore}<small>/{maxAttempts}</small></strong>
+              <span>Score</span>
+              {lastAnswer ? (
+                <span key={lastAnswer.id} className={`ar-float ${lastAnswer.correct ? 'good' : 'bad'}`} aria-hidden="true">
+                  {lastAnswer.correct ? '+1 ⭐' : '✗'}
+                </span>
+              ) : null}
+            </div>
+          ),
+        })}
+
+        <div className="ar-attempts" aria-label={`Attempt ${Math.min(totalAttempts + 1, maxAttempts)} of ${maxAttempts}`}>
+          {Array.from({ length: maxAttempts }).map((_, i) => {
+            const result = attemptHistory[i];
+            const state = result === true ? 'good' : result === false ? 'bad' : i === totalAttempts ? 'now' : '';
+            return (
+              <span key={i} className={`ar-attempt ${state}`}>
+                {result === true ? '✓' : result === false ? '✗' : i + 1}
+              </span>
+            );
+          })}
         </div>
-      ) : mode === 'pretest' ? (
-        <div className="alphabet-stage">
-          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ color: '#667eea', marginBottom: '0.5rem', fontSize: '1.8rem' }}>Listen and Identify</h2>
-            <p style={{ color: '#666', fontSize: '1.1rem', marginBottom: '1rem' }}>
-              Score: {pretestScore}/{getMaxAttempts(difficulty)} (Attempt {totalAttempts}/{getMaxAttempts(difficulty)})
-            </p>
-          </div>
 
-          <div className="alphabet-actions">
-            <button
-              type="button"
-              className="alphabet-speak-button"
-              onClick={() => {
-                if (!currentPretestLetter) {
-                  return;
-                }
+        <section className={`ar-pretest-stage ar-${info.color}`}>
+          <button
+            type="button"
+            className={`ar-listen ${hasListened ? 'listened' : 'waiting'}`}
+            onClick={() => {
+              if (!currentPretestLetter) {
+                return;
+              }
 
-                setHasListened(true);
-                playPretestAudio(currentPretestLetter);
-              }}
-              disabled={!currentPretestLetter}
-              style={{ opacity: !currentPretestLetter ? 0.5 : 1, cursor: !currentPretestLetter ? 'not-allowed' : 'pointer' }}
-            >
-              🔊 Listen
-            </button>
-            <p className="game-feedback">{feedback}</p>
-          </div>
+              setHasListened(true);
+              playPretestAudio(currentPretestLetter);
+            }}
+            disabled={isWaiting}
+          >
+            <span className="ar-listen-wave w1" aria-hidden="true" />
+            <span className="ar-listen-wave w2" aria-hidden="true" />
+            <span className="ar-listen-icon" aria-hidden="true">🔊</span>
+            <span className="ar-listen-label">{hasListened ? 'Listen again' : 'Tap to listen'}</span>
+          </button>
 
-          <div className="letter-grid" aria-label="Letter choices">
-            {getDifficultyRange(difficulty).map((letter) => (
+          <p key={feedback} className={`ar-feedback ${feedback.startsWith('✓') ? 'good' : ''} ${feedback.startsWith('✗') ? 'bad' : ''}`} aria-live="polite">
+            {feedback}
+          </p>
+
+          <div className={`ar-letter-grid ar-answer-grid ${hasListened ? '' : 'locked'}`} aria-label="Letter choices">
+            {getDifficultyRange(difficulty).map((letter, index) => (
               <button
                 key={letter}
                 type="button"
-                className={
-                  correctLetters.includes(letter)
-                    ? 'letter-tile active'
-                      : wrongPromptLetters.includes(letter)
-                    ? 'letter-tile wrong'
-                    : 'letter-tile'
-                }
+                className={[
+                  'ar-tile',
+                  correctLetters.includes(letter) ? 'correct' : '',
+                  wrongPromptLetters.includes(letter) ? 'wrong' : '',
+                  lastAnswer && lastAnswer.letter === letter ? `just-${lastAnswer.correct ? 'correct' : 'wrong'}` : '',
+                ].join(' ')}
+                style={{ '--i': index }}
                 onClick={() => handlePretestAnswer(letter)}
                 disabled={!hasListened || completedPromptLetters.includes(letter)}
               >
                 {letter}
               </button>
             ))}
+            {!hasListened && !isWaiting ? <span className="ar-locked-hint">👂 Listen first!</span> : null}
           </div>
-        </div>
-      ) : null}
+        </section>
+      </>
+    );
+  };
 
+  const renderResult = () => {
+    const result = pretestResult || { difficulty, score: pretestScore, max: getMaxAttempts(difficulty) };
+    const info = difficultyInfo[result.difficulty] || difficultyInfo.easy;
+    const stars = getResultStars(result.score, result.max);
+    const titles = ['Keep practicing!', 'Good try!', 'Great job!', 'Perfect score!'];
+    const emojis = ['💪', '👍', '🎉', '🏆'];
+
+    return (
+      <section className={`ar-result ar-${info.color}`}>
+        {stars >= 2 ? (
+          <div className="ar-confetti" aria-hidden="true">
+            {confettiPieces.map((piece, i) => (
+              <span
+                key={i}
+                style={{
+                  left: `${piece.left}%`,
+                  background: piece.color,
+                  animationDelay: `${piece.delay}s`,
+                  animationDuration: `${piece.duration}s`,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <span className="ar-result-emoji" aria-hidden="true">{emojis[stars]}</span>
+        <span className="ar-hero-kicker">{info.icon} {info.label} Challenge complete</span>
+        <h1>{titles[stars]}</h1>
+
+        <div className="ar-result-stars" aria-label={`${stars} of 3 stars`}>
+          {[1, 2, 3].map((value) => (
+            <span key={value} className={value <= stars ? 'earned' : ''} style={{ '--i': value }}>★</span>
+          ))}
+        </div>
+
+        <p className="ar-result-score">
+          You got <strong>{result.score}</strong> of <strong>{result.max}</strong> letters right
+        </p>
+
+        <div className="ar-attempts">
+          {attemptHistory.map((correct, i) => (
+            <span key={i} className={`ar-attempt ${correct ? 'good' : 'bad'}`}>{correct ? '✓' : '✗'}</span>
+          ))}
+        </div>
+
+        <div className="ar-result-actions">
+          <button type="button" className="ar-btn ar-btn-soft" onClick={() => onNavigate?.('alphabet', 'learning')}>
+            🔤 Back to letters
+          </button>
+          <button type="button" className="ar-btn ar-btn-soft" onClick={() => resetPretestState(result.difficulty)}>
+            ↻ Try again
+          </button>
+          {info.next ? (
+            <button type="button" className="ar-btn" onClick={() => onNavigate?.('alphabet', info.next)}>
+              {difficultyInfo[info.next].icon} Next: {difficultyInfo[info.next].label} ›
+            </button>
+          ) : null}
+        </div>
+      </section>
+    );
+  };
+
+  const renderFryWords = () => {
+    const heardPercent = Math.round((heardFryWords.length / totalFryWords) * 100);
+
+    return (
+      <>
+        {renderHero({
+          icon: '📖',
+          kicker: '🗺️ Letter Land · Sight words',
+          title: 'Fry Words – The First Hundred',
+          subtitle: 'Tap a word to hear it. Can you read all 100?',
+          color: 'purple',
+          stat: (
+            <div className="ar-hero-stat">
+              <strong key={heardFryWords.length} className="ar-pop">{heardFryWords.length}<small>/{totalFryWords}</small></strong>
+              <span>Words read</span>
+              <div className="ar-meter"><div style={{ '--p': `${heardPercent}%` }} /></div>
+            </div>
+          ),
+        })}
+
+        <section className="ar-fry-grid">
+          {fryWordColumns.map((column, columnIndex) => {
+            const listHeard = column.filter((word, index) => heardFryWords.includes(`${columnIndex}-${index}`)).length;
+            return (
+              <div
+                key={`fry-column-${columnIndex}`}
+                className={`ar-fry-list ar-${fryListColors[columnIndex]}`}
+                style={{ '--col': columnIndex }}
+              >
+                <div className="ar-fry-head">
+                  <strong>List {columnIndex + 1}</strong>
+                  <span>{listHeard === column.length ? '🏅 Done!' : `${listHeard}/${column.length}`}</span>
+                </div>
+                <ul className="ar-fry-words" aria-label={`Fry words list ${columnIndex + 1}`}>
+                  {column.map((word, index) => {
+                    const key = `${columnIndex}-${index}`;
+                    const heard = heardFryWords.includes(key);
+                    return (
+                      <li key={key} style={{ '--i': index }}>
+                        <button
+                          type="button"
+                          className={`ar-fry-word ${heard ? 'heard' : ''}`}
+                          onClick={() => handleFryWord(key, word)}
+                          aria-label={`Read the word ${word}`}
+                        >
+                          {word}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
+      </>
+    );
+  };
+
+  return (
+    <div className="ar-page">
+      {isFryWordsView
+        ? renderFryWords()
+        : mode === 'result'
+          ? renderResult()
+          : mode === 'pretest'
+            ? renderPretest()
+            : renderLearning()}
     </div>
   );
 }

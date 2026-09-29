@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import './CVCWords.css';
+import './CVCPage.css';
 import { speakText } from './speechUtils';
 import VoicePractice from '../../VoicePractice/VoicePractice';
+import VideoEpisodes from '../shared/VideoEpisodes';
 import BalloonPop from './BalloonPop';
 
 const videos = [
@@ -170,19 +172,65 @@ const createSelectionDeck = () => shuffleItems(wordSelection).map((item) => ({
   choices: shuffleItems(item.choices),
 }));
 
-export default function CVCWords({ onComplete, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
+const familyColors = {
+  '-ab': '#f4b942',
+  '-ag': '#f65a4a',
+  '-an': '#49b9d8',
+  '-at': '#f39b4a',
+  '-en': '#e0b43f',
+  '-et': '#ef5da8',
+  '-ip': '#eb7e3b',
+  '-ot': '#c88d52',
+  '-ug': '#e67ca7',
+  '-un': '#8b5cf6',
+};
+
+const confettiColors = ['#f97316', '#fbbf24', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6'];
+const confettiPieces = Array.from({ length: 36 }, (_, i) => ({
+  left: (i * 29) % 100,
+  delay: (i % 10) * 0.12,
+  duration: 2.2 + (i % 5) * 0.35,
+  color: confettiColors[i % confettiColors.length],
+}));
+
+// Split a word into its onset and family ending ("cab" -> ["c", "ab"]) when it belongs to the family.
+const splitByFamily = (word, family) => {
+  const rime = family.replace('-', '');
+  return word.endsWith(rime) ? [word.slice(0, word.length - rime.length), rime] : [word, ''];
+};
+
+const getQuizStars = (score, total) => {
+  const ratio = total > 0 ? score / total : 0;
+  if (ratio >= 0.9) return 3;
+  if (ratio >= 0.6) return 2;
+  if (ratio > 0) return 1;
+  return 0;
+};
+
+export default function CVCWords({ onComplete, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
-  const [selectedWord, setSelectedWord] = useState(wordSelection[0]);
+  const [selectedWord, setSelectedWord] = useState(wordFamilies[0].words[0]);
   const [selectionDeck, setSelectionDeck] = useState(createSelectionDeck);
   const [selectionIndex, setSelectionIndex] = useState(0);
   const [selectionResult, setSelectionResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState('');
-  const [feedback, setFeedback] = useState('Watch the learning materials video to unlock the CVC activities.');
+  const [feedback, setFeedback] = useState('Tap a word to hear it.');
   const [videosWatched, setVideosWatched] = useState([]);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
   const [isReadingSelectionWord, setIsReadingSelectionWord] = useState(false);
+
+  // Gamification state
+  const [exploredFamilies, setExploredFamilies] = useState([wordFamilies[0].family]);
+  const [heardWords, setHeardWords] = useState([]);
+  const [wrongPicks, setWrongPicks] = useState([]);
+  const [firstTryScore, setFirstTryScore] = useState(0);
+  const [selectionStreak, setSelectionStreak] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [selectionDone, setSelectionDone] = useState(false);
+  const [wordTap, setWordTap] = useState(0);
+
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -190,6 +238,10 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
   useEffect(() => {
     setActiveType(initialType);
   }, [initialType]);
+
+  const currentSelection = selectionDeck[selectionIndex];
+  const currentFamily = wordFamilies.find((item) => item.family === selectedFamily) ?? wordFamilies[0];
+  const totalFamilyWords = wordFamilies.reduce((sum, family) => sum + family.words.length, 0);
 
   const speakSelectionWord = () => {
     const didSpeak = speakText(currentSelection.word, {
@@ -242,30 +294,59 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     setCurrentVideoIndex(null);
   };
 
+  const markHeard = (familyKey, word) => {
+    const key = `${familyKey}-${word}`;
+    setHeardWords((current) => (current.includes(key) ? current : [...current, key]));
+  };
+
   const handleFamilyPick = (family) => {
     setSelectedFamily(family);
+    setExploredFamilies((current) => (current.includes(family) ? current : [...current, family]));
     const nextFamily = wordFamilies.find((item) => item.family === family) ?? wordFamilies[0];
     setSelectedWord(nextFamily.words[0]);
+    setShowVoicePractice(false);
     setFeedback(`Selected ${family} family.`);
   };
 
   const handleWordPick = (item) => {
     setSelectedWord(item);
+    setWordTap((current) => current + 1);
+    markHeard(selectedFamily, item.word);
     speakText(item.word, { rate: 0.9 });
+    setFeedback(`Speaking ${item.word}.`);
   };
 
-  const currentSelection = selectionDeck[selectionIndex];
-
   const handleSelectionPick = (choice) => {
+    if (selectionResult === 'correct' || wrongPicks.includes(choice)) return;
+
     if (choice !== currentSelection.correct) {
+      setWrongPicks((current) => [...current, choice]);
       setSelectionResult('wrong');
-      setSelectionMessage('Wrong answer. Try again.');
+      setSelectionMessage(`Oops! "${choice}" is not it. Try again.`);
+      setSelectionStreak(0);
       setFeedback('');
       return;
     }
 
+    const isFirstTry = wrongPicks.length === 0;
+    if (isFirstTry) {
+      const nextStreak = selectionStreak + 1;
+      setFirstTryScore((current) => current + 1);
+      setSelectionStreak(nextStreak);
+      setBestStreak((current) => Math.max(current, nextStreak));
+    }
+
     setSelectionResult('correct');
-    setSelectionMessage('Correct!');
+    setSelectionMessage(isFirstTry ? 'Correct! First try! ⭐' : 'Correct! You found it!');
+    setFeedback('');
+    speakText(currentSelection.correct, { rate: 0.85 });
+  };
+
+  const resetSelectionQuestion = () => {
+    setSelectionResult(null);
+    setSelectionMessage('');
+    setWrongPicks([]);
+    setIsReadingSelectionWord(false);
     setFeedback('');
   };
 
@@ -273,12 +354,7 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     const nextIndex = selectionIndex + 1;
 
     if (nextIndex >= selectionDeck.length) {
-      const nextDeck = createSelectionDeck();
-      setSelectionDeck(nextDeck);
-      setSelectionIndex(0);
-      setSelectionResult(null);
-      setSelectionMessage('');
-      setFeedback('New word set ready!');
+      setSelectionDone(true);
 
       if (typeof onComplete === 'function') {
         onComplete();
@@ -287,74 +363,182 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
     }
 
     setSelectionIndex(nextIndex);
-  setSelectedWord(selectionDeck[nextIndex]);
-    setSelectionResult(null);
-    setSelectionMessage('');
-    setIsReadingSelectionWord(false);
-    setFeedback('');
+    resetSelectionQuestion();
   };
 
-  const renderFamilies = () => (
-    <div className="cvc-stage cvc-family-stage">
-      <div className="cvc-family-grid" aria-label="Word family selector">
-        {wordFamilies.map((familyItem) => (
-          <button
-            key={familyItem.family}
-            type="button"
-            className={familyItem.family === selectedFamily ? 'cvc-family-card active' : 'cvc-family-card'}
-            onClick={() => handleFamilyPick(familyItem.family)}
-            style={{
-              '--family-accent': familyItem.family === '-ab' ? '#f4b942' :
-                familyItem.family === '-ag' ? '#f65a4a' :
-                familyItem.family === '-an' ? '#49b9d8' :
-                familyItem.family === '-at' ? '#f39b4a' :
-                familyItem.family === '-en' ? '#f1c65d' :
-                familyItem.family === '-et' ? '#f65a4a' :
-                familyItem.family === '-ip' ? '#eb7e3b' :
-                familyItem.family === '-ot' ? '#c88d52' :
-                familyItem.family === '-ug' ? '#e67ca7' :
-                '#f0c865',
-            }}
-          >
-            <span className="cvc-family-label">-{familyItem.family.replace('-', '')}</span>
-            <div className="cvc-family-word-list">
-              {familyItem.words.map((item) => (
-                <span
-                  key={`${familyItem.family}-${item.word}`}
-                  className={item.word === selectedWord.word && familyItem.family === selectedFamily ? 'cvc-family-word active' : 'cvc-family-word'}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleWordPick(item);
-                  }}
-                >
-                  {item.word}
-                </span>
+  const restartSelection = () => {
+    setSelectionDeck(createSelectionDeck());
+    setSelectionIndex(0);
+    setFirstTryScore(0);
+    setSelectionStreak(0);
+    setBestStreak(0);
+    setSelectionDone(false);
+    resetSelectionQuestion();
+  };
+
+  const goTo = (section) => {
+    if (typeof onNavigate === 'function') {
+      onNavigate('cvc', section);
+      return;
+    }
+    setActiveType(section);
+  };
+
+  const renderHero = ({ icon, title, subtitle, stat }) => (
+    <header className="cv-hero">
+      <span className="cv-hero-icon" aria-hidden="true">{icon}</span>
+      <div className="cv-hero-copy">
+        <span className="cv-kicker">🗺️ Word Kingdom</span>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </div>
+      {stat}
+    </header>
+  );
+
+  const renderStat = (value, total, label) => (
+    <div className="cv-hero-stat">
+      <strong key={value} className="cv-pop">{value}<small>/{total}</small></strong>
+      <span>{label}</span>
+      <div className="cv-meter"><div style={{ '--p': `${total > 0 ? (value / total) * 100 : 0}%` }} /></div>
+    </div>
+  );
+
+  const renderLearningMaterials = () => (
+    <>
+      {renderHero({
+        icon: '🎬',
+        title: 'Learning Video',
+        subtitle: 'Watch the CVC video to unlock the word activities!',
+        stat: renderStat(videosWatched.length, videos.length, 'Videos watched'),
+      })}
+
+      <VideoEpisodes
+        videos={videos}
+        watchedIds={videosWatched}
+        currentIndex={currentVideoIndex}
+        onPlay={handlePlayVideo}
+        onClose={closeVideoPlayer}
+        onPrevious={() => setCurrentVideoIndex((index) => (index > 0 ? index - 1 : index))}
+        onNext={() => setCurrentVideoIndex((index) => (index < videos.length - 1 ? index + 1 : index))}
+        onEnded={handleVideoEnd}
+        unlockTitle="CVC Word Activities"
+        unlockActionLabel="Go to Word Families ▶"
+        onUnlockAction={() => goTo('families')}
+      />
+    </>
+  );
+
+  const renderFamilies = () => {
+    const [onset, rime] = splitByFamily(selectedWord.word, currentFamily.family);
+    const heardInFamily = currentFamily.words.filter((item) => heardWords.includes(`${currentFamily.family}-${item.word}`)).length;
+
+    return (
+      <>
+        {renderHero({
+          icon: '👪',
+          title: 'Simpler CVC Words',
+          subtitle: 'Pick a word family and hear how the words rhyme!',
+          stat: renderStat(heardWords.length, totalFamilyWords, 'Words heard'),
+        })}
+
+        <div className="cv-family-picker" aria-label="Word family selector">
+          {wordFamilies.map((familyItem, index) => {
+            const heardCount = familyItem.words.filter((item) => heardWords.includes(`${familyItem.family}-${item.word}`)).length;
+            const isDone = heardCount === familyItem.words.length;
+            return (
+              <button
+                key={familyItem.family}
+                type="button"
+                className={[
+                  'cv-family-chip',
+                  familyItem.family === selectedFamily ? 'active' : '',
+                  exploredFamilies.includes(familyItem.family) ? 'explored' : '',
+                ].join(' ')}
+                style={{ '--c': familyColors[familyItem.family] || '#f97316', '--i': index }}
+                onClick={() => handleFamilyPick(familyItem.family)}
+              >
+                <span className="cv-family-chip-icon" aria-hidden="true">{familyItem.icon}</span>
+                <strong>{familyItem.family}</strong>
+                <small>{isDone ? '🏅' : `${heardCount}/${familyItem.words.length}`}</small>
+              </button>
+            );
+          })}
+        </div>
+
+        <section className="cv-family-stage" style={{ '--c': familyColors[currentFamily.family] || '#f97316' }}>
+          <div className="cv-word-wall">
+            <div className="cv-wall-head">
+              <h2><span>{currentFamily.family}</span> family</h2>
+              <span className="cv-chip">{heardInFamily === currentFamily.words.length ? '🏅 All heard!' : `🔊 ${heardInFamily}/${currentFamily.words.length} heard`}</span>
+            </div>
+            <div className="cv-word-grid">
+              {currentFamily.words.map((item, index) => {
+                const [itemOnset, itemRime] = splitByFamily(item.word, currentFamily.family);
+                const heard = heardWords.includes(`${currentFamily.family}-${item.word}`);
+                return (
+                  <button
+                    key={`${currentFamily.family}-${item.word}`}
+                    type="button"
+                    className={[
+                      'cv-word-card',
+                      item.word === selectedWord.word ? 'active' : '',
+                      heard ? 'heard' : '',
+                    ].join(' ')}
+                    style={{ '--i': index }}
+                    onClick={() => handleWordPick(item)}
+                    aria-label={`Hear the word ${item.word}`}
+                  >
+                    <span className="cv-word-card-icon" aria-hidden="true">{item.icon}</span>
+                    <span className="cv-word-card-text">
+                      {itemOnset}<b>{itemRime}</b>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="cv-spotlight">
+            {wordTap > 0 ? <span key={wordTap} className="cv-ripple" aria-hidden="true" /> : null}
+            <button
+              type="button"
+              key={`${selectedWord.word}-icon`}
+              className="cv-spotlight-icon"
+              onClick={() => handleWordPick(selectedWord)}
+              aria-label={`Hear the word ${selectedWord.word}`}
+            >
+              {selectedWord.icon}
+            </button>
+            <div key={selectedWord.word} className="cv-blocks" aria-label={selectedWord.word}>
+              {[...onset].map((letter, index) => (
+                <span key={`o-${index}`} className="cv-block onset" style={{ '--i': index }}>{letter}</span>
+              ))}
+              {[...rime].map((letter, index) => (
+                <span key={`r-${index}`} className="cv-block rime" style={{ '--i': onset.length + index }}>{letter}</span>
               ))}
             </div>
-            <span className="cvc-family-footer">phonics practice</span>
-          </button>
-        ))}
-      </div>
+            <p className="cv-spotlight-desc">{selectedWord.description}</p>
+            <div className="cv-spotlight-actions">
+              <button type="button" className="cv-btn" onClick={() => handleWordPick(selectedWord)}>
+                🔊 Hear Word
+              </button>
+              <button
+                type="button"
+                className={`cv-btn cv-btn-mic ${showVoicePractice ? 'active' : ''}`}
+                onClick={() => setShowVoicePractice(!showVoicePractice)}
+                aria-expanded={showVoicePractice}
+              >
+                🎤 {showVoicePractice ? 'Hide Practice' : 'Practice'}
+              </button>
+            </div>
+            <p key={feedback} className="cv-feedback" aria-live="polite">{feedback}</p>
+          </div>
+        </section>
 
-      <div className="cvc-centered-panel">
-        <span className="cvc-centered-icon" aria-hidden="true">
-          {selectedWord.icon}
-        </span>
-        <h3>{selectedWord.word}</h3>
-        <p>{selectedWord.description}</p>
-        <div className="cvc-button-group">
-          <button 
-            type="button" 
-            className="cvc-voice-practice-btn"
-            onClick={() => setShowVoicePractice(!showVoicePractice)}
-            aria-expanded={showVoicePractice}
-          >
-            🎤 Practice Pronunciation
-          </button>
-        </div>
         {showVoicePractice && (
-          <div className="cvc-voice-practice-wrapper">
-            <VoicePractice 
+          <div className="cv-voice-panel">
+            <VoicePractice
               targetWord={selectedWord.word}
               onResult={(result) => {
                 if (result.success) {
@@ -367,153 +551,159 @@ export default function CVCWords({ onComplete, initialVideosWatched = [], onVide
             />
           </div>
         )}
-      </div>
-    </div>
-  );
+      </>
+    );
+  };
 
-  const renderLearningMaterials = () => (
-    <div className="cvc-learning-materials">
-      {currentVideoIndex !== null ? (
-        <div className="cvc-video-player-modal">
-          <button type="button" className="cvc-video-close-btn" onClick={closeVideoPlayer}>
-            ✕
-          </button>
-          <div className="cvc-video-player-container">
-            <div className="cvc-video-player">
-              <video
-                key={`video-${videos[currentVideoIndex].id}`}
-                width="100%"
-                height="100%"
-                controls
-                autoPlay
-                onEnded={() => handleVideoEnd(videos[currentVideoIndex].id)}
-              >
-                <source src={videos[currentVideoIndex].url} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-            <div className="cvc-video-player-info">
-              <h3>{videos[currentVideoIndex].title}</h3>
-              <p>{videos[currentVideoIndex].description}</p>
-              <div className="cvc-video-watched-notice">
-                <p className="cvc-watched-notice-text">
-                  The video will be marked as watched once you finish watching it completely.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+  const renderSelectionResult = () => {
+    const total = selectionDeck.length;
+    const stars = getQuizStars(firstTryScore, total);
+    const titles = ['Keep practicing!', 'Good try!', 'Great job!', 'Word Wizard!'];
+    const emojis = ['💪', '👍', '🎉', '🏆'];
 
-      {currentVideoIndex === null ? (
-        <>
-          <div className="cvc-learning-header">
-            <h3>Learning Video Materials</h3>
-            <p>Watch the CVC video to unlock the activities below.</p>
-          </div>
-
-          <div className="cvc-videos-grid">
-            {videos.map((video, index) => (
-              <div key={video.id} className="cvc-video-card">
-                <div className="cvc-video-thumbnail">
-                  <span className="cvc-video-icon">🎬</span>
-                  {videosWatched.includes(video.id) ? <span className="cvc-video-watched-badge">✓ Watched</span> : null}
-                </div>
-                <div className="cvc-video-info">
-                  <h4>{video.title}</h4>
-                  <p>{video.description}</p>
-                  <span className="cvc-video-duration">{video.duration}</span>
-                </div>
-                <button
-                  type="button"
-                  className={`cvc-video-play-btn${videosWatched.includes(video.id) ? ' watched' : ''}`}
-                  onClick={() => handlePlayVideo(index)}
-                >
-                  ▶ {videosWatched.includes(video.id) ? 'REWATCH' : 'PLAY'}
-                </button>
-              </div>
+    return (
+      <section className="cv-result">
+        {stars >= 2 ? (
+          <div className="cv-confetti" aria-hidden="true">
+            {confettiPieces.map((piece, i) => (
+              <span
+                key={i}
+                style={{
+                  left: `${piece.left}%`,
+                  background: piece.color,
+                  animationDelay: `${piece.delay}s`,
+                  animationDuration: `${piece.duration}s`,
+                }}
+              />
             ))}
           </div>
-
-          <div className="cvc-learning-progress">
-            <div className="cvc-progress-bar">
-              <div className="cvc-progress-fill" style={{ width: `${(videosWatched.length / videos.length) * 100}%` }} />
-            </div>
-            <p className="cvc-progress-label">{videosWatched.length} of {videos.length} videos watched</p>
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-
-  const renderSelection = () => (
-    <div className="cvc-stage cvc-selection-stage">
-      <div className="cvc-selection-header">
-        <h3>Choose the Correct Word</h3>
-        <p>{currentSelection.prompt}</p>
-      </div>
-
-      <div className="cvc-selection-card-shell">
-        <button
-          type="button"
-          className={`cvc-selection-image${isReadingSelectionWord ? ' speaking' : ''}`}
-          onClick={speakSelectionWord}
-          aria-label={`Hear the word ${currentSelection.word}`}
-          title="Click to hear the word"
-        >
-          {currentSelection.icon}
-        </button>
-
-        <div className="cvc-selection-answer-area">
-          <div className="cvc-selection-choices" aria-label="Word selection choices">
-            {currentSelection.choices.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                className={selectionResult === 'correct' && choice === currentSelection.correct ? 'cvc-selection-option correct' : choice === currentSelection.correct && selectionResult === 'wrong' ? 'cvc-selection-option correct' : 'cvc-selection-option'}
-                onClick={() => handleSelectionPick(choice)}
-              >
-                {choice}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={selectionResult === 'correct' ? 'cvc-selection-message correct' : 'cvc-selection-message wrong'} aria-live="polite">
-          {selectionMessage}
-        </div>
-
-        {selectionResult === 'correct' ? (
-          <button type="button" className="cvc-action-button cvc-next-button" onClick={handleNextSelection}>
-            Next
-          </button>
         ) : null}
-      </div>
+        <span className="cv-result-emoji" aria-hidden="true">{emojis[stars]}</span>
+        <span className="cv-kicker cv-kicker-dark">Word set complete</span>
+        <h1>{titles[stars]}</h1>
+        <div className="cv-result-stars" aria-label={`${stars} of 3 stars`}>
+          {[1, 2, 3].map((value) => (
+            <span key={value} className={value <= stars ? 'earned' : ''} style={{ '--i': value }}>★</span>
+          ))}
+        </div>
+        <div className="cv-result-stats">
+          <div><span>First-try correct</span><strong>⭐ {firstTryScore}/{total}</strong></div>
+          <div><span>Best streak</span><strong>🔥 {bestStreak}</strong></div>
+        </div>
+        <div className="cv-result-actions">
+          <button type="button" className="cv-btn cv-btn-soft" onClick={() => goTo('families')}>
+            👪 Word Families
+          </button>
+          <button type="button" className="cv-btn" onClick={restartSelection}>
+            ↻ Play Again
+          </button>
+        </div>
+      </section>
+    );
+  };
 
-      <div className="cvc-dots" aria-label="Selection progress">
-        {selectionDeck.map((item, index) => (
-          <span key={item.word} className={index === selectionIndex ? 'cvc-dot active' : index < selectionIndex ? 'cvc-dot done' : 'cvc-dot'} />
-        ))}
-      </div>
-    </div>
-  );
+  const renderSelection = () => {
+    const isCorrect = selectionResult === 'correct';
+
+    return (
+      <>
+        {renderHero({
+          icon: '✅',
+          title: 'CVC Word Selection',
+          subtitle: 'Look at the picture and pick the right word!',
+          stat: (
+            <div className="cv-hero-stat">
+              <strong key={firstTryScore} className="cv-pop">⭐ {firstTryScore}</strong>
+              <span>First-try correct</span>
+              {selectionStreak >= 2 ? <span key={selectionStreak} className="cv-streak">🔥 {selectionStreak} in a row</span> : null}
+            </div>
+          ),
+        })}
+
+        {selectionDone ? renderSelectionResult() : (
+          <>
+            <div className="cv-dots" aria-label={`Word ${selectionIndex + 1} of ${selectionDeck.length}`}>
+              {selectionDeck.map((item, index) => (
+                <span
+                  key={item.word}
+                  className={index === selectionIndex ? 'current' : index < selectionIndex ? 'done' : ''}
+                />
+              ))}
+            </div>
+
+            <section key={currentSelection.word} className={`cv-quiz ${isCorrect ? 'is-correct' : ''}`}>
+              <span className="cv-quiz-count">Word {selectionIndex + 1} of {selectionDeck.length}</span>
+
+              <button
+                type="button"
+                className={`cv-quiz-picture ${isReadingSelectionWord ? 'speaking' : ''}`}
+                onClick={speakSelectionWord}
+                aria-label={`Hear the word ${currentSelection.word}`}
+                title="Click to hear the word"
+              >
+                <span className="cv-wave w1" aria-hidden="true" />
+                <span className="cv-wave w2" aria-hidden="true" />
+                <span className="cv-quiz-emoji">{currentSelection.icon}</span>
+                <span className="cv-quiz-hear">🔊 Tap to hear</span>
+              </button>
+
+              <p className="cv-quiz-prompt">{currentSelection.prompt}</p>
+
+              <div className="cv-choices" aria-label="Word selection choices">
+                {currentSelection.choices.map((choice, index) => {
+                  const isWrong = wrongPicks.includes(choice);
+                  const isAnswer = isCorrect && choice === currentSelection.correct;
+                  return (
+                    <button
+                      key={choice}
+                      type="button"
+                      className={['cv-choice', isWrong ? 'wrong' : '', isAnswer ? 'correct' : ''].join(' ')}
+                      style={{ '--i': index }}
+                      onClick={() => handleSelectionPick(choice)}
+                      disabled={isWrong || isCorrect}
+                    >
+                      {isAnswer ? '✓ ' : isWrong ? '✗ ' : ''}{choice}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectionMessage ? (
+                <p key={selectionMessage} className={`cv-quiz-message ${isCorrect ? 'correct' : 'wrong'}`} aria-live="polite">
+                  {selectionMessage}
+                </p>
+              ) : <p className="cv-quiz-message" aria-hidden="true" />}
+
+              {isCorrect ? (
+                <>
+                  <div className="cv-burst" aria-hidden="true">
+                    {[0, 45, 90, 135, 180, 225, 270, 315].map((angle) => (
+                      <span key={angle} style={{ '--angle': `${angle}deg` }} />
+                    ))}
+                  </div>
+                  <button type="button" className="cv-btn cv-next" onClick={handleNextSelection}>
+                    {selectionIndex + 1 >= selectionDeck.length ? 'Finish 🏁' : 'Next Word ›'}
+                  </button>
+                </>
+              ) : null}
+            </section>
+          </>
+        )}
+      </>
+    );
+  };
 
   if (activeType === 'building') {
     return <BalloonPop onClose={() => setActiveType('learning')} />;
   }
 
   return (
-    <div className="module-detail cvc-detail">
-      <div className="cvc-topbar">
-      </div>
-
-      {activeType === 'learning' ? renderLearningMaterials() : null}
-      {activeType === 'families' ? renderFamilies() : null}
-      {activeType === 'selection' ? renderSelection() : null}
-
-      <div className="cvc-feedback" aria-live="polite">
-        {activeType === 'selection' ? '' : feedback}
-      </div>
+    <div className="cv-page">
+      {activeType === 'families'
+        ? renderFamilies()
+        : activeType === 'selection'
+          ? renderSelection()
+          : renderLearningMaterials()}
     </div>
   );
 }

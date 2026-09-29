@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import './BalloonPop.css';
 import { speakText } from '../speechUtils';
+import { playSound } from '../../shared/gameSounds';
+import SoundToggle from '../../shared/SoundToggle';
 
 const wordBuildingDeck = [
   { target: 'cat', icon: '🐱', choices: ['C', 'A', 'T', 'O', 'E'], description: 'A small pet that says meow.' },
@@ -250,6 +252,7 @@ export default function BalloonPop({ onClose }) {
     setScore((current) => current + wordBonus);
     setCelebrateId((current) => current + 1);
     showBanner(`🎉 ${finishedWord}!`, 'win', 1800);
+    playSound('levelUp');
     setStatus(`Word complete! +${wordBonus} bonus points`);
     speakText(finishedWord, { rate: 0.8 });
     schedule(() => setBalloons([]), 450);
@@ -261,6 +264,7 @@ export default function BalloonPop({ onClose }) {
     const reward = rewardTypes[Math.floor(Math.random() * rewardTypes.length)];
     setRewards((current) => [...current, reward]);
     showBanner(`🎁 ${rewardInfo[reward].label} earned!`, 'reward', 1400);
+    playSound('sparkle');
   };
 
   const handlePop = (balloon, event) => {
@@ -289,6 +293,7 @@ export default function BalloonPop({ onClose }) {
       setStreak(nextStreak);
       setBestStreak((current) => Math.max(current, nextStreak));
       addEffect('good', x, y, `+${letterPoints}`);
+      playSound('pop');
       removeBalloonLater(balloon.id);
 
       if (nextStreak % rewardEvery === 0) awardReward();
@@ -309,6 +314,7 @@ export default function BalloonPop({ onClose }) {
     if (shield) {
       setShield(false);
       addEffect('shield', x, y, '🛡️ Blocked!');
+      playSound('hit');
       setStatus('Wrong balloon! Your shield blocked it.');
       return;
     }
@@ -317,12 +323,14 @@ export default function BalloonPop({ onClose }) {
     heartsRef.current = nextHearts;
     setHearts(nextHearts);
     shake();
+    playSound('hurt');
     addEffect('bad', x, y, '-1 ❤️');
 
     if (nextHearts <= 0) {
       setIsGameOver(true);
       setStatus('Out of hearts!');
       showBanner('💔 Out of hearts!', 'lose', 1200);
+      playSound('lose');
       schedule(() => {
         setBalloons([]);
         setScreen('gameover');
@@ -342,6 +350,7 @@ export default function BalloonPop({ onClose }) {
 
     if (reward === 'shield') {
       setShield(true);
+      playSound('powerUp');
       setStatus('🛡️ Shield ready: one wrong balloon will not cost a heart.');
       return;
     }
@@ -350,6 +359,7 @@ export default function BalloonPop({ onClose }) {
       const nextHearts = Math.min(maxHearts, heartsRef.current + 1);
       heartsRef.current = nextHearts;
       setHearts(nextHearts);
+      playSound('heal');
       setStatus('❤️ Heart restored!');
       return;
     }
@@ -359,6 +369,7 @@ export default function BalloonPop({ onClose }) {
     const nextSlots = [...slots];
     nextSlots[nextIndex] = word.target[nextIndex].toUpperCase();
     setSlots(nextSlots);
+    playSound('sparkle');
     setStatus('✨ A letter was revealed!');
 
     if (nextSlots.every(Boolean)) {
@@ -384,6 +395,7 @@ export default function BalloonPop({ onClose }) {
     setIsGameOver(false);
     setScreen('playing');
     showBanner('🎈 Ready... POP!', 'start', 1300);
+    playSound('start');
     beginWord(pickRandomWord(word.target));
   };
 
@@ -402,11 +414,14 @@ export default function BalloonPop({ onClose }) {
           <span>Pop the letters, spell the word!</span>
         </div>
       </div>
-      {typeof onClose === 'function' ? (
-        <button type="button" className="bp-ghost-btn" onClick={handleClose}>
-          ← Return to CVC Words
-        </button>
-      ) : null}
+      <div className="bp-topbar-actions">
+        <SoundToggle />
+        {typeof onClose === 'function' ? (
+          <button type="button" className="bp-ghost-btn" onClick={handleClose}>
+            ← Return to CVC Words
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 

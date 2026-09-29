@@ -517,8 +517,22 @@ function App() {
 
     void loadClassInfo();
 
+    // Re-check so a class the teacher just added (or removed) shows up without a page refresh.
+    const CLASS_REFRESH_INTERVAL_MS = 60 * 1000;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadClassInfo();
+      }
+    };
+    const refreshTimer = window.setInterval(refreshWhenVisible, CLASS_REFRESH_INTERVAL_MS);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
     return () => {
       cancelled = true;
+      window.clearInterval(refreshTimer);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [backendUserId, isAdminUser, isTeacherUser]);
 
@@ -924,6 +938,7 @@ function App() {
           <CVCWords
             onComplete={handleCvcComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
             initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
@@ -958,6 +973,7 @@ function App() {
           <Vowels
             onComplete={handleVowelsComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
             initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}
@@ -992,6 +1008,7 @@ function App() {
           <Consonants
             onComplete={handleConsonantsComplete}
             onBack={() => goBack('dashboard')}
+            onNavigate={navigateTo}
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
             isCompleted={consonantsCompleted}

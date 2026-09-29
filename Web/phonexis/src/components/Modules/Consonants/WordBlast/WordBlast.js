@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import './WordBlast.css';
+import { playSound } from '../../shared/gameSounds';
+import SoundToggle from '../../shared/SoundToggle';
 
 const wordDeck = [
   { word: 'CAT', emoji: '🐱' },
@@ -316,6 +318,7 @@ export default function WordBlast({ onClose }) {
 
     if (nextLevelNumber > level) {
       showBanner(`${nextLevel.icon} LEVEL UP! ${nextLevel.label}`, 'levelup', 1600);
+      playSound('levelUp');
     }
 
     schedule(() => speak(nextRound.word), 450);
@@ -338,6 +341,8 @@ export default function WordBlast({ onClose }) {
         setBestStreak((current) => Math.max(current, nextStreak));
         setIsBlasting(true);
         addFloater('+10', 'score', 'coin');
+        playSound('explosion');
+        playSound('coin');
         showBanner(nextStreak >= 3 ? `🔥 ${nextStreak} IN A ROW!` : '💥 BLASTED!', 'blast', 1100);
         setMessage(`💥 Word blasted! All ${blankPositions.length} answer tile${blankPositions.length > 1 ? 's are' : ' is'} correct. +10 points.`);
         schedule(goToNextRound, 1200);
@@ -345,6 +350,7 @@ export default function WordBlast({ onClose }) {
       }
 
       addFloater('✓', 'word', 'good');
+      playSound('correct');
       schedule(() => {
         setBlankIndex((currentIndex) => currentIndex + 1);
         setChoices(createChoices(round.word[blankPositions[blankIndex + 1]], config.maxTiles));
@@ -360,12 +366,16 @@ export default function WordBlast({ onClose }) {
     setHearts(nextHearts);
     setStreak(0);
     shake();
+    playSound('hurt');
     addFloater('-1 ❤️', 'hearts', 'bad');
 
     if (nextHearts === 0) {
       setGameOver(true);
       setMessage('No hearts left. Your WordBlast run is over.');
-      schedule(() => setScreen('gameover'), 1000);
+      schedule(() => {
+        setScreen('gameover');
+        playSound('lose');
+      }, 1000);
       return;
     }
 
@@ -382,6 +392,7 @@ export default function WordBlast({ onClose }) {
     setScore((currentScore) => currentScore - 10);
     setEliminatedChoice(wrongChoices[0]);
     addFloater('-10', 'score', 'spend');
+    playSound('sparkle');
     setMessage('💡 Hint activated. One incorrect block is out.');
   };
 
@@ -391,6 +402,7 @@ export default function WordBlast({ onClose }) {
     setHearts((currentHearts) => currentHearts + 1);
     addFloater('-10', 'score', 'spend');
     addFloater('+1 ❤️', 'hearts', 'heal');
+    playSound('heal');
     setMessage('❤️ One heart restored.');
   };
 
@@ -421,6 +433,7 @@ export default function WordBlast({ onClose }) {
     restart();
     setScreen('playing');
     showBanner(`${levelConfig[1].icon} LEVEL 1: ${levelConfig[1].label}`, 'levelup', 1400);
+    playSound('start');
     schedule(() => speak(wordDeck[0].word), 600);
   };
 
@@ -439,19 +452,22 @@ export default function WordBlast({ onClose }) {
           <span>Listen. Think. Blast the Word!</span>
         </div>
       </div>
-      {typeof onClose === 'function' ? (
-        <button
-          type="button"
-          className="wb-ghost-btn"
-          onClick={() => {
-            clearAllTimers();
-            stopSpeech();
-            onClose();
-          }}
-        >
-          ← Return to Consonants
-        </button>
-      ) : null}
+      <div className="wb-topbar-actions">
+        <SoundToggle />
+        {typeof onClose === 'function' ? (
+          <button
+            type="button"
+            className="wb-ghost-btn"
+            onClick={() => {
+              clearAllTimers();
+              stopSpeech();
+              onClose();
+            }}
+          >
+            ← Return to Consonants
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 

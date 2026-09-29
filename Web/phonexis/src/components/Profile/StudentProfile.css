@@ -1,0 +1,810 @@
+/* ===== Student profile & settings (gamified) — teacher/admin profiles are unaffected ===== */
+.profile-shell.student-profile {
+  --sp-ink: #1f2a44;
+  --sp-muted: #62708a;
+  --sp-card: #ffffff;
+  --sp-card-border: rgba(31, 42, 68, 0.08);
+  --sp-track: rgba(31, 42, 68, 0.1);
+  --sp-field: #f5f7ff;
+  --sp-blue: #3b82f6;
+  --sp-purple: #8b5cf6;
+  --sp-green: #10b981;
+  --sp-orange: #f97316;
+  --sp-gold: #fbbf24;
+  max-width: none;
+  min-height: calc(100vh - 4rem);
+  margin: 0;
+  padding: 2rem;
+  gap: 1.25rem;
+  align-content: start;
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.22), transparent 40%),
+    radial-gradient(circle at 100% 20%, rgba(236, 72, 153, 0.18), transparent 40%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.22), transparent 45%),
+    linear-gradient(160deg, #eaf4ff 0%, #fdf2ff 50%, #fff8e6 100%);
+  color: var(--sp-ink);
+  box-sizing: border-box;
+  animation: sp-fade 0.45s ease-out;
+}
+
+[data-theme='dark'] .profile-shell.student-profile {
+  --sp-ink: #eef4ff;
+  --sp-muted: #a9b6cf;
+  --sp-card: #16233d;
+  --sp-card-border: rgba(255, 255, 255, 0.08);
+  --sp-track: rgba(255, 255, 255, 0.12);
+  --sp-field: #1f2f4f;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.3), transparent 40%),
+    radial-gradient(circle at 100% 20%, rgba(236, 72, 153, 0.22), transparent 40%),
+    linear-gradient(160deg, #0d1b33 0%, #1a1537 55%, #20172a 100%);
+}
+
+.profile-shell.student-profile .sp-blue { --c: var(--sp-blue); --c-soft: #dbeafe; }
+.profile-shell.student-profile .sp-purple { --c: var(--sp-purple); --c-soft: #ede9fe; }
+.profile-shell.student-profile .sp-green { --c: var(--sp-green); --c-soft: #d1fae5; }
+.profile-shell.student-profile .sp-orange { --c: var(--sp-orange); --c-soft: #ffedd5; }
+
+[data-theme='dark'] .profile-shell.student-profile .sp-blue,
+[data-theme='dark'] .profile-shell.student-profile .sp-purple,
+[data-theme='dark'] .profile-shell.student-profile .sp-green,
+[data-theme='dark'] .profile-shell.student-profile .sp-orange {
+  --c-soft: rgba(255, 255, 255, 0.08);
+}
+
+/* ===== Hero ===== */
+.profile-shell.student-profile .sp-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  background: linear-gradient(135deg, #4f8cff 0%, #8b5cf6 55%, #ec4899 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(99, 102, 241, 0.35);
+  animation: sp-drop 0.55s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.profile-shell.student-profile .sp-hero::after {
+  content: '';
+  position: absolute;
+  top: -45%;
+  right: 20%;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.profile-shell.student-profile .sp-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fde68a, #fbbf24);
+  border: 5px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.18), 0 12px 24px rgba(0, 0, 0, 0.2);
+  animation: sp-bob 3s ease-in-out infinite;
+}
+
+.profile-shell.student-profile .sp-avatar span {
+  color: #7c2d12;
+  font-size: 2.8rem;
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .sp-avatar em {
+  position: absolute;
+  bottom: -0.55rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #6d28d9;
+  font-size: 0.85rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+.profile-shell.student-profile .sp-hero-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.profile-shell.student-profile .sp-kicker {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.profile-shell.student-profile .sp-hero h1 {
+  margin: 0;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: clamp(1.9rem, 3.6vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.12);
+}
+
+.profile-shell.student-profile .sp-hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-shell.student-profile .sp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.35rem 0.9rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-shell.student-profile .sp-chip-soft {
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: 700;
+}
+
+.profile-shell.student-profile .sp-xp {
+  display: grid;
+  gap: 0.3rem;
+  width: min(100%, 26rem);
+}
+
+.profile-shell.student-profile .sp-xp-track {
+  height: 0.8rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.profile-shell.student-profile .sp-xp-fill {
+  width: var(--p);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffe066, #fbbf24);
+  box-shadow: 0 0 12px rgba(255, 224, 102, 0.8);
+  animation: sp-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s backwards;
+}
+
+.profile-shell.student-profile .sp-xp span {
+  font-size: 0.88rem;
+  font-weight: 700;
+  opacity: 0.92;
+}
+
+.profile-shell.student-profile .sp-hero-ring {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, rgba(99, 102, 241, 0.95) 76%, transparent 78%),
+    conic-gradient(#ffe066 calc(var(--p) * 1%), rgba(255, 255, 255, 0.25) 0);
+}
+
+.profile-shell.student-profile .sp-hero-ring strong {
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.profile-shell.student-profile .sp-hero-ring span {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* ===== Tabs ===== */
+.profile-shell.student-profile .profile-tabs {
+  justify-self: start;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  border-radius: 999px;
+  background: var(--sp-card);
+  box-shadow: 0 8px 20px rgba(31, 42, 68, 0.1);
+  overflow: visible;
+}
+
+.profile-shell.student-profile .profile-tab {
+  flex: 0 0 auto;
+  padding: 0.75rem 1.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sp-muted);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.profile-shell.student-profile .profile-tab:hover {
+  background: var(--sp-field);
+  color: var(--sp-ink);
+}
+
+.profile-shell.student-profile .profile-tab.active {
+  background: linear-gradient(135deg, #4f8cff, #8b5cf6);
+  color: #ffffff;
+  box-shadow: 0 4px 0 #5b21b6;
+}
+
+/* ===== Tab panels ===== */
+.profile-shell.student-profile .profile-info-tab,
+.profile-shell.student-profile .profile-settings-tab {
+  gap: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  color: var(--sp-ink);
+  animation: sp-fade 0.4s ease-out;
+}
+
+.profile-shell.student-profile .sp-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.profile-shell.student-profile .sp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-shell.student-profile .sp-section-title {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .sp-mini-stats {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.profile-shell.student-profile .sp-mini-stats span {
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: var(--sp-card);
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(31, 42, 68, 0.08);
+}
+
+/* Player card info */
+.profile-shell.student-profile .sp-info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-shell.student-profile .sp-info-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--sp-card-border);
+  border-radius: 1.4rem;
+  background: var(--sp-card);
+  box-shadow: 0 6px 0 var(--c-soft), 0 12px 24px rgba(31, 42, 68, 0.08);
+  animation: sp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.profile-shell.student-profile .sp-info-card:nth-child(2) { animation-delay: 0.08s; }
+.profile-shell.student-profile .sp-info-card:nth-child(3) { animation-delay: 0.16s; }
+
+.profile-shell.student-profile .sp-info-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 1rem;
+  background: var(--c-soft);
+  font-size: 1.7rem;
+}
+
+.profile-shell.student-profile .sp-info-card div {
+  display: grid;
+  min-width: 0;
+}
+
+.profile-shell.student-profile .sp-info-card span:not(.sp-info-icon) {
+  color: var(--c);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.profile-shell.student-profile .sp-info-card strong {
+  overflow: hidden;
+  font-size: 1.1rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Progress cards */
+.profile-shell.student-profile .sp-progress-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile-shell.student-profile .sp-progress-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--sp-card-border);
+  border-radius: 1.4rem;
+  background: var(--sp-card);
+  box-shadow: 0 6px 0 var(--c-soft), 0 12px 24px rgba(31, 42, 68, 0.08);
+  transition: transform 0.2s ease;
+  animation: sp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation-delay: calc(0.15s + var(--i) * 0.08s);
+}
+
+.profile-shell.student-profile .sp-progress-card:hover {
+  transform: translateY(-3px);
+}
+
+.profile-shell.student-profile .sp-progress-card:hover .sp-progress-icon {
+  animation: sp-wiggle 0.5s ease-in-out;
+}
+
+.profile-shell.student-profile .sp-progress-icon {
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border: 3px solid var(--c);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, var(--c-soft) 75%);
+  font-size: 1.8rem;
+}
+
+.profile-shell.student-profile .sp-progress-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.profile-shell.student-profile .sp-progress-world {
+  color: var(--c);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.profile-shell.student-profile .sp-progress-copy strong {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .sp-progress-track {
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sp-track);
+}
+
+.profile-shell.student-profile .sp-progress-track div {
+  width: var(--p);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c);
+  animation: sp-grow 1.1s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: calc(0.4s + var(--i) * 0.08s);
+}
+
+.profile-shell.student-profile .sp-progress-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.profile-shell.student-profile .sp-progress-side strong {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .sp-stars {
+  display: flex;
+  gap: 0.1rem;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.profile-shell.student-profile .sp-stars span {
+  color: var(--sp-track);
+}
+
+.profile-shell.student-profile .sp-stars span.earned {
+  color: var(--sp-gold);
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+/* Share row */
+.profile-shell.student-profile .sp-share {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  border: 2px dashed rgba(139, 92, 246, 0.35);
+  border-radius: 1.4rem;
+  background: var(--sp-card);
+}
+
+.profile-shell.student-profile .sp-share div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.profile-shell.student-profile .sp-share strong {
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .sp-share span {
+  color: var(--sp-muted);
+  font-weight: 600;
+}
+
+/* ===== Shared buttons ===== */
+.profile-shell.student-profile .sp-btn,
+.profile-shell.student-profile .profile-update-btn,
+.profile-shell.student-profile .profile-microphone-btn {
+  padding: 0.85rem 1.6rem;
+  border: 0;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #4f8cff, #8b5cf6);
+  color: #ffffff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  box-shadow: 0 6px 0 #5b21b6, 0 12px 22px rgba(99, 102, 241, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.profile-shell.student-profile .sp-btn:hover:not(:disabled),
+.profile-shell.student-profile .profile-update-btn:hover:not(:disabled),
+.profile-shell.student-profile .profile-microphone-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.profile-shell.student-profile .sp-btn:active:not(:disabled),
+.profile-shell.student-profile .profile-update-btn:active:not(:disabled),
+.profile-shell.student-profile .profile-microphone-btn:active:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 #5b21b6;
+}
+
+.profile-shell.student-profile .sp-btn:disabled,
+.profile-shell.student-profile .profile-update-btn:disabled,
+.profile-shell.student-profile .profile-microphone-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.profile-shell.student-profile .profile-microphone-btn.secondary {
+  background: linear-gradient(135deg, #fb7185, #f43f5e);
+  box-shadow: 0 6px 0 #9f1239, 0 12px 22px rgba(244, 63, 94, 0.3);
+}
+
+.profile-shell.student-profile .profile-form-error,
+.profile-shell.student-profile .profile-form-success {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  font-weight: 800;
+}
+
+/* ===== Settings sections as game cards ===== */
+.profile-shell.student-profile .profile-settings-tab {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.profile-shell.student-profile .profile-settings-section {
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 1px solid var(--sp-card-border);
+  border-radius: 1.6rem;
+  background: var(--sp-card);
+  box-shadow: 0 8px 0 var(--c-soft, #e0e7ff), 0 14px 28px rgba(31, 42, 68, 0.08);
+  animation: sp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.profile-shell.student-profile .profile-settings-section:nth-child(1) { --c: var(--sp-blue); --c-soft: #dbeafe; }
+.profile-shell.student-profile .profile-audio-section {
+  --c: var(--sp-purple);
+  --c-soft: #ede9fe;
+  grid-row: span 2;
+  padding-top: 1.5rem;
+  animation-delay: 0.08s;
+}
+.profile-shell.student-profile .profile-background-section { --c: var(--sp-orange); --c-soft: #ffedd5; animation-delay: 0.16s; }
+
+[data-theme='dark'] .profile-shell.student-profile .profile-settings-section {
+  --c-soft: rgba(255, 255, 255, 0.08);
+}
+
+.profile-shell.student-profile .profile-settings-header,
+.profile-shell.student-profile .profile-voice-settings-title {
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.profile-shell.student-profile .profile-settings-icon {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 1rem;
+  background: var(--c-soft);
+  font-size: 1.6rem;
+}
+
+.profile-shell.student-profile .profile-settings-header h3,
+.profile-shell.student-profile .profile-voice-settings-title h4 {
+  margin: 0;
+  color: var(--sp-ink);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.profile-shell.student-profile .profile-settings-header p,
+.profile-shell.student-profile .profile-voice-settings-title p,
+.profile-shell.student-profile .profile-form-hint,
+.profile-shell.student-profile .profile-microphone-status,
+.profile-shell.student-profile .profile-voice-mode small,
+.profile-shell.student-profile .profile-theme-description {
+  color: var(--sp-muted);
+}
+
+.profile-shell.student-profile .profile-form-label {
+  color: var(--sp-ink);
+  font-weight: 800;
+}
+
+.profile-shell.student-profile .profile-form-box {
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  background: var(--sp-field);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-shell.student-profile .profile-form-box:focus-within {
+  border-color: var(--c);
+  box-shadow: 0 0 0 4px var(--c-soft);
+}
+
+.profile-shell.student-profile .profile-form-box input {
+  color: var(--sp-ink);
+}
+
+/* Sliders */
+.profile-shell.student-profile input[type='range'] {
+  accent-color: var(--c);
+  cursor: pointer;
+}
+
+.profile-shell.student-profile .profile-volume-value,
+.profile-shell.student-profile .profile-microphone-value {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--c-soft);
+  color: var(--sp-ink);
+  font-weight: 900;
+}
+
+/* Microphone tester */
+.profile-shell.student-profile .profile-microphone-tester {
+  padding: 1rem;
+  border: 0;
+  border-radius: 1.2rem;
+  background: var(--sp-field);
+}
+
+.profile-shell.student-profile .profile-microphone-meter {
+  border-radius: 0.8rem;
+  background: rgba(31, 42, 68, 0.06);
+}
+
+.profile-shell.student-profile .profile-microphone-meter span {
+  border-radius: 999px;
+}
+
+.profile-shell.student-profile .profile-microphone-meter span.active {
+  background: linear-gradient(180deg, #34d399, #8b5cf6);
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
+}
+
+/* Voice modes */
+.profile-shell.student-profile .profile-voice-settings {
+  padding: 1rem;
+  border: 0;
+  border-radius: 1.2rem;
+  background: var(--sp-field);
+}
+
+.profile-shell.student-profile .profile-voice-mode {
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  background: var(--sp-card);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.profile-shell.student-profile .profile-voice-mode:hover {
+  transform: translateY(-2px);
+}
+
+.profile-shell.student-profile .profile-voice-mode.active {
+  border-color: var(--c);
+  background: var(--sp-card);
+  box-shadow: 0 4px 0 var(--c-soft);
+}
+
+.profile-shell.student-profile .profile-voice-mode.active .profile-voice-radio {
+  border-color: var(--c);
+  background: var(--c);
+}
+
+.profile-shell.student-profile .profile-voice-mode strong {
+  color: var(--sp-ink);
+}
+
+/* Theme cards */
+.profile-shell.student-profile .profile-theme-card {
+  border-radius: 1.2rem;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.profile-shell.student-profile .profile-theme-card:hover {
+  transform: translateY(-4px) rotate(-1deg);
+}
+
+.profile-shell.student-profile .profile-theme-card.active {
+  box-shadow: 0 0 0 3px var(--c), 0 10px 22px rgba(249, 115, 22, 0.25);
+}
+
+/* ===== Keyframes ===== */
+@keyframes sp-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sp-drop {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes sp-pop {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sp-grow {
+  from { width: 0; }
+}
+
+@keyframes sp-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes sp-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg) scale(1.12); }
+  75% { transform: rotate(12deg) scale(1.12); }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1100px) {
+  .profile-shell.student-profile .profile-settings-tab {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-shell.student-profile .profile-audio-section {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .profile-shell.student-profile .sp-info-grid,
+  .profile-shell.student-profile .sp-progress-list {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-shell.student-profile .sp-hero {
+    grid-template-columns: auto 1fr;
+  }
+
+  .profile-shell.student-profile .sp-hero-ring {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-shell.student-profile {
+    padding: 1rem;
+    border-radius: 1.25rem;
+  }
+
+  .profile-shell.student-profile .sp-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    padding: 1.5rem;
+  }
+
+  .profile-shell.student-profile .sp-hero-chips {
+    justify-content: center;
+  }
+
+  .profile-shell.student-profile .profile-tabs {
+    justify-self: stretch;
+  }
+
+  .profile-shell.student-profile .profile-tab {
+    flex: 1;
+    padding: 0.7rem 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-shell.student-profile,
+  .profile-shell.student-profile * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

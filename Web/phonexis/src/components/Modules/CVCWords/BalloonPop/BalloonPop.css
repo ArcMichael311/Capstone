@@ -101,6 +101,12 @@
   flex-wrap: wrap;
 }
 
+.bp-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
 .bp-brand {
   display: flex;
   align-items: center;

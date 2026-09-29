@@ -1,5 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchPretestForStudent, fetchStudentPretests, submitPretestAttempt } from '../../lib/supabaseClient';
+import './StudentClass.css';
+
+const materialTypes = {
+  pdf: { key: 'pdf', icon: '📄', label: 'PDF' },
+  ppt: { key: 'ppt', icon: '📊', label: 'Slides' },
+  pptx: { key: 'ppt', icon: '📊', label: 'Slides' },
+  mp4: { key: 'mp4', icon: '🎬', label: 'Video' },
+  mp3: { key: 'mp3', icon: '🎵', label: 'Audio' },
+};
+
+const extensionOf = (fileName = '') => {
+  const dotIndex = fileName.lastIndexOf('.');
+  return dotIndex >= 0 ? fileName.slice(dotIndex + 1).toLowerCase() : '';
+};
+
+const getMaterialInfo = (material) => (
+  materialTypes[String(material.materialType || '').toLowerCase()]
+  || materialTypes[extensionOf(material.fileName)]
+  || { key: 'file', icon: '📁', label: 'File' }
+);
+
+// Save downloads under the material's title ("Vowel Sounds.pdf"), not the stored file name.
+const getDownloadName = (material) => {
+  const extension = extensionOf(material.fileName);
+  const base = String(material.title || material.fileName || 'material').replace(/[\\/:*?"<>|]/g, '').trim() || 'material';
+  return extension && !base.toLowerCase().endsWith(`.${extension}`) ? `${base}.${extension}` : base;
+};
+
+const getStars = (score, total) => {
+  const ratio = total > 0 ? score / total : 0;
+  if (ratio >= 1) return 3;
+  if (ratio >= 0.7) return 2;
+  if (ratio >= 0.4) return 1;
+  return 0;
+};
+
+const confettiColors = ['#ec4899', '#fbbf24', '#3b82f6', '#10b981', '#8b5cf6', '#f97316'];
+const confettiPieces = Array.from({ length: 36 }, (_, i) => ({
+  left: (i * 29) % 100,
+  delay: (i % 10) * 0.12,
+  duration: 2.2 + (i % 5) * 0.35,
+  color: confettiColors[i % confettiColors.length],
+}));
 
 const formatFileSize = (bytes) => {
   if (!bytes && bytes !== 0) {
@@ -59,11 +102,9 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
   };
 
   useEffect(() => {
-    if (tab === 'pretests') {
-      void loadPretests();
-    }
+    void loadPretests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
+  }, [tab, studentClassInfo?.classId]);
 
   useEffect(() => () => {
     audioRef.current?.pause();
@@ -210,220 +251,336 @@ export default function StudentClassModal({ studentClassInfo, studentMaterials =
     void loadPretests();
   };
 
-  return (
-    <section className="module-shell student-class-workspace">
-      <header className="module-banner student-class-banner">
-        <div>
-          <p className="module-label">Your Classroom</p>
-          <h3>{studentClassInfo.className}</h3>
-          <p>
-            Learning materials and pretests shared by {[studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'your teacher'}.
-          </p>
-        </div>
-        <div className="module-banner-stats">
-          <article>
-            <span>Materials</span>
-            <strong>{studentMaterials.length}</strong>
+  const teacherName = [studentClassInfo.teacherFirstName, studentClassInfo.teacherLastName].filter(Boolean).join(' ') || 'your teacher';
+  const completedPretests = pretests.filter((pretest) => pretest.latestAttempt).length;
+  const totalQuestions = takeData?.questions?.length || 0;
+
+  const renderMaterials = () => (
+    <div className="sc-material-grid">
+      {studentMaterials.map((material, index) => {
+        const info = getMaterialInfo(material);
+        return (
+          <article key={material.id} className={`sc-material sc-type-${info.key}`} style={{ '--i': index }}>
+            <span className="sc-material-icon" aria-hidden="true">{info.icon}</span>
+            <div className="sc-material-copy">
+              <span className="sc-material-type">{info.label}</span>
+              <strong>{material.title || material.fileName}</strong>
+              {material.fileSize ? <span className="sc-material-size">{formatFileSize(material.fileSize)}</span> : null}
+            </div>
+            {material.downloadUrl ? (
+              <a
+                className="sc-btn sc-download"
+                href={material.downloadUrl}
+                target="_blank"
+                rel="noreferrer"
+                download={getDownloadName(material)}
+              >
+                ⬇ Download
+              </a>
+            ) : (
+              <span className="sc-btn sc-btn-disabled">Unavailable</span>
+            )}
           </article>
-          <button type="button" className="module-back" onClick={() => onNavigate('dashboard')}>
-            Back to Dashboard
-          </button>
+        );
+      })}
+      {studentMaterials.length === 0 && (
+        <div className="sc-empty">
+          <span aria-hidden="true">📭</span>
+          <strong>No materials yet</strong>
+          <p>Your teacher hasn&apos;t shared any files. Check back soon!</p>
         </div>
-      </header>
+      )}
+    </div>
+  );
 
-        {mode === 'browse' && (
-          <>
-            <div className="module-strip student-class-tabs" role="tablist" aria-label="Class content">
-              <button type="button" role="tab" className={`module-tab${tab === 'materials' ? ' active' : ''}`} onClick={() => onNavigate('class', 'materials')}>
-                <h4>Materials</h4>
-                <span>Review lessons and files shared for your class.</span>
-              </button>
-              <button type="button" role="tab" className={`module-tab${tab === 'pretests' ? ' active' : ''}`} onClick={() => onNavigate('class', 'pretests')}>
-                <h4>Pretests</h4>
-                <span>Check your understanding and track your attempts.</span>
+  const renderPretests = () => (
+    <div className="sc-quest-list">
+      {pretestsLoading && <p className="sc-note">⏳ Loading pretests...</p>}
+      {pretestsError && <p className="sc-note sc-note-bad">{pretestsError}</p>}
+      {takeError && <p className="sc-note sc-note-bad">{takeError}</p>}
+
+      {!pretestsLoading && pretests.map((pretest, index) => {
+        const attempt = pretest.latestAttempt;
+        const stars = attempt ? getStars(attempt.score, attempt.totalQuestions) : 0;
+        return (
+          <article key={pretest.id} className={`sc-quest ${attempt ? 'done' : ''}`} style={{ '--i': index }}>
+            <span className="sc-quest-icon" aria-hidden="true">{attempt ? '🏅' : '📝'}</span>
+            <div className="sc-quest-copy">
+              <span className="sc-quest-label">Quest {index + 1}</span>
+              <strong>{pretest.title}</strong>
+              {pretest.description && <p>{pretest.description}</p>}
+              <div className="sc-quest-chips">
+                <span>❓ {pretest.questionCount} question{pretest.questionCount === 1 ? '' : 's'}</span>
+                {attempt ? <span>⭐ Best: {attempt.score}/{attempt.totalQuestions}</span> : <span>✨ New!</span>}
+              </div>
+            </div>
+            <div className="sc-quest-side">
+              {attempt ? (
+                <div className="sc-stars" aria-label={`${stars} of 3 stars`}>
+                  {[1, 2, 3].map((value) => (
+                    <span key={value} className={value <= stars ? 'earned' : ''}>★</span>
+                  ))}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                className={`sc-btn ${attempt ? 'sc-btn-soft' : 'sc-pulse'}`}
+                onClick={() => handleStartPretest(pretest.id)}
+                disabled={takeLoading}
+              >
+                {attempt ? '↻ Retake' : '▶ Start Quest'}
               </button>
             </div>
+          </article>
+        );
+      })}
 
-            <div className="module-stage student-class-stage">
-            {tab === 'materials' && (
-              <div className="dashboard-materials-list student-class-list">
-                {studentMaterials.map((material) => (
-                  <a
-                    key={material.id}
-                    className="dashboard-material-item"
-                    href={material.downloadUrl || undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <span>{material.title || material.fileName}</span>
-                    <span className="dashboard-material-meta">
-                      {material.fileSize ? formatFileSize(material.fileSize) : ''}
-                    </span>
-                  </a>
-                ))}
-                {studentMaterials.length === 0 && (
-                  <p className="dashboard-materials-empty">No materials shared yet.</p>
-                )}
-              </div>
-            )}
+      {!pretestsLoading && pretests.length === 0 && (
+        <div className="sc-empty">
+          <span aria-hidden="true">🗒️</span>
+          <strong>No pretests yet</strong>
+          <p>When your teacher adds a pretest, it will show up here as a quest.</p>
+        </div>
+      )}
+    </div>
+  );
 
-            {tab === 'pretests' && (
-              <div className="dashboard-pretest-list">
-                {pretestsLoading && <p className="dashboard-materials-empty">Loading pretests...</p>}
-                {pretestsError && <p className="dashboard-materials-empty">{pretestsError}</p>}
-                {takeError && <p className="dashboard-materials-empty">{takeError}</p>}
+  const renderTaking = () => (
+    <section className="sc-take">
+      <div className="sc-take-head">
+        <div>
+          <span className="sc-kicker sc-kicker-dark">📝 {takeData.title}</span>
+          <strong>Question {currentIndex + 1} of {totalQuestions}</strong>
+        </div>
+        <button type="button" className="sc-btn sc-btn-soft" onClick={handleBackToBrowse}>
+          ✕ Exit
+        </button>
+      </div>
 
-                {!pretestsLoading && pretests.map((pretest) => (
-                  <div key={pretest.id} className="dashboard-pretest-item">
-                    <div className="dashboard-pretest-item-copy">
-                      <strong>{pretest.title}</strong>
-                      {pretest.description && <span>{pretest.description}</span>}
-                      <span className="dashboard-material-meta">
-                        {pretest.questionCount} question{pretest.questionCount === 1 ? '' : 's'}
-                        {pretest.latestAttempt ? ` • Best: ${pretest.latestAttempt.score}/${pretest.latestAttempt.totalQuestions}` : ''}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="dashboard-card-button dashboard-pretest-take-button"
-                      onClick={() => handleStartPretest(pretest.id)}
-                      disabled={takeLoading}
-                    >
-                      {pretest.latestAttempt ? 'Retake' : 'Take Pretest'}
-                    </button>
-                  </div>
-                ))}
+      <div className="sc-take-dots" aria-hidden="true">
+        {takeData.questions.map((question, index) => (
+          <span key={question.id} className={index === currentIndex ? 'current' : index < currentIndex ? 'done' : ''} />
+        ))}
+      </div>
 
-                {!pretestsLoading && pretests.length === 0 && (
-                  <p className="dashboard-materials-empty">No pretests shared yet.</p>
-                )}
-              </div>
-            )}
-            </div>
-          </>
+      <div key={currentQuestion.id} className="sc-question">
+        <p className="sc-question-prompt">{currentQuestion.promptText}</p>
+
+        {currentQuestion.audioUrl && (
+          <button type="button" className="sc-listen" onClick={() => playAudio(currentQuestion.audioUrl)}>
+            🔊 Listen
+          </button>
         )}
 
-        {mode === 'taking' && takeData && currentQuestion && (
-          <div className="module-stage dashboard-pretest-take student-class-stage">
-            <div className="dashboard-pretest-progress">
-              Question {currentIndex + 1} of {takeData.questions.length}
-            </div>
-
-            <p className="dashboard-pretest-question">{currentQuestion.promptText}</p>
-
-            {currentQuestion.audioUrl && (
-              <button type="button" className="dashboard-pretest-audio-button" onClick={() => playAudio(currentQuestion.audioUrl)}>
-                🔊 Listen
+        {(currentQuestion.questionType === 'MULTIPLE_CHOICE' || currentQuestion.questionType === 'TRUE_FALSE') && (
+          <div className="sc-options">
+            {currentQuestion.options.map((option, index) => (
+              <button
+                key={option.id}
+                type="button"
+                className={`sc-option${answers[currentQuestion.id] === String(option.id) ? ' selected' : ''}`}
+                style={{ '--i': index }}
+                onClick={() => handleOptionSelect(currentQuestion, option)}
+              >
+                {option.label} {option.audioUrl ? '🔊' : ''}
               </button>
-            )}
+            ))}
+          </div>
+        )}
 
-            {(currentQuestion.questionType === 'MULTIPLE_CHOICE' || currentQuestion.questionType === 'TRUE_FALSE') && (
-              <div className="dashboard-pretest-options">
-                {currentQuestion.options.map((option) => (
+        {currentQuestion.questionType === 'MATCHING' && (
+          <div className="sc-matching">
+            <div className="sc-match-column">
+              <span className="sc-match-hint">1️⃣ Tap a word</span>
+              {currentQuestion.options.map((option) => {
+                const state = matching[currentQuestion.id];
+                const isMatched = state?.pairs?.[option.id] != null;
+                const isSelected = state?.selected === option.id;
+                return (
                   <button
                     key={option.id}
                     type="button"
-                    className={`dashboard-pretest-option${answers[currentQuestion.id] === String(option.id) ? ' selected' : ''}`}
-                    onClick={() => handleOptionSelect(currentQuestion, option)}
+                    className={`sc-match-chip${isSelected ? ' active' : ''}${isMatched ? ' matched' : ''}`}
+                    onClick={() => handleMatchLeftTap(currentQuestion, option)}
                   >
-                    {option.label} {option.audioUrl ? '🔊' : ''}
+                    {option.label}
+                    {isMatched ? ` → ${state.pairs[option.id]}` : ''}
                   </button>
-                ))}
-              </div>
-            )}
-
-            {currentQuestion.questionType === 'MATCHING' && (
-              <div className="dashboard-pretest-matching">
-                <div className="dashboard-pretest-matching-column">
-                  {currentQuestion.options.map((option) => {
-                    const state = matching[currentQuestion.id];
-                    const isMatched = state?.pairs?.[option.id] != null;
-                    const isSelected = state?.selected === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={`dashboard-pretest-match-chip${isSelected ? ' active' : ''}${isMatched ? ' matched' : ''}`}
-                        onClick={() => handleMatchLeftTap(currentQuestion, option)}
-                      >
-                        {option.label}
-                        {isMatched ? ` → ${state.pairs[option.id]}` : ''}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="dashboard-pretest-matching-column">
-                  {(matching[currentQuestion.id]?.rightPool || []).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className="dashboard-pretest-match-chip"
-                      onClick={() => handleMatchRightTap(currentQuestion, value)}
-                      disabled={!matching[currentQuestion.id]?.selected}
-                    >
-                      {value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {(currentQuestion.questionType === 'IDENTIFICATION' || currentQuestion.questionType === 'FILL_BLANK') && (
-              <input
-                type="text"
-                className="dashboard-pretest-text-input"
-                value={answers[currentQuestion.id] || ''}
-                onChange={(event) => handleTextAnswer(currentQuestion, event.target.value)}
-                placeholder="Type your answer"
-              />
-            )}
-
-            <div className="dashboard-pretest-nav">
-              <button type="button" className="dashboard-secondary-button" onClick={handleBackToBrowse}>
-                Exit
-              </button>
-              {currentIndex > 0 && (
-                <button type="button" className="dashboard-secondary-button" onClick={handlePrevious}>
-                  Back
-                </button>
-              )}
-              <button
-                type="button"
-                className="dashboard-card-button"
-                onClick={handleNext}
-                disabled={!isCurrentAnswered() || submitting}
-              >
-                {submitting ? 'Submitting...' : currentIndex === takeData.questions.length - 1 ? 'Submit' : 'Next'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {mode === 'result' && submitResult && takeData && (
-          <div className="module-stage dashboard-pretest-result student-class-stage">
-            <h4>You scored {submitResult.score} / {submitResult.totalQuestions}!</h4>
-            <div className="dashboard-pretest-result-list">
-              {takeData.questions.map((question, index) => {
-                const outcome = submitResult.results.find((entry) => entry.questionId === question.id);
-                return (
-                  <div key={question.id} className={`dashboard-pretest-result-item${outcome?.correct ? ' correct' : ' incorrect'}`}>
-                    <span>{index + 1}. {question.promptText}</span>
-                    <span>{outcome?.correct ? '✓' : '✗'}</span>
-                  </div>
                 );
               })}
             </div>
-            <div className="dashboard-pretest-nav">
-              <button type="button" className="dashboard-secondary-button" onClick={handleBackToBrowse}>
-                Done
-              </button>
-              <button type="button" className="dashboard-card-button" onClick={() => handleStartPretest(takeData.id)}>
-                Retake
-              </button>
+
+            <div className="sc-match-column">
+              <span className="sc-match-hint">2️⃣ Tap its match</span>
+              {(matching[currentQuestion.id]?.rightPool || []).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="sc-match-chip"
+                  onClick={() => handleMatchRightTap(currentQuestion, value)}
+                  disabled={!matching[currentQuestion.id]?.selected}
+                >
+                  {value}
+                </button>
+              ))}
             </div>
           </div>
         )}
+
+        {(currentQuestion.questionType === 'IDENTIFICATION' || currentQuestion.questionType === 'FILL_BLANK') && (
+          <input
+            type="text"
+            className="sc-text-input"
+            value={answers[currentQuestion.id] || ''}
+            onChange={(event) => handleTextAnswer(currentQuestion, event.target.value)}
+            placeholder="✏️ Type your answer"
+          />
+        )}
+      </div>
+
+      <div className="sc-take-nav">
+        {currentIndex > 0 ? (
+          <button type="button" className="sc-btn sc-btn-soft" onClick={handlePrevious}>
+            ‹ Back
+          </button>
+        ) : <span />}
+        <button
+          type="button"
+          className="sc-btn"
+          onClick={handleNext}
+          disabled={!isCurrentAnswered() || submitting}
+        >
+          {submitting ? '⏳ Submitting...' : currentIndex === totalQuestions - 1 ? '🏁 Submit' : 'Next ›'}
+        </button>
+      </div>
+    </section>
+  );
+
+  const renderResult = () => {
+    const stars = getStars(submitResult.score, submitResult.totalQuestions);
+    const titles = ['Keep practicing!', 'Good try!', 'Great job!', 'Perfect score!'];
+    const emojis = ['💪', '👍', '🎉', '🏆'];
+
+    return (
+      <section className="sc-result">
+        {stars >= 2 ? (
+          <div className="sc-confetti" aria-hidden="true">
+            {confettiPieces.map((piece, i) => (
+              <span
+                key={i}
+                style={{
+                  left: `${piece.left}%`,
+                  background: piece.color,
+                  animationDelay: `${piece.delay}s`,
+                  animationDuration: `${piece.duration}s`,
+                }}
+              />
+            ))}
+          </div>
+        ) : null}
+        <span className="sc-result-emoji" aria-hidden="true">{emojis[stars]}</span>
+        <span className="sc-kicker sc-kicker-dark">{takeData.title} complete</span>
+        <h1>{titles[stars]}</h1>
+        <div className="sc-stars sc-stars-big" aria-label={`${stars} of 3 stars`}>
+          {[1, 2, 3].map((value) => (
+            <span key={value} className={value <= stars ? 'earned' : ''} style={{ '--i': value }}>★</span>
+          ))}
+        </div>
+        <p className="sc-result-score">
+          You scored <strong>{submitResult.score}</strong> / <strong>{submitResult.totalQuestions}</strong>
+        </p>
+        <div className="sc-result-list">
+          {takeData.questions.map((question, index) => {
+            const outcome = submitResult.results.find((entry) => entry.questionId === question.id);
+            return (
+              <div
+                key={question.id}
+                className={`sc-result-item ${outcome?.correct ? 'correct' : 'incorrect'}`}
+                style={{ '--i': index }}
+              >
+                <span>{index + 1}. {question.promptText}</span>
+                <b>{outcome?.correct ? '✓' : '✗'}</b>
+              </div>
+            );
+          })}
+        </div>
+        <div className="sc-result-actions">
+          <button type="button" className="sc-btn sc-btn-soft" onClick={handleBackToBrowse}>
+            🏫 Back to Class
+          </button>
+          <button type="button" className="sc-btn" onClick={() => handleStartPretest(takeData.id)}>
+            ↻ Retake
+          </button>
+        </div>
+      </section>
+    );
+  };
+
+  return (
+    <section className="sc-page" aria-label="Your class">
+      <header className="sc-hero">
+        <span className="sc-hero-icon" aria-hidden="true">🏫</span>
+        <div className="sc-hero-copy">
+          <span className="sc-kicker">⛺ Class Camp</span>
+          <h1>{studentClassInfo.className}</h1>
+          <p>👩‍🏫 Materials and pretests shared by {teacherName}</p>
+        </div>
+        <div className="sc-hero-stats">
+          <div>
+            <strong key={studentMaterials.length} className="sc-pop">📚 {studentMaterials.length}</strong>
+            <span>Materials</span>
+          </div>
+          <div>
+            <strong key={`${completedPretests}-${pretests.length}`} className="sc-pop">🏅 {completedPretests}/{pretests.length}</strong>
+            <span>Quests done</span>
+          </div>
+        </div>
+        <button type="button" className="sc-back" onClick={() => onNavigate('dashboard')}>
+          ← Dashboard
+        </button>
+      </header>
+
+      {mode === 'browse' && (
+        <>
+          <div className="sc-tabs" role="tablist" aria-label="Class content">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'materials'}
+              className={`sc-tab${tab === 'materials' ? ' active' : ''}`}
+              onClick={() => onNavigate('class', 'materials')}
+            >
+              <span className="sc-tab-icon" aria-hidden="true">📚</span>
+              <span>
+                <strong>Materials</strong>
+                <small>Lessons and files from your teacher</small>
+              </span>
+              <b className="sc-tab-count">{studentMaterials.length}</b>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'pretests'}
+              className={`sc-tab${tab === 'pretests' ? ' active' : ''}`}
+              onClick={() => onNavigate('class', 'pretests')}
+            >
+              <span className="sc-tab-icon" aria-hidden="true">📝</span>
+              <span>
+                <strong>Pretests</strong>
+                <small>Take quests and beat your best score</small>
+              </span>
+              <b className="sc-tab-count">{pretests.length}</b>
+            </button>
+          </div>
+
+          <div key={tab} className="sc-stage">
+            {tab === 'materials' ? renderMaterials() : renderPretests()}
+          </div>
+        </>
+      )}
+
+      {mode === 'taking' && takeData && currentQuestion && renderTaking()}
+      {mode === 'result' && submitResult && takeData && renderResult()}
     </section>
   );
 }

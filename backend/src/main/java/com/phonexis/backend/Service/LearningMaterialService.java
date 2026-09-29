@@ -154,7 +154,7 @@ public class LearningMaterialService {
 
 	private MaterialResponse toResponse(LearningMaterial material) {
 		String downloadUrl = supabaseStorageService.isConfigured()
-			? supabaseStorageService.createSignedUrl(material.getStoragePath(), SIGNED_URL_TTL_SECONDS)
+			? supabaseStorageService.createSignedUrl(material.getStoragePath(), SIGNED_URL_TTL_SECONDS, downloadNameFor(material))
 			: null;
 
 		return new MaterialResponse(
@@ -168,6 +168,21 @@ public class LearningMaterialService {
 			material.getCreatedAt(),
 			downloadUrl
 		);
+	}
+
+	// Name the student's download after the material title ("Vowel Sounds.pdf"),
+	// not the UUID-prefixed storage object.
+	private String downloadNameFor(LearningMaterial material) {
+		String originalName = material.getFileName() != null ? material.getFileName() : "";
+		String extension = extensionOf(originalName);
+		String baseName = material.getTitle() != null && !material.getTitle().isBlank()
+			? material.getTitle().trim()
+			: stripExtension(originalName);
+		baseName = baseName.replaceAll("[\\\\/:*?\"<>|]", "").trim();
+		if (baseName.isEmpty()) {
+			baseName = "material";
+		}
+		return extension.isEmpty() ? baseName : baseName + "." + extension;
 	}
 
 	private String extensionOf(String fileName) {

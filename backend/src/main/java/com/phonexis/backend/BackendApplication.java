@@ -25,40 +25,51 @@ public class BackendApplication {
 
 	@Bean
 	public CommandLineRunner createAdminIfMissing(UserRepository userRepository) {
-		return args -> {
-			try {
-				final String adminEmail = System.getenv("ADMIN_EMAIL");
-				final String adminPassword = System.getenv("ADMIN_PASSWORD");
-				final String adminFirstName = getEnvOrDefault("ADMIN_FIRST_NAME", "Admin");
-				final String adminLastName = getEnvOrDefault("ADMIN_LAST_NAME", "User");
-				final String supabaseUrl = getEnvOrDefault("SUPABASE_URL", getEnvOrDefault("REACT_APP_SUPABASE_URL", ""));
-				final String supabaseServiceKey = getEnvOrDefault("SUPABASE_SERVICE_ROLE_KEY", "");
+		return args -> ensureSeedAccount(userRepository, "ADMIN", User.Role.ADMIN, "Admin", "User");
+	}
 
-				if (adminEmail == null || adminEmail.isBlank() || adminPassword == null || adminPassword.isBlank()) {
-					System.out.println("ADMIN_EMAIL or ADMIN_PASSWORD not set; skipping admin creation.");
-					return;
-				}
+	@Bean
+	public CommandLineRunner createTeacherIfMissing(UserRepository userRepository) {
+		return args -> ensureSeedAccount(userRepository, "TEACHER", User.Role.TEACHER, "Teacher", "User");
+	}
 
-				Optional<User> existingAdmin = userRepository.findByEmailIgnoreCase(adminEmail);
-				User admin = existingAdmin.orElseGet(User::new);
-				admin.setFirstName(adminFirstName);
-				admin.setLastName(adminLastName);
-				admin.setEmail(adminEmail);
-				admin.setPasswordHash(PASSWORD_ENCODER.encode(adminPassword));
-				admin.setRole(User.Role.ADMIN);
-				userRepository.save(admin);
-				System.out.println((existingAdmin.isPresent() ? "Updated" : "Created") + " admin in backend DB: " + adminEmail);
+	// Creates (or promotes) the account described by <PREFIX>_EMAIL / <PREFIX>_PASSWORD
+	// in the backend DB with the given role, then mirrors it into Supabase Auth when
+	// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.
+	private static void ensureSeedAccount(UserRepository userRepository, String prefix, User.Role role, String defaultFirstName, String defaultLastName) {
+		try {
+			final String email = System.getenv(prefix + "_EMAIL");
+			final String password = System.getenv(prefix + "_PASSWORD");
+			final String firstName = getEnvOrDefault(prefix + "_FIRST_NAME", defaultFirstName);
+			final String lastName = getEnvOrDefault(prefix + "_LAST_NAME", defaultLastName);
+			final String supabaseUrl = getEnvOrDefault("SUPABASE_URL", getEnvOrDefault("REACT_APP_SUPABASE_URL", ""));
+			final String supabaseServiceKey = getEnvOrDefault("SUPABASE_SERVICE_ROLE_KEY", "");
+			final String roleLabel = role.name().toLowerCase();
 
-				if (supabaseUrl.isBlank() || supabaseServiceKey.isBlank()) {
-					System.out.println("SUPABASE_URL/REACT_APP_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set; skipping Supabase auth sync.");
-					return;
-				}
-
-				ensureSupabaseAdminUser(supabaseUrl, supabaseServiceKey, adminEmail, adminPassword);
-			} catch (Exception e) {
-				System.err.println("Failed to ensure admin account: " + e.getMessage());
+			if (email == null || email.isBlank() || password == null || password.isBlank()) {
+				System.out.println(prefix + "_EMAIL or " + prefix + "_PASSWORD not set; skipping " + roleLabel + " creation.");
+				return;
 			}
-		};
+
+			Optional<User> existingUser = userRepository.findByEmailIgnoreCase(email);
+			User user = existingUser.orElseGet(User::new);
+			user.setFirstName(firstName);
+			user.setLastName(lastName);
+			user.setEmail(email);
+			user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+			user.setRole(role);
+			userRepository.save(user);
+			System.out.println((existingUser.isPresent() ? "Updated" : "Created") + " " + roleLabel + " in backend DB: " + email);
+
+			if (supabaseUrl.isBlank() || supabaseServiceKey.isBlank()) {
+				System.out.println("SUPABASE_URL/REACT_APP_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set; skipping Supabase auth sync.");
+				return;
+			}
+
+			ensureSupabaseAuthUser(supabaseUrl, supabaseServiceKey, email, password, roleLabel, firstName, lastName);
+		} catch (Exception e) {
+			System.err.println("Failed to ensure " + prefix.toLowerCase() + " account: " + e.getMessage());
+		}
 	}
 
 	private static String getEnvOrDefault(String key, String fallback) {
@@ -78,16 +89,21 @@ public class BackendApplication {
 			.replace("\t", "\\t");
 	}
 
-	private static void ensureSupabaseAdminUser(String supabaseUrl, String supabaseServiceKey, String adminEmail, String adminPassword) {
+	private static void ensureSupabaseAuthUser(String supabaseUrl, String supabaseServiceKey, String email, String password, String role, String firstName, String lastName) {
 		try {
 			HttpClient http = HttpClient.newHttpClient();
 			String baseUrl = supabaseUrl.replaceAll("/+$", "");
+			String userMetadata = "{"
+				+ "\"role\":\"" + jsonEscape(role) + "\","
+				+ "\"firstname\":\"" + jsonEscape(firstName) + "\","
+				+ "\"lastname\":\"" + jsonEscape(lastName) + "\""
+				+ "}";
 
 			String createBody = "{"
-				+ "\"email\":\"" + jsonEscape(adminEmail) + "\"," 
-				+ "\"password\":\"" + jsonEscape(adminPassword) + "\"," 
+				+ "\"email\":\"" + jsonEscape(email) + "\","
+				+ "\"password\":\"" + jsonEscape(password) + "\","
 				+ "\"email_confirm\":true,"
-				+ "\"user_metadata\":{\"role\":\"admin\"}"
+				+ "\"user_metadata\":" + userMetadata
 				+ "}";
 
 			HttpRequest createRequest = HttpRequest.newBuilder()
@@ -100,7 +116,7 @@ public class BackendApplication {
 
 			HttpResponse<String> createResponse = http.send(createRequest, HttpResponse.BodyHandlers.ofString());
 			if (createResponse.statusCode() >= 200 && createResponse.statusCode() < 300) {
-				System.out.println("Created Supabase auth admin user: " + adminEmail);
+				System.out.println("Created Supabase auth " + role + " user: " + email);
 				return;
 			}
 
@@ -118,30 +134,30 @@ public class BackendApplication {
 				return;
 			}
 
-			String marker = "\"email\":\"" + jsonEscape(adminEmail) + "\"";
+			String marker = "\"email\":\"" + jsonEscape(email) + "\"";
 			int emailIndex = listResponse.body().indexOf(marker);
 			if (emailIndex < 0) {
-				System.err.println("Supabase user not found after create attempt: " + adminEmail);
+				System.err.println("Supabase user not found after create attempt: " + email);
 				return;
 			}
 
 			int idLabelIndex = listResponse.body().lastIndexOf("\"id\":\"", emailIndex);
 			if (idLabelIndex < 0) {
-				System.err.println("Unable to resolve Supabase user id for: " + adminEmail);
+				System.err.println("Unable to resolve Supabase user id for: " + email);
 				return;
 			}
 
 			int idStart = idLabelIndex + 6;
 			int idEnd = listResponse.body().indexOf('"', idStart);
 			if (idEnd <= idStart) {
-				System.err.println("Invalid Supabase user id payload for: " + adminEmail);
+				System.err.println("Invalid Supabase user id payload for: " + email);
 				return;
 			}
 
 			String userId = listResponse.body().substring(idStart, idEnd);
 			String updateBody = "{"
-				+ "\"password\":\"" + jsonEscape(adminPassword) + "\"," 
-				+ "\"user_metadata\":{\"role\":\"admin\"}"
+				+ "\"password\":\"" + jsonEscape(password) + "\","
+				+ "\"user_metadata\":" + userMetadata
 				+ "}";
 
 			HttpRequest updateRequest = HttpRequest.newBuilder()
@@ -154,12 +170,12 @@ public class BackendApplication {
 
 			HttpResponse<String> updateResponse = http.send(updateRequest, HttpResponse.BodyHandlers.ofString());
 			if (updateResponse.statusCode() >= 200 && updateResponse.statusCode() < 300) {
-				System.out.println("Updated Supabase auth admin user role/password: " + adminEmail);
+				System.out.println("Updated Supabase auth " + role + " user role/password: " + email);
 			} else {
-				System.err.println("Failed to update Supabase auth admin user: " + updateResponse.statusCode() + " " + updateResponse.body());
+				System.err.println("Failed to update Supabase auth " + role + " user: " + updateResponse.statusCode() + " " + updateResponse.body());
 			}
 		} catch (Exception e) {
-			System.err.println("Error syncing Supabase admin user: " + e.getMessage());
+			System.err.println("Error syncing Supabase " + role + " user: " + e.getMessage());
 		}
 	}
 
