@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addClassStudents, createTeacherClass, deleteTeacherClass, fetchAvailableStudents, fetchBackendProgress, fetchClassStudents, fetchLearningMaterials, removeClassStudent } from '../../lib/supabaseClient';
-import { MODULES, formatDate, getDisplayName, safePercent } from './teacherUtils';
+import { MODULES, formatDate, getDisplayName, getInitials, safePercent } from './teacherUtils';
 import { BookIcon, ChartIcon, CloseIcon, PlusIcon, SearchIcon, TrashIcon, UsersIcon } from './TeacherIcons';
 import useConfirm from './useConfirm';
+import TeacherModal from './TeacherModal';
 
 const computeAverageProgress = (progressRows) => {
   const rows = Array.isArray(progressRows) ? progressRows : [];
@@ -96,6 +97,11 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
   const handleBack = () => {
     setSelectedClassId(null);
   };
+
+  const closeCreate = useCallback(() => {
+    setIsCreateOpen(false);
+    setCreateError(null);
+  }, []);
 
   const handleCreateClass = async () => {
     const name = newClassName.trim();
@@ -222,145 +228,212 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     }
   };
 
+  const totalStudents = classes.reduce((sum, classItem) => sum + (Number(classItem.studentCount) || 0), 0);
+
+  const createModal = isCreateOpen ? (
+    <TeacherModal
+      title="Create a class"
+      subtitle="Give the section a name your students will recognize."
+      size="sm"
+      onClose={closeCreate}
+      footer={(
+        <>
+          <button type="button" className="tw-btn tw-btn-ghost" onClick={closeCreate}>Cancel</button>
+          <button type="submit" form="tw-create-class" className="tw-btn tw-btn-primary" disabled={creating}>
+            {creating ? 'Creating…' : 'Create class'}
+          </button>
+        </>
+      )}
+    >
+      <form
+        id="tw-create-class"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleCreateClass();
+        }}
+      >
+        <label className="tw-field">
+          <span>Section name</span>
+          <input
+            className="tw-input"
+            type="text"
+            value={newClassName}
+            onChange={(event) => setNewClassName(event.target.value)}
+            placeholder="e.g. Grade 2 - Sampaguita"
+            autoFocus
+          />
+        </label>
+        <label className="tw-field">
+          <span>Date created</span>
+          <input className="tw-input" type="text" value={formatDate(new Date())} disabled />
+        </label>
+        {createError && <div className="tw-alert error">{createError}</div>}
+      </form>
+    </TeacherModal>
+  ) : null;
+
   if (selectedClass) {
     return (
       <>
-      {confirmDialog}
-      <section className="teacher-board" aria-label="Class detail">
-        <button type="button" className="teacher-back-link" onClick={handleBack}>&larr; All classes</button>
+        {confirmDialog}
+        <nav className="tw-breadcrumb" aria-label="Breadcrumb">
+          <button type="button" onClick={handleBack}>My Classes</button>
+          <span aria-hidden="true">/</span>
+          <span>{selectedClass.name}</span>
+        </nav>
 
-        <div className="teacher-class-hero">
-          <div className="teacher-class-hero-mark"><UsersIcon /></div>
-          <div className="teacher-class-hero-copy">
-            <span className="teacher-class-eyebrow">Class workspace</span>
-            <h3>{selectedClass.name}</h3>
-            <p>Created {formatDate(selectedClass.createdAt)} <span aria-hidden="true">•</span> Manage your students, materials, and progress in one place.</p>
-          </div>
-          <div className="teacher-class-hero-meta">
-            <span>Roster size</span>
-            <strong>{roster.length}</strong>
-            <small>active students</small>
-          </div>
-        </div>
-
-        {rosterError && <div className="teacher-error">{rosterError}</div>}
-
-        <div className="teacher-class-stats">
-          <div className="teacher-class-stat-card">
-            <span className="teacher-class-stat-icon"><UsersIcon /></span>
-            <span className="teacher-class-stat-copy">
-              <span>Students</span>
-              <strong>{roster.length}</strong>
+        <div className="tw-stats">
+          <div className="tw-card tw-stat">
+            <span className="tw-stat-icon"><UsersIcon /></span>
+            <span>
+              <span className="tw-stat-label">Students</span>
+              <span className="tw-stat-value">{roster.length}</span>
             </span>
           </div>
-          <div className="teacher-class-stat-card">
-            <span className="teacher-class-stat-icon"><BookIcon /></span>
-            <span className="teacher-class-stat-copy">
-              <span>Materials</span>
-              <strong>{materialsCount}</strong>
+          <div className="tw-card tw-stat">
+            <span className="tw-stat-icon"><BookIcon /></span>
+            <span>
+              <span className="tw-stat-label">Materials shared</span>
+              <span className="tw-stat-value">{materialsCount}</span>
             </span>
           </div>
-          <div className="teacher-class-stat-card">
-            <span className="teacher-class-stat-icon"><ChartIcon /></span>
-            <span className="teacher-class-stat-copy">
-              <span>Avg. Progress</span>
-              <strong>{averageClassProgress}%</strong>
+          <div className="tw-card tw-stat">
+            <span className="tw-stat-icon"><ChartIcon /></span>
+            <span>
+              <span className="tw-stat-label">Average progress</span>
+              <span className="tw-stat-value">{averageClassProgress}%</span>
+            </span>
+          </div>
+          <div className="tw-card tw-stat">
+            <span className="tw-stat-icon" aria-hidden="true">📅</span>
+            <span>
+              <span className="tw-stat-label">Created</span>
+              <span className="tw-stat-value" style={{ fontSize: '1.15rem' }}>{formatDate(selectedClass.createdAt)}</span>
             </span>
           </div>
         </div>
 
-        <div className="teacher-class-detail-grid">
-          <div className="teacher-roster-panel">
-            <div className="teacher-panel-heading">
-              <div>
-                <span className="teacher-section-eyebrow">People</span>
-                <h4>Student roster</h4>
-              </div>
-              <span className="teacher-panel-count">{roster.length}</span>
-            </div>
-            <p className="teacher-panel-description">Monitor each learner&apos;s progress and manage class access.</p>
-            <div className="teacher-roster-list">
-              {roster.map((student) => {
-                const progress = studentProgress[student.id] ?? 0;
-                const studentName = getDisplayName(student);
-                const initials = studentName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-                return (
-                  <article key={student.id} className="teacher-roster-item">
-                    <div className="teacher-student-avatar" aria-hidden="true">{initials || '?'}</div>
-                    <div className="teacher-roster-item-main">
-                      <strong>{studentName}</strong>
-                      <span>{student.email}</span>
-                    </div>
-                    <div className="teacher-roster-progress">
-                      <div className="teacher-roster-progress-track">
-                        <div className="teacher-roster-progress-fill" style={{ width: `${progress}%` }} />
-                      </div>
-                      <span>{progress}% complete</span>
-                    </div>
-                    <span className={`teacher-progress-status ${progress >= 80 ? 'complete' : progress > 0 ? 'active' : 'new'}`}>
-                      {progress >= 80 ? 'On track' : progress > 0 ? 'In progress' : 'Not started'}
-                    </span>
-                    <button type="button" className="teacher-icon-button danger" onClick={() => handleRemoveStudent(student.id)} title="Remove student" aria-label="Remove student">
-                      <TrashIcon />
-                    </button>
-                  </article>
-                );
-              })}
-              {rosterLoading && <div className="teacher-roster-loading">Loading student roster...</div>}
-              {!rosterLoading && roster.length === 0 && (
-                <div className="teacher-roster-empty">
-                  <span className="teacher-roster-empty-icon"><UsersIcon /></span>
-                  <strong>Your roster is empty</strong>
-                  <p>Add students from the panel to start tracking their learning progress.</p>
-                </div>
-              )}
-            </div>
-          </div>
+        {rosterError && <div className="tw-alert error">{rosterError}</div>}
 
-          <div className="teacher-add-students-panel">
-            <div className="teacher-panel-heading">
+        <div className="tw-grid-2">
+          <section className="tw-card" aria-label="Student roster">
+            <div className="tw-card-head">
               <div>
-                <span className="teacher-section-eyebrow">Enrollment</span>
-                <h4>Add students</h4>
+                <h2>Students</h2>
+                <p>Everyone enrolled in {selectedClass.name}.</p>
               </div>
-              <span className="teacher-add-badge"><PlusIcon /></span>
+              <span className="tw-badge info">{roster.length} enrolled</span>
             </div>
-            <p className="teacher-panel-description">Invite unassigned student accounts to join this class.</p>
-            <p className="teacher-panel-hint">Students already assigned to a class will not appear in the list.</p>
-            <div className="teacher-search-row">
+
+            {rosterLoading && <p className="tw-muted">Loading students…</p>}
+
+            {!rosterLoading && roster.length === 0 && (
+              <div className="tw-empty">
+                <span className="tw-empty-icon" aria-hidden="true">👥</span>
+                <strong>No students yet</strong>
+                <p>Use the “Add students” panel to enroll learners in this class.</p>
+              </div>
+            )}
+
+            {roster.length > 0 && (
+              <div className="tw-table-wrap">
+                <table className="tw-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Progress</th>
+                      <th className="tw-hide-sm">Status</th>
+                      <th className="tw-num"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roster.map((student, index) => {
+                      const progress = studentProgress[student.id] ?? 0;
+                      const studentName = getDisplayName(student);
+                      return (
+                        <tr key={student.id} style={{ animationDelay: `${index * 40}ms` }}>
+                          <td>
+                            <div className="tw-person">
+                              <span className="tw-avatar" aria-hidden="true">{getInitials(studentName)}</span>
+                              <span>
+                                <strong>{studentName}</strong>
+                                <span>{student.email}</span>
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="tw-progress">
+                              <div className="tw-progress-track"><div className="tw-progress-fill" style={{ width: `${progress}%` }} /></div>
+                              <strong>{progress}%</strong>
+                            </div>
+                          </td>
+                          <td className="tw-hide-sm">
+                            <span className={`tw-badge ${progress >= 80 ? 'success' : progress > 0 ? 'info' : ''}`}>
+                              {progress >= 80 ? 'On track' : progress > 0 ? 'In progress' : 'Not started'}
+                            </span>
+                          </td>
+                          <td className="tw-num">
+                            <button type="button" className="tw-icon-btn danger" onClick={() => handleRemoveStudent(student.id)} title="Remove from class" aria-label={`Remove ${studentName} from class`}>
+                              <TrashIcon />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+
+          <section className="tw-card" aria-label="Add students">
+            <div className="tw-card-head">
+              <div>
+                <h2>Add students</h2>
+                <p>Pick students who are not in a class yet.</p>
+              </div>
+            </div>
+
+            <div className="tw-search">
+              <SearchIcon />
               <input
+                className="tw-input"
                 type="text"
                 placeholder="Search by name or email"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                aria-label="Search students"
               />
-              <span className="teacher-icon-button" aria-hidden="true">
-                <SearchIcon />
-              </span>
             </div>
 
-            <div className="teacher-search-results">
-              {availableStudentsLoading && <p className="teacher-empty">Loading available students...</p>}
-              {!availableStudentsLoading && visibleAvailableStudents.map((student) => (
-                <button key={student.id} type="button" className="teacher-search-result" onClick={() => handleAddToPending(String(student.email).toLowerCase())}>
-                  <span>
-                    <strong>{getDisplayName(student)}</strong>
-                    <em>{student.email}</em>
-                  </span>
-                  <PlusIcon />
-                </button>
-              ))}
+            <div className="tw-list" style={{ marginTop: '0.85rem' }}>
+              {availableStudentsLoading && <p className="tw-muted">Loading students…</p>}
+              {!availableStudentsLoading && visibleAvailableStudents.map((student) => {
+                const name = getDisplayName(student);
+                return (
+                  <button key={student.id} type="button" className="tw-list-item" onClick={() => handleAddToPending(String(student.email).toLowerCase())}>
+                    <span className="tw-person">
+                      <span className="tw-avatar" aria-hidden="true">{getInitials(name)}</span>
+                      <span>
+                        <strong>{name}</strong>
+                        <span>{student.email}</span>
+                      </span>
+                    </span>
+                    <PlusIcon />
+                  </button>
+                );
+              })}
               {!availableStudentsLoading && visibleAvailableStudents.length === 0 && (
-                <p className="teacher-empty">
+                <p className="tw-muted">
                   {searchQuery.trim() ? 'No available students match your search.' : 'No unassigned students right now.'}
                 </p>
               )}
             </div>
 
             {pendingEmails.length > 0 && (
-              <div className="teacher-pending-chips">
+              <div className="tw-chips" aria-label="Students to add">
                 {pendingEmails.map((email) => (
-                  <span key={email} className="teacher-chip">
+                  <span key={email} className="tw-chip">
                     {email}
                     <button type="button" onClick={() => handleRemoveFromPending(email)} aria-label={`Remove ${email}`}>
                       <CloseIcon />
@@ -370,103 +443,109 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
               </div>
             )}
 
-            {addFeedback && <div className={`teacher-inline-feedback ${addFeedback.type}`}>{addFeedback.message}</div>}
+            {addFeedback && <div className={`tw-alert ${addFeedback.type}`} style={{ marginTop: '1rem' }}>{addFeedback.message}</div>}
 
             <button
               type="button"
-              className="teacher-primary-button teacher-create-activity"
+              className="tw-btn tw-btn-primary tw-btn-block"
+              style={{ marginTop: pendingEmails.length ? 0 : '1rem' }}
               onClick={handleAddStudents}
               disabled={pendingEmails.length === 0 || addingStudents}
             >
-              {addingStudents ? 'Adding...' : `Add ${pendingEmails.length || ''} Student${pendingEmails.length === 1 ? '' : 's'}`.replace('  ', ' ')}
+              <PlusIcon />
+              {addingStudents
+                ? 'Adding…'
+                : pendingEmails.length
+                  ? `Add ${pendingEmails.length} student${pendingEmails.length === 1 ? '' : 's'}`
+                  : 'Select students to add'}
             </button>
-          </div>
+          </section>
         </div>
-      </section>
       </>
     );
   }
 
   return (
-    <section aria-label="Classes dashboard">
+    <>
       {confirmDialog}
-      <div className="teacher-board-head teacher-dashboard-head">
-        <div>
-          <h3>Your Classes</h3>
-          <p>{loading ? 'Loading classes...' : `${classes.length} class${classes.length === 1 ? '' : 'es'}`}</p>
+      {createModal}
+
+      <div className="tw-stats">
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon"><UsersIcon /></span>
+          <span>
+            <span className="tw-stat-label">Classes</span>
+            <span className="tw-stat-value">{loading ? '…' : classes.length}</span>
+          </span>
         </div>
-        <button type="button" className="teacher-primary-button" onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon /> Create Class
-        </button>
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon" aria-hidden="true">🎒</span>
+          <span>
+            <span className="tw-stat-label">Students enrolled</span>
+            <span className="tw-stat-value">{loading ? '…' : totalStudents}</span>
+          </span>
+        </div>
       </div>
 
-      {error && <div className="teacher-error">{error}</div>}
+      {error && <div className="tw-alert error">{error}</div>}
 
-      <div className="teacher-class-grid">
-        {classes.map((classItem) => (
-          <article key={classItem.id} className="teacher-class-card" onClick={() => handleOpenClass(classItem.id)}>
-            <button type="button" className="teacher-icon-button danger teacher-class-delete" onClick={(event) => handleDeleteClass(classItem.id, event)} title="Delete class" aria-label="Delete class">
-              <TrashIcon />
-            </button>
-            <div className="teacher-class-card-icon"><UsersIcon /></div>
-            <h4>{classItem.name}</h4>
-            <p>Created {formatDate(classItem.createdAt)}</p>
-            <div className="teacher-class-card-progress">
-              <span>Students</span>
-              <strong>{classItem.studentCount}</strong>
-            </div>
-            <button
-              type="button"
-              className="teacher-class-card-button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleOpenClass(classItem.id);
-              }}
-            >
-              View Class
-            </button>
-          </article>
-        ))}
-
-        {!loading && classes.length === 0 && (
-          <p className="teacher-empty">You haven&apos;t created any classes yet. Click &quot;Create Class&quot; to get started.</p>
-        )}
-      </div>
-
-      {isCreateOpen && (
-        <div className="teacher-modal-backdrop" onClick={() => setIsCreateOpen(false)}>
-          <div className="teacher-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="teacher-modal-head">
-              <h3>Create Class</h3>
-              <button type="button" className="teacher-icon-button" onClick={() => setIsCreateOpen(false)} aria-label="Close">
-                <CloseIcon />
-              </button>
-            </div>
-
-            <label className="teacher-activity-field">
-              <span>Name of the section</span>
-              <input
-                type="text"
-                value={newClassName}
-                onChange={(event) => setNewClassName(event.target.value)}
-                placeholder="e.g. Grade 2 - Sampaguita"
-                autoFocus
-              />
-            </label>
-
-            <label className="teacher-activity-field">
-              <span>Date created</span>
-              <input type="text" value={formatDate(new Date())} disabled />
-            </label>
-
-            {createError && <div className="teacher-error">{createError}</div>}
-
-            <button type="button" className="teacher-primary-button teacher-create-activity" onClick={handleCreateClass} disabled={creating}>
-              {creating ? 'Creating...' : 'Create'}
-            </button>
+      <section className="tw-card" aria-label="Your classes">
+        <div className="tw-card-head">
+          <div>
+            <h2>Your classes</h2>
+            <p>{loading ? 'Loading classes…' : `${classes.length} class${classes.length === 1 ? '' : 'es'} · click a class to open it`}</p>
           </div>
+          <button type="button" className="tw-btn tw-btn-primary" onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon /> Create class
+          </button>
         </div>
-      )}
-    </section>
+
+        {!loading && classes.length === 0 ? (
+          <div className="tw-empty">
+            <span className="tw-empty-icon" aria-hidden="true">🏫</span>
+            <strong>No classes yet</strong>
+            <p>Create your first class, then add students to start tracking their progress.</p>
+          </div>
+        ) : (
+          <div className="tw-class-grid">
+            {classes.map((classItem, index) => (
+              <article
+                key={classItem.id}
+                className="tw-card tw-class-card"
+                style={{ animationDelay: `${index * 50}ms` }}
+                onClick={() => handleOpenClass(classItem.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && event.target === event.currentTarget) handleOpenClass(classItem.id);
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Open ${classItem.name}`}
+              >
+                <div className="tw-class-card-top">
+                  <span className="tw-class-mark" aria-hidden="true">{getInitials(classItem.name)}</span>
+                  <button
+                    type="button"
+                    className="tw-icon-btn danger"
+                    onClick={(event) => handleDeleteClass(classItem.id, event)}
+                    title="Delete class"
+                    aria-label={`Delete ${classItem.name}`}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+                <div>
+                  <h3>{classItem.name}</h3>
+                  <p>Created {formatDate(classItem.createdAt)}</p>
+                </div>
+                <div className="tw-class-card-foot">
+                  <span>{classItem.studentCount ?? 0} student{Number(classItem.studentCount) === 1 ? '' : 's'}</span>
+                  <b>Open →</b>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </>
   );
 }

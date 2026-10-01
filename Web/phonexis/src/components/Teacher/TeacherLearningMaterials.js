@@ -24,6 +24,8 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
   const [error, setError] = useState(null);
   const [title, setTitle] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [chosenFile, setChosenFile] = useState(null);
+  const [notice, setNotice] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
 
     setUploading(true);
     setError(null);
+    setNotice(null);
     const result = await uploadLearningMaterial(selectedClassId, backendUserId, file, title.trim());
     setUploading(false);
 
@@ -74,6 +77,8 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
     }
 
     setTitle('');
+    setChosenFile(null);
+    setNotice(`Uploaded “${file.name}”.`);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -99,88 +104,142 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
     }
   };
 
+  const selectedClassName = classes.find((classItem) => classItem.id === selectedClassId)?.name || 'this class';
+
   if (!loading && classes.length === 0) {
     return (
-      <section className="teacher-board" aria-label="Learning materials">
-        <p className="teacher-empty">Create a class first from the Dashboard, then come back here to share PPT, PDF, MP4, or MP3 files with its students.</p>
+      <section className="tw-card" aria-label="Learning materials">
+        <div className="tw-empty">
+          <span className="tw-empty-icon" aria-hidden="true">📚</span>
+          <strong>Create a class first</strong>
+          <p>Go to My Classes and create a class, then come back here to share files with its students.</p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section aria-label="Learning materials">
+    <>
       {confirmDialog}
-      <div className="teacher-class-picker" role="group" aria-label="Select class">
-        {classes.map((classItem) => (
-          <button
-            key={classItem.id}
-            type="button"
-            className={selectedClassId === classItem.id ? 'active' : ''}
-            onClick={() => setSelectedClassId(classItem.id)}
-          >
-            {classItem.name}
-          </button>
-        ))}
+
+      <div className="tw-toolbar">
+        <div>
+          <span className="tw-toolbar-label">Class</span>
+          <div className="tw-segment" role="group" aria-label="Select class">
+            {classes.map((classItem) => (
+              <button
+                key={classItem.id}
+                type="button"
+                className={selectedClassId === classItem.id ? 'active' : ''}
+                aria-pressed={selectedClassId === classItem.id}
+                onClick={() => setSelectedClassId(classItem.id)}
+              >
+                {classItem.name}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="teacher-activities-layout">
-        <div className="teacher-activity-editor">
-          <div className="teacher-board-head">
-            <h3>Upload Material</h3>
-            <p>Accepted formats: PPT, PDF, MP4, MP3</p>
+      <div className="tw-grid-2">
+        <section className="tw-card" aria-label="Shared materials">
+          <div className="tw-card-head">
+            <div>
+              <h2>Shared with {selectedClassName}</h2>
+              <p>{materialsLoading ? 'Loading…' : `${materials.length} file${materials.length === 1 ? '' : 's'} your students can open`}</p>
+            </div>
+          </div>
+
+          {!materialsLoading && materials.length === 0 ? (
+            <div className="tw-empty">
+              <span className="tw-empty-icon" aria-hidden="true">🗂️</span>
+              <strong>No files yet</strong>
+              <p>Upload a file on the right and it will appear here for your students.</p>
+            </div>
+          ) : (
+            <div className="tw-table-wrap">
+              <table className="tw-table">
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th className="tw-hide-sm">Uploaded</th>
+                    <th className="tw-num"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {materials.map((material, index) => (
+                    <tr key={material.id} style={{ animationDelay: `${index * 40}ms` }}>
+                      <td>
+                        <div className="tw-person">
+                          <span className="tw-file-icon"><FileIconByType type={material.materialType} /></span>
+                          <span>
+                            <strong>{material.title}</strong>
+                            <span>
+                              {String(material.materialType || '').toUpperCase()}
+                              {material.fileSize ? ` · ${formatFileSize(material.fileSize)}` : ''}
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="tw-hide-sm">{formatTimestamp(material.createdAt)}</td>
+                      <td className="tw-num">
+                        <div className="tw-actions">
+                          {material.downloadUrl && (
+                            <a href={material.downloadUrl} target="_blank" rel="noreferrer" className="tw-icon-btn" title="Download" aria-label={`Download ${material.title}`}>
+                              <DownloadIcon />
+                            </a>
+                          )}
+                          <button type="button" className="tw-icon-btn danger" onClick={() => handleDelete(material.id)} title="Delete" aria-label={`Delete ${material.title}`}>
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="tw-card" aria-label="Upload material">
+          <div className="tw-card-head">
+            <div>
+              <h2>Upload a file</h2>
+              <p>PPT, PDF, MP4 or MP3</p>
+            </div>
           </div>
 
           <form onSubmit={handleUpload}>
-            <label className="teacher-activity-field">
-              <span>Title (optional)</span>
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Week 3 - Vowel Sounds" />
+            <label className="tw-field">
+              <span>Title <small>(optional)</small></span>
+              <input className="tw-input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. Week 3 - Vowel Sounds" />
             </label>
 
-            <label className="teacher-activity-field">
+            <div className="tw-field">
               <span>File</span>
-              <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} />
-            </label>
+              <label className={`tw-dropzone ${chosenFile ? 'has-file' : ''}`}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_EXTENSIONS}
+                  onChange={(event) => setChosenFile(event.target.files?.[0] || null)}
+                />
+                <span className="tw-dropzone-icon" aria-hidden="true">{chosenFile ? '📄' : '⬆️'}</span>
+                <strong>{chosenFile ? chosenFile.name : 'Click to choose a file'}</strong>
+                <span>{chosenFile ? formatFileSize(chosenFile.size) : 'or drag it here'}</span>
+              </label>
+            </div>
 
-            {error && <div className="teacher-error">{error}</div>}
+            {error && <div className="tw-alert error">{error}</div>}
+            {notice && <div className="tw-alert success">{notice}</div>}
 
-            <button type="submit" className="teacher-primary-button teacher-create-activity" disabled={uploading || !selectedClassId}>
-              {uploading ? 'Uploading...' : 'Upload'}
+            <button type="submit" className="tw-btn tw-btn-primary tw-btn-block" disabled={uploading || !selectedClassId || !chosenFile}>
+              {uploading ? 'Uploading…' : `Upload to ${selectedClassName}`}
             </button>
           </form>
-        </div>
-
-        <div className="teacher-activity-list-panel">
-          <div className="teacher-board-head">
-            <h3>Materials</h3>
-            <p>{materialsLoading ? 'Loading...' : `${materials.length} file${materials.length === 1 ? '' : 's'} shared with this class`}</p>
-          </div>
-
-          <div className="teacher-materials-list">
-            {materials.map((material) => (
-              <article key={material.id} className="teacher-material-item">
-                <FileIconByType type={material.materialType} />
-                <div className="teacher-material-info">
-                  <strong>{material.title}</strong>
-                  <span>{material.fileName} {material.fileSize ? `• ${formatFileSize(material.fileSize)}` : ''}</span>
-                  <span>Uploaded {formatTimestamp(material.createdAt)}</span>
-                </div>
-                <div className="teacher-material-actions">
-                  {material.downloadUrl && (
-                    <a href={material.downloadUrl} target="_blank" rel="noreferrer" className="teacher-icon-button" title="Download" aria-label="Download">
-                      <DownloadIcon />
-                    </a>
-                  )}
-                  <button type="button" className="teacher-icon-button danger" onClick={() => handleDelete(material.id)} title="Delete" aria-label="Delete">
-                    <TrashIcon />
-                  </button>
-                </div>
-              </article>
-            ))}
-
-            {!materialsLoading && materials.length === 0 && <p className="teacher-empty">No materials uploaded yet for this class.</p>}
-          </div>
-        </div>
+        </section>
       </div>
-    </section>
+    </>
   );
 }

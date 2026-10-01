@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { CloseIcon } from './TeacherIcons';
+import TeacherModal from './TeacherModal';
 
 export default function useConfirm() {
   const [dialog, setDialog] = useState(null);
@@ -19,38 +19,37 @@ export default function useConfirm() {
     });
   }, []);
 
-  const settle = (result) => {
+  const settle = useCallback((result) => {
     setDialog(null);
     resolverRef.current?.(result);
     resolverRef.current = null;
-  };
+  }, []);
+
+  const cancel = useCallback(() => settle(false), [settle]);
 
   const confirmDialog = dialog ? (
-    <div className="teacher-modal-backdrop" onClick={() => settle(false)}>
-      <div className="teacher-modal" role="alertdialog" aria-modal="true" aria-labelledby="teacher-confirm-title" onClick={(event) => event.stopPropagation()}>
-        <div className="teacher-modal-head">
-          <h3 id="teacher-confirm-title">{dialog.title}</h3>
-          <button type="button" className="teacher-icon-button" onClick={() => settle(false)} aria-label="Close">
-            <CloseIcon />
-          </button>
-        </div>
-
-        <p className="teacher-confirm-message">{dialog.message}</p>
-
-        <div className="teacher-confirm-actions">
-          <button type="button" className="teacher-secondary-button" onClick={() => settle(false)}>
+    <TeacherModal
+      title={dialog.title}
+      onClose={cancel}
+      size="sm"
+      role="alertdialog"
+      footer={(
+        <>
+          <button type="button" className="tw-btn tw-btn-ghost" onClick={cancel}>
             {dialog.cancelLabel}
           </button>
           <button
             type="button"
-            className={dialog.tone === 'danger' ? 'teacher-primary-button danger' : 'teacher-primary-button'}
+            className={dialog.tone === 'danger' ? 'tw-btn tw-btn-danger' : 'tw-btn tw-btn-primary'}
             onClick={() => settle(true)}
           >
             {dialog.confirmLabel}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+    >
+      <p className="tw-confirm-text">{dialog.message}</p>
+    </TeacherModal>
   ) : null;
 
   return [confirmDialog, confirm];
