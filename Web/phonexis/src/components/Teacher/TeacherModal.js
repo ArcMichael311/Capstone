@@ -2,6 +2,7 @@ import { useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from './TeacherIcons';
 import './TeacherWorkspace.css';
+import './TeacherModern.css';
 
 // Shared teacher modal: rendered on document.body, closes on Escape or backdrop click.
 export default function TeacherModal({ title, subtitle, onClose, size = 'md', role = 'dialog', footer = null, children }) {

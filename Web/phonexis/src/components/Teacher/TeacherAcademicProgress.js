@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchBackendGameScores, fetchBackendProgress, fetchClassStudents, fetchStudentPretests } from '../../lib/supabaseClient';
 import { MODULES, formatDuration, formatTimestamp, getDisplayName, getInitials, hasMeaningfulProgress, safePercent } from './teacherUtils';
 import { GAMES, GameRadarChart, PASSING_PERCENT, PassPieChart, PretestBarChart, attemptPercent } from './TeacherProgressCharts';
-import { ChartIcon, UsersIcon } from './TeacherIcons';
 import TeacherModal from './TeacherModal';
+import TeacherHero from './TeacherHero';
+import { ProgressRing, getClassColor } from './TeacherFx';
 import './TeacherProgressCharts.css';
 
 const getModuleRows = (progressRows = []) => {
@@ -27,9 +28,9 @@ function StudentDetailModal({ student, summary, moduleRows, pretests, gameScores
   return (
     <TeacherModal title={name} subtitle={student.email} size="lg" onClose={onClose}>
       <div className="tw-student-summary">
-        <div className="tw-mini-stat">
+        <div className="tw-mini-stat tw-mini-stat-ring">
+          <ProgressRing value={summary.overall} size={56} stroke={6} />
           <span>Overall progress</span>
-          <strong>{summary.overall}%</strong>
         </div>
         <div className="tw-mini-stat">
           <span>Modules completed</span>
@@ -349,21 +350,39 @@ export default function TeacherAcademicProgress({ classes, loading }) {
 
   if (!loading && classes.length === 0) {
     return (
-      <section className="tw-card" aria-label="Academic progress">
-        <div className="tw-empty">
-          <span className="tw-empty-icon" aria-hidden="true">📈</span>
-          <strong>No classes yet</strong>
-          <p>Create a class on My Classes and add students to see their academic progress here.</p>
-        </div>
-      </section>
+      <>
+        <TeacherHero eyebrow="📈 Reports" title="Academic Progress" subtitle="See how each student is doing." />
+        <section className="tw-card" aria-label="Academic progress">
+          <div className="tw-empty">
+            <span className="tw-empty-icon" aria-hidden="true">📈</span>
+            <strong>No classes yet</strong>
+            <p>Create a class on My Classes and add students to see their academic progress here.</p>
+          </div>
+        </section>
+      </>
     );
   }
 
   return (
     <>
-      <div className="tw-toolbar">
+      <TeacherHero
+        eyebrow="📈 Reports"
+        title="Academic Progress"
+        subtitle="Click a student to see their modules, pretest scores and games."
+        actions={(
+          <button type="button" className="tw-btn tw-btn-primary" onClick={() => setIsClassResultsOpen(true)} disabled={rosterLoading}>
+            🥧 Class Pretest Results
+          </button>
+        )}
+        stats={[
+          { key: 'students', icon: '🎒', label: 'Students', value: roster.length, loading: rosterLoading },
+          { key: 'avg', label: 'Average progress', value: classStats.averageProgress, ring: true },
+          { key: 'pass', icon: '📝', label: 'Pretest pass rate', value: classStats.passRate == null ? '—' : classStats.passRate, suffix: '%', loading: rosterLoading },
+          { key: 'games', icon: '🎮', label: 'Games finished', value: classStats.totalPlays, loading: rosterLoading },
+        ]}
+      >
         <div>
-          <span className="tw-toolbar-label">Class</span>
+          <span className="tw-toolbar-label">Class </span>
           <div className="tw-segment" role="group" aria-label="Select class">
             {classes.map((classItem) => (
               <button
@@ -378,45 +397,11 @@ export default function TeacherAcademicProgress({ classes, loading }) {
             ))}
           </div>
         </div>
-        <button type="button" className="tw-btn tw-btn-ghost" onClick={() => setIsClassResultsOpen(true)} disabled={rosterLoading}>
-          🥧 Class Pretest Results
-        </button>
-      </div>
+      </TeacherHero>
 
       {error && <div className="tw-alert error">{error}</div>}
 
-      <div className="tw-stats">
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon"><UsersIcon /></span>
-          <span>
-            <span className="tw-stat-label">Students</span>
-            <span className="tw-stat-value">{rosterLoading ? '…' : roster.length}</span>
-          </span>
-        </div>
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon"><ChartIcon /></span>
-          <span>
-            <span className="tw-stat-label">Average progress</span>
-            <span className="tw-stat-value">{rosterLoading ? '…' : `${classStats.averageProgress}%`}</span>
-          </span>
-        </div>
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon" aria-hidden="true">📝</span>
-          <span>
-            <span className="tw-stat-label">Pretest pass rate</span>
-            <span className="tw-stat-value">{rosterLoading ? '…' : classStats.passRate == null ? '—' : `${classStats.passRate}%`}</span>
-          </span>
-        </div>
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon" aria-hidden="true">🎮</span>
-          <span>
-            <span className="tw-stat-label">Games finished</span>
-            <span className="tw-stat-value">{rosterLoading ? '…' : classStats.totalPlays}</span>
-          </span>
-        </div>
-      </div>
-
-      <section className="tw-card" aria-label="Class report">
+      <section className={`tw-card tw-c-${getClassColor(Math.max(0, classes.findIndex((classItem) => classItem.id === selectedClassId)))}`} aria-label="Class report">
         <div className="tw-tabs" role="tablist" aria-label="Report views">
           <button type="button" role="tab" aria-selected={view === 'students'} className={view === 'students' ? 'active' : ''} onClick={() => setView('students')}>
             Students

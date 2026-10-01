@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { addClassStudents, createTeacherClass, deleteTeacherClass, fetchAvailableStudents, fetchBackendProgress, fetchClassStudents, fetchLearningMaterials, removeClassStudent } from '../../lib/supabaseClient';
 import { MODULES, formatDate, getDisplayName, getInitials, safePercent } from './teacherUtils';
-import { BookIcon, ChartIcon, CloseIcon, PlusIcon, SearchIcon, TrashIcon, UsersIcon } from './TeacherIcons';
+import { CloseIcon, PlusIcon, SearchIcon, TrashIcon } from './TeacherIcons';
 import useConfirm from './useConfirm';
 import TeacherModal from './TeacherModal';
+import TeacherHero from './TeacherHero';
+import { ProgressRing, celebrate, formatToday, getClassColor, getDailyTip, getGreeting } from './TeacherFx';
 
 const computeAverageProgress = (progressRows) => {
   const rows = Array.isArray(progressRows) ? progressRows : [];
@@ -12,7 +14,7 @@ const computeAverageProgress = (progressRows) => {
   return Math.round(total / MODULES.length);
 };
 
-export default function TeacherDashboard({ backendUserId, classes, loading, error, onClassesChanged }) {
+export default function TeacherDashboard({ teacherName = 'Teacher', backendUserId, classes, loading, error, onClassesChanged }) {
   const [confirmDialog, confirm] = useConfirm();
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -32,6 +34,8 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
   const [pendingEmails, setPendingEmails] = useState([]);
   const [addingStudents, setAddingStudents] = useState(false);
   const [addFeedback, setAddFeedback] = useState(null);
+  // Per-class average progress + first few students, for the class cards.
+  const [classOverview, setClassOverview] = useState({});
 
   const selectedClass = useMemo(
     () => classes.find((entry) => entry.id === selectedClassId) || null,
@@ -82,6 +86,31 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     }
   }, [selectedClassId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadOverview = async () => {
+      const entries = await Promise.all(classes.map(async (classItem) => {
+        const rosterResult = await fetchClassStudents(classItem.id);
+        const students = !rosterResult.error && Array.isArray(rosterResult.data) ? rosterResult.data : [];
+        const averages = await Promise.all(students.map(async (student) => {
+          const progressResult = await fetchBackendProgress(student.id);
+          return computeAverageProgress(progressResult?.data);
+        }));
+        const average = averages.length ? Math.round(averages.reduce((sum, value) => sum + value, 0) / averages.length) : 0;
+        return [classItem.id, { students, average }];
+      }));
+      if (!cancelled) {
+        setClassOverview(Object.fromEntries(entries));
+      }
+    };
+    if (classes.length) {
+      void loadOverview();
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [classes]);
+
   const averageClassProgress = useMemo(() => {
     const values = Object.values(studentProgress);
     if (!values.length) {
@@ -127,6 +156,7 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
 
     setNewClassName('');
     setIsCreateOpen(false);
+    celebrate();
     await onClassesChanged();
     setSelectedClassId(result.data.id);
   };
@@ -201,6 +231,9 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     if (notFound.length) messages.push(`No account found: ${notFound.join(', ')}`);
 
     setAddFeedback({ type: notFound.length || notStudent.length || enrolledElsewhere.length ? 'warning' : 'success', message: messages.join(' • ') });
+    if (added.length) {
+      celebrate();
+    }
     setPendingEmails([]);
     await loadRoster(selectedClassId);
     await loadAvailableStudents();
@@ -276,46 +309,26 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     return (
       <>
         {confirmDialog}
-        <nav className="tw-breadcrumb" aria-label="Breadcrumb">
-          <button type="button" onClick={handleBack}>My Classes</button>
-          <span aria-hidden="true">/</span>
-          <span>{selectedClass.name}</span>
-        </nav>
-
-        <div className="tw-stats">
-          <div className="tw-card tw-stat">
-            <span className="tw-stat-icon"><UsersIcon /></span>
-            <span>
-              <span className="tw-stat-label">Students</span>
-              <span className="tw-stat-value">{roster.length}</span>
+        <TeacherHero
+          eyebrow={(
+            <span className="tw-hero-crumb">
+              <button type="button" onClick={handleBack}>← My Classes</button>
+              <span aria-hidden="true">/</span>
+              <span>Class workspace</span>
             </span>
-          </div>
-          <div className="tw-card tw-stat">
-            <span className="tw-stat-icon"><BookIcon /></span>
-            <span>
-              <span className="tw-stat-label">Materials shared</span>
-              <span className="tw-stat-value">{materialsCount}</span>
-            </span>
-          </div>
-          <div className="tw-card tw-stat">
-            <span className="tw-stat-icon"><ChartIcon /></span>
-            <span>
-              <span className="tw-stat-label">Average progress</span>
-              <span className="tw-stat-value">{averageClassProgress}%</span>
-            </span>
-          </div>
-          <div className="tw-card tw-stat">
-            <span className="tw-stat-icon" aria-hidden="true">📅</span>
-            <span>
-              <span className="tw-stat-label">Created</span>
-              <span className="tw-stat-value" style={{ fontSize: '1.15rem' }}>{formatDate(selectedClass.createdAt)}</span>
-            </span>
-          </div>
-        </div>
+          )}
+          title={selectedClass.name}
+          subtitle={`Created ${formatDate(selectedClass.createdAt)} · manage students and track how they are doing.`}
+          stats={[
+            { key: 'students', icon: '🎒', label: 'Students', value: roster.length, loading: rosterLoading },
+            { key: 'materials', icon: '📚', label: 'Materials shared', value: materialsCount },
+            { key: 'avg', label: 'Average progress', value: averageClassProgress, ring: true },
+          ]}
+        />
 
         {rosterError && <div className="tw-alert error">{rosterError}</div>}
 
-        <div className="tw-grid-2">
+        <div className={`tw-grid-2 tw-c-${getClassColor(Math.max(0, classes.findIndex((entry) => entry.id === selectedClass.id)))}`}>
           <section className="tw-card" aria-label="Student roster">
             <div className="tw-card-head">
               <div>
@@ -465,27 +478,34 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
     );
   }
 
+  const overviewValues = Object.values(classOverview);
+  const overallAverage = overviewValues.length
+    ? Math.round(overviewValues.reduce((sum, entry) => sum + entry.average * entry.students.length, 0)
+      / Math.max(1, overviewValues.reduce((sum, entry) => sum + entry.students.length, 0)))
+    : 0;
+  const firstName = String(teacherName).split(' ')[0] || teacherName;
+
   return (
     <>
       {confirmDialog}
       {createModal}
 
-      <div className="tw-stats">
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon"><UsersIcon /></span>
-          <span>
-            <span className="tw-stat-label">Classes</span>
-            <span className="tw-stat-value">{loading ? '…' : classes.length}</span>
-          </span>
-        </div>
-        <div className="tw-card tw-stat">
-          <span className="tw-stat-icon" aria-hidden="true">🎒</span>
-          <span>
-            <span className="tw-stat-label">Students enrolled</span>
-            <span className="tw-stat-value">{loading ? '…' : totalStudents}</span>
-          </span>
-        </div>
-      </div>
+      <TeacherHero
+        eyebrow={`${getGreeting()}, ${firstName}! 👋 · ${formatToday()}`}
+        title="My Classes"
+        subtitle="Open a class to manage its students, or create a new one."
+        actions={(
+          <button type="button" className="tw-btn tw-btn-primary" onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon /> Create class
+          </button>
+        )}
+        stats={[
+          { key: 'classes', icon: '🏫', label: 'Classes', value: classes.length, loading },
+          { key: 'students', icon: '🎒', label: 'Students enrolled', value: totalStudents, loading },
+          { key: 'avg', label: 'Average progress (all classes)', value: overallAverage, ring: true },
+        ]}
+        tip={getDailyTip()}
+      />
 
       {error && <div className="tw-alert error">{error}</div>}
 
@@ -493,26 +513,21 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
         <div className="tw-card-head">
           <div>
             <h2>Your classes</h2>
-            <p>{loading ? 'Loading classes…' : `${classes.length} class${classes.length === 1 ? '' : 'es'} · click a class to open it`}</p>
+            <p>{loading ? 'Loading classes…' : `${classes.length} class${classes.length === 1 ? '' : 'es'} · click a card to open it`}</p>
           </div>
-          <button type="button" className="tw-btn tw-btn-primary" onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon /> Create class
-          </button>
         </div>
 
-        {!loading && classes.length === 0 ? (
-          <div className="tw-empty">
-            <span className="tw-empty-icon" aria-hidden="true">🏫</span>
-            <strong>No classes yet</strong>
-            <p>Create your first class, then add students to start tracking their progress.</p>
-          </div>
-        ) : (
-          <div className="tw-class-grid">
-            {classes.map((classItem, index) => (
+        <div className="tw-class-grid">
+          {classes.map((classItem, index) => {
+            const overview = classOverview[classItem.id];
+            const students = overview?.students || [];
+            const shown = students.slice(0, 4);
+            const extra = Math.max(0, (Number(classItem.studentCount) || students.length) - shown.length);
+            return (
               <article
                 key={classItem.id}
-                className="tw-card tw-class-card"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className={`tw-card tw-class-card tw-c-${getClassColor(index)}`}
+                style={{ animationDelay: `${index * 60}ms` }}
                 onClick={() => handleOpenClass(classItem.id)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && event.target === event.currentTarget) handleOpenClass(classItem.id);
@@ -533,18 +548,35 @@ export default function TeacherDashboard({ backendUserId, classes, loading, erro
                     <TrashIcon />
                   </button>
                 </div>
-                <div>
-                  <h3>{classItem.name}</h3>
-                  <p>Created {formatDate(classItem.createdAt)}</p>
+                <div className="tw-class-card-body">
+                  <div>
+                    <h3>{classItem.name}</h3>
+                    <p>Created {formatDate(classItem.createdAt)}</p>
+                    <small>Average progress</small>
+                  </div>
+                  <ProgressRing value={overview ? overview.average : 0} size={68} stroke={7} />
                 </div>
                 <div className="tw-class-card-foot">
-                  <span>{classItem.studentCount ?? 0} student{Number(classItem.studentCount) === 1 ? '' : 's'}</span>
+                  <span className="tw-avatar-stack" aria-label={`${classItem.studentCount ?? 0} students`}>
+                    {shown.map((student) => (
+                      <span key={student.id} className="tw-avatar" title={getDisplayName(student)}>{getInitials(getDisplayName(student))}</span>
+                    ))}
+                    {extra > 0 && <span className="tw-avatar tw-avatar-more">+{extra}</span>}
+                    {shown.length === 0 && <span className="tw-muted" style={{ fontSize: '0.9rem' }}>No students yet</span>}
+                  </span>
                   <b>Open →</b>
                 </div>
               </article>
-            ))}
-          </div>
-        )}
+            );
+          })}
+
+          {!loading && (
+            <button type="button" className="tw-class-add" onClick={() => setIsCreateOpen(true)}>
+              <span aria-hidden="true"><PlusIcon /></span>
+              {classes.length === 0 ? 'Create your first class' : 'New class'}
+            </button>
+          )}
+        </div>
       </section>
     </>
   );

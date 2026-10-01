@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import './Teacher.css';
 import './TeacherWorkspace.css';
+import './TeacherModern.css';
+import TeacherHero from './TeacherHero';
 import { fetchTeacherClasses } from '../../lib/supabaseClient';
 import { getDisplayName } from './teacherUtils';
 import TeacherDashboard from './TeacherDashboard';
@@ -38,25 +40,22 @@ export default function Teacher({ user, backendUserId, activeSection }) {
     void loadClasses();
   }, [loadClasses]);
 
-  const sectionCopy = {
-    dashboard: { eyebrow: `Welcome, ${teacherName}`, title: 'My Classes', subtitle: 'Open a class to manage its students.' },
-    materials: { eyebrow: 'Teaching resources', title: 'Learning Materials', subtitle: 'Upload PPT, PDF, MP4 or MP3 files for a class.' },
-    pretest: { eyebrow: 'Assessments', title: 'Pretest', subtitle: 'Build quizzes with your own voice recordings for each class.' },
-    progress: { eyebrow: 'Reports', title: 'Academic Progress', subtitle: 'Click a student to see their modules, pretest scores and games.' },
-  }[section];
-
   return (
     <section className="tw-theme tw-page teacher-shell">
-      <header className="tw-header">
-        <div>
-          <p className="tw-eyebrow">{sectionCopy.eyebrow}</p>
-          <h1>{sectionCopy.title}</h1>
-          <p className="tw-lead">{sectionCopy.subtitle}</p>
-        </div>
-      </header>
+      {section === 'pretest' && (
+        <TeacherHero
+          eyebrow="📝 Assessments"
+          title="Pretest"
+          subtitle="Build quizzes with your own voice recordings for each class."
+          stats={[
+            { key: 'classes', icon: '🏫', label: 'Classes', value: classes.length, loading: classesLoading },
+          ]}
+        />
+      )}
 
       {section === 'dashboard' && (
         <TeacherDashboard
+          teacherName={teacherName}
           backendUserId={backendUserId}
           classes={classes}
           loading={classesLoading}
