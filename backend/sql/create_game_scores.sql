@@ -11,3 +11,8 @@ CREATE TABLE IF NOT EXISTS game_scores (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT uq_game_scores_user_game UNIQUE (user_id, game_name)
 );
+
+-- Only the Spring backend reads/writes this table (direct DB connection, bypasses RLS).
+-- Block the browser's anon/authenticated keys, same as the other tables in supabase-security.sql.
+ALTER TABLE public.game_scores ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.game_scores FROM anon, authenticated;
