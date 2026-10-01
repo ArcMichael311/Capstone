@@ -6,6 +6,7 @@ ALTER TABLE IF EXISTS public.module_games ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.modules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.user_activity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.game_scores ENABLE ROW LEVEL SECURITY;
 
 -- Required by the backend's single-device login lock.
 ALTER TABLE IF EXISTS public.users
@@ -17,6 +18,7 @@ REVOKE ALL ON TABLE public.module_games FROM anon, authenticated;
 REVOKE ALL ON TABLE public.modules FROM anon, authenticated;
 REVOKE ALL ON TABLE public.progress FROM anon, authenticated;
 REVOKE ALL ON TABLE public.user_activity FROM anon, authenticated;
+REVOKE ALL ON TABLE public.game_scores FROM anon, authenticated;
 
 -- These views must respect the permissions and RLS policies of the querying
 -- role instead of running with the view owner's privileges.
