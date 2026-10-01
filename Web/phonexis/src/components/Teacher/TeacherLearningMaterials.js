@@ -3,6 +3,8 @@ import { deleteLearningMaterial, fetchLearningMaterials, uploadLearningMaterial 
 import { formatTimestamp } from './teacherUtils';
 import { DownloadIcon, FileIconByType, TrashIcon } from './TeacherIcons';
 import useConfirm from './useConfirm';
+import TeacherHero from './TeacherHero';
+import { celebrate, getClassColor } from './TeacherFx';
 
 const ACCEPTED_EXTENSIONS = '.ppt,.pptx,.pdf,.mp4,.mp3';
 
@@ -79,6 +81,7 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
     setTitle('');
     setChosenFile(null);
     setNotice(`Uploaded “${file.name}”.`);
+    celebrate();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -105,16 +108,21 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
   };
 
   const selectedClassName = classes.find((classItem) => classItem.id === selectedClassId)?.name || 'this class';
+  const selectedClassIndex = Math.max(0, classes.findIndex((classItem) => classItem.id === selectedClassId));
+  const countType = (...types) => materials.filter((material) => types.includes(String(material.materialType || '').toLowerCase())).length;
 
   if (!loading && classes.length === 0) {
     return (
-      <section className="tw-card" aria-label="Learning materials">
-        <div className="tw-empty">
-          <span className="tw-empty-icon" aria-hidden="true">📚</span>
-          <strong>Create a class first</strong>
-          <p>Go to My Classes and create a class, then come back here to share files with its students.</p>
-        </div>
-      </section>
+      <>
+        <TeacherHero eyebrow="📚 Teaching resources" title="Learning Materials" subtitle="Share slides, PDFs, videos and audio with a class." />
+        <section className="tw-card" aria-label="Learning materials">
+          <div className="tw-empty">
+            <span className="tw-empty-icon" aria-hidden="true">📚</span>
+            <strong>Create a class first</strong>
+            <p>Go to My Classes and create a class, then come back here to share files with its students.</p>
+          </div>
+        </section>
+      </>
     );
   }
 
@@ -122,9 +130,19 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
     <>
       {confirmDialog}
 
-      <div className="tw-toolbar">
+      <TeacherHero
+        eyebrow="📚 Teaching resources"
+        title="Learning Materials"
+        subtitle="Share slides, PDFs, videos and audio with a class. Students can open them from their Class page."
+        stats={[
+          { key: 'files', icon: '🗂️', label: `Files in ${selectedClassName}`, value: materials.length, loading: materialsLoading },
+          { key: 'docs', icon: '📄', label: 'Slides & PDFs', value: countType('ppt', 'pptx', 'pdf'), loading: materialsLoading },
+          { key: 'videos', icon: '🎬', label: 'Videos', value: countType('mp4'), loading: materialsLoading },
+          { key: 'audio', icon: '🎵', label: 'Audio', value: countType('mp3'), loading: materialsLoading },
+        ]}
+      >
         <div>
-          <span className="tw-toolbar-label">Class</span>
+          <span className="tw-toolbar-label">Class </span>
           <div className="tw-segment" role="group" aria-label="Select class">
             {classes.map((classItem) => (
               <button
@@ -139,9 +157,9 @@ export default function TeacherLearningMaterials({ backendUserId, classes, loadi
             ))}
           </div>
         </div>
-      </div>
+      </TeacherHero>
 
-      <div className="tw-grid-2">
+      <div className={`tw-grid-2 tw-c-${getClassColor(selectedClassIndex)}`}>
         <section className="tw-card" aria-label="Shared materials">
           <div className="tw-card-head">
             <div>

@@ -1,0 +1,648 @@
+/* Modern dashboard layer for the teacher workspace: hero banner, rings,
+   colored class cards, stat tiles, confetti and the refreshed sidebar. */
+
+/* ---------- Hero banner ---------- */
+.tw-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: grid;
+  gap: 1.4rem;
+  padding: 2rem clamp(1.25rem, 3vw, 2.25rem);
+  border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(125deg, #0b1f3a 0%, #12305c 55%, #1e4fbf 120%);
+  box-shadow: 0 18px 40px rgba(11, 31, 58, 0.28);
+  animation: tw-fade-up 0.45s ease both;
+}
+
+[data-theme='dark'] .tw-hero {
+  background: linear-gradient(125deg, #0f1a30 0%, #182a4f 60%, #2547a0 130%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.tw-hero::after {
+  /* faint dot-grid texture on the right side */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 30%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 30%, #000 100%);
+}
+
+.tw-hero-glow {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: tw-float 9s ease-in-out infinite;
+}
+
+.tw-hero-glow-a {
+  width: 18rem;
+  height: 18rem;
+  right: -4rem;
+  top: -6rem;
+  background: #3b82f6;
+}
+
+.tw-hero-glow-b {
+  width: 14rem;
+  height: 14rem;
+  right: 22%;
+  bottom: -8rem;
+  background: #8b5cf6;
+  animation-delay: -4s;
+}
+
+.tw-hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.tw-hero-copy {
+  min-width: 0;
+}
+
+.tw-hero-eyebrow {
+  margin: 0;
+  color: #93c5fd;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tw-hero h1 {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.tw-hero-sub {
+  margin: 0.4rem 0 0;
+  color: rgba(226, 236, 255, 0.82);
+  font-size: 1.02rem;
+  max-width: 60ch;
+}
+
+.tw-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.tw-hero .tw-btn-primary {
+  background: #fff;
+  color: #12305c;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.tw-hero .tw-btn-primary:hover:not(:disabled) {
+  background: #e8f0ff;
+}
+
+.tw-hero .tw-btn-ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.tw-hero .tw-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.tw-hero-stats {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.tw-hero-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 4.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: tw-fade-up 0.45s ease both;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.tw-hero-stat:hover {
+  background: rgba(255, 255, 255, 0.13);
+  transform: translateY(-2px);
+}
+
+.tw-hero-stat-icon {
+  display: grid;
+  place-items: center;
+  width: 3.1rem;
+  height: 3.1rem;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 1.45rem;
+}
+
+.tw-hero-stat-value {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.tw-hero-stat-label {
+  display: block;
+  margin-top: 0.15rem;
+  color: rgba(226, 236, 255, 0.78);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.tw-hero-tip {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  color: #fef3c7;
+  font-size: 0.95rem;
+}
+
+.tw-hero-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+  color: rgba(226, 236, 255, 0.75);
+  font-size: 0.92rem;
+}
+
+.tw-hero-crumb button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: #93c5fd;
+  cursor: pointer;
+}
+
+.tw-hero-crumb button:hover {
+  text-decoration: underline;
+}
+
+.tw-hero .tw-segment {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.tw-hero .tw-segment button {
+  color: rgba(226, 236, 255, 0.85);
+}
+
+.tw-hero .tw-segment button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.tw-hero .tw-segment button.active {
+  background: #fff;
+  color: #12305c;
+}
+
+.tw-hero .tw-toolbar-label {
+  color: rgba(226, 236, 255, 0.75);
+}
+
+.tw-hero-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.tw-hero .tw-avatar {
+  width: 4.25rem;
+  height: 4.25rem;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  color: #fff;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- Progress ring ---------- */
+.tw-ring {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.tw-ring svg {
+  transform: rotate(-90deg);
+}
+
+.tw-ring circle {
+  fill: none;
+}
+
+.tw-ring-track {
+  stroke: var(--tw-track);
+}
+
+.tw-ring-value {
+  stroke: var(--c, var(--tw-accent));
+  stroke-linecap: round;
+  animation: tw-ring-draw 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.tw-ring b {
+  position: absolute;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--tw-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tw-ring-light .tw-ring-track {
+  stroke: rgba(255, 255, 255, 0.16);
+}
+
+.tw-ring-light .tw-ring-value {
+  stroke: #60a5fa;
+}
+
+.tw-ring-light b {
+  color: #fff;
+}
+
+/* ---------- Class colors (fixed order) ---------- */
+.tw-c-blue { --c: #2563eb; --c2: #60a5fa; --c-soft: rgba(37, 99, 235, 0.1); }
+.tw-c-violet { --c: #7c3aed; --c2: #a78bfa; --c-soft: rgba(124, 58, 237, 0.1); }
+.tw-c-teal { --c: #0d9488; --c2: #2dd4bf; --c-soft: rgba(13, 148, 136, 0.1); }
+.tw-c-orange { --c: #ea580c; --c2: #fb923c; --c-soft: rgba(234, 88, 12, 0.1); }
+.tw-c-pink { --c: #db2777; --c2: #f472b6; --c-soft: rgba(219, 39, 119, 0.1); }
+.tw-c-indigo { --c: #4f46e5; --c2: #818cf8; --c-soft: rgba(79, 70, 229, 0.1); }
+
+/* ---------- Class cards ---------- */
+.tw-class-card {
+  position: relative;
+  overflow: hidden;
+  padding-top: 1.6rem;
+}
+
+.tw-class-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 6px;
+  background: linear-gradient(90deg, var(--c, var(--tw-accent)), var(--c2, #60a5fa));
+}
+
+.tw-class-card::after {
+  content: '';
+  position: absolute;
+  right: -3rem;
+  top: -3rem;
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  background: var(--c-soft, var(--tw-accent-soft));
+  pointer-events: none;
+  transition: transform 0.35s ease;
+}
+
+.tw-class-card:hover::after {
+  transform: scale(1.25);
+}
+
+.tw-class-card:hover {
+  border-color: var(--c, var(--tw-accent));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+.tw-class-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tw-class-mark {
+  background: linear-gradient(135deg, var(--c, var(--tw-accent)), var(--c2, #60a5fa));
+  box-shadow: 0 8px 18px var(--c-soft, rgba(37, 99, 235, 0.2));
+}
+
+.tw-class-card-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tw-class-card-body small {
+  display: block;
+  color: var(--tw-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.tw-class-card-foot b {
+  color: var(--c, var(--tw-accent));
+  transition: transform 0.2s ease;
+}
+
+.tw-class-card:hover .tw-class-card-foot b {
+  transform: translateX(4px);
+}
+
+.tw-avatar-stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tw-avatar-stack .tw-avatar {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.72rem;
+  border: 2px solid var(--tw-surface);
+  margin-left: -0.5rem;
+  background: var(--c-soft, var(--tw-accent-soft));
+  color: var(--c, var(--tw-accent-ink));
+}
+
+.tw-avatar-stack .tw-avatar:first-child {
+  margin-left: 0;
+}
+
+.tw-avatar-stack .tw-avatar-more {
+  background: var(--tw-surface-2);
+  color: var(--tw-muted);
+}
+
+/* "New class" tile */
+.tw-class-add {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.6rem;
+  min-height: 15rem;
+  border: 2px dashed var(--tw-border-strong);
+  border-radius: var(--tw-radius);
+  background: transparent;
+  color: var(--tw-muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.tw-class-add span {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  background: var(--tw-accent-soft);
+  color: var(--tw-accent);
+  transition: transform 0.25s ease;
+}
+
+.tw-class-add svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.tw-class-add:hover {
+  border-color: var(--tw-accent);
+  color: var(--tw-accent);
+  background: var(--tw-accent-soft);
+}
+
+.tw-class-add:hover span {
+  transform: rotate(90deg) scale(1.08);
+}
+
+.tw-class-add:focus-visible {
+  outline: 3px solid var(--tw-accent);
+  outline-offset: 2px;
+}
+
+/* ---------- Colored stat tiles and bars ---------- */
+.tw-stat {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tw-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+}
+
+.tw-stat .tw-stat-icon {
+  background: var(--c-soft, var(--tw-accent-soft));
+  color: var(--c, var(--tw-accent));
+}
+
+.tw-progress-fill {
+  background: linear-gradient(90deg, var(--c, var(--tw-accent)), var(--c2, #60a5fa));
+}
+
+.tw-table tr.tw-clickable td:first-child {
+  box-shadow: inset 3px 0 0 transparent;
+  transition: box-shadow 0.15s ease;
+}
+
+.tw-table tr.tw-clickable:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--tw-accent);
+}
+
+/* Card headings get a small colored marker */
+.tw-card-head h2::before {
+  content: '';
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.55rem;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  vertical-align: 0.12em;
+}
+
+/* ---------- Confetti ---------- */
+.tw-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tw-confetti i {
+  position: absolute;
+  top: -14px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: tw-confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes tw-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-18px, 14px); }
+}
+
+@keyframes tw-ring-draw {
+  from { stroke-dashoffset: var(--tw-ring-c); }
+}
+
+@keyframes tw-confetti-fall {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  100% { opacity: 0; transform: translate(var(--x), 100vh) rotate(var(--r)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-hero,
+  .tw-hero-glow,
+  .tw-ring-value,
+  .tw-hero-stat {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .tw-hero {
+    padding: 1.4rem 1.1rem;
+    border-radius: 16px;
+  }
+
+  .tw-hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Teacher sidebar refresh ---------- */
+.app-sidebar.teacher-sidebar {
+  background: linear-gradient(180deg, #0b1f3a 0%, #0e2748 60%, #12305c 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='dark'] .app-sidebar.teacher-sidebar {
+  --sidebar-background: #0b1220;
+  --sidebar-text: #e8eef8;
+  --sidebar-muted-text: #8b9ab3;
+  --sidebar-sub-text: #c3cede;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-active: rgba(91, 141, 239, 0.18);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-accent: #7aa3f3;
+  --sidebar-danger: #fca5a5;
+  background: linear-gradient(180deg, #0b1220 0%, #101a2e 100%);
+}
+
+.teacher-sidebar .sidebar-brand-mark {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.teacher-sidebar .tw-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 12px;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.teacher-sidebar .tw-nav-link:hover {
+  transform: translateX(3px);
+}
+
+.teacher-sidebar .tw-nav-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--nav-c);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.teacher-sidebar .tw-nav-icon svg,
+.teacher-sidebar .tw-nav-icon img {
+  width: 1.05rem;
+  height: 1.05rem;
+  margin: 0;
+}
+
+.teacher-sidebar .tw-nav-link.active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.05));
+  color: #fff;
+  box-shadow: inset 3px 0 0 var(--nav-c);
+}
+
+.teacher-sidebar .tw-nav-link.active .tw-nav-icon {
+  background: var(--nav-c);
+  color: #0b1f3a;
+  box-shadow: 0 0 16px var(--nav-c);
+}
+
+.teacher-sidebar .tw-nav-blue { --nav-c: #60a5fa; }
+.teacher-sidebar .tw-nav-teal { --nav-c: #2dd4bf; }
+.teacher-sidebar .tw-nav-orange { --nav-c: #fb923c; }
+.teacher-sidebar .tw-nav-violet { --nav-c: #a78bfa; }
+.teacher-sidebar .tw-nav-pink { --nav-c: #f472b6; }
+.teacher-sidebar .tw-nav-slate { --nav-c: #cbd5e1; }
+
+[data-theme='dark'] .teacher-sidebar .sidebar-logout img {
+  filter: brightness(0) invert(1);
+}
+
+.tw-mini-stat-ring {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tw-mini-stat {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.tw-mini-stat:hover {
+  transform: translateY(-2px);
+  border-color: var(--tw-accent);
+}
+
+@media (max-width: 760px) {
+  /* leave room for the floating sidebar toggle */
+  .tw-page {
+    padding-top: 3.75rem;
+  }
+}

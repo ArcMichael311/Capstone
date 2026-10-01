@@ -1,6 +1,7 @@
 import './Profile.css';
 import './StudentProfile.css';
 import '../Teacher/TeacherWorkspace.css';
+import '../Teacher/TeacherModern.css';
 import { useEffect, useRef, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
 import { getLevel, getNextRank, getRank, getStars, getXpInLevel } from '../Dashboard/playerProgress';
@@ -473,11 +474,16 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
 
     return (
       <section className="tw-theme tw-page">
-        <header className="tw-header">
-          <div>
-            <p className="tw-eyebrow">Account</p>
-            <h1>{activeTab === 'settings' ? 'Settings' : 'My Profile'}</h1>
-            <p className="tw-lead">{activeTab === 'settings' ? 'Change your password and how Phonexis looks.' : 'Your account details.'}</p>
+        <header className="tw-hero">
+          <span className="tw-hero-glow tw-hero-glow-a" aria-hidden="true" />
+          <span className="tw-hero-glow tw-hero-glow-b" aria-hidden="true" />
+          <div className="tw-hero-profile">
+            <span className="tw-avatar" aria-hidden="true">{initials}</span>
+            <div className="tw-hero-copy">
+              <p className="tw-hero-eyebrow">{activeTab === 'settings' ? '⚙️ Settings' : '👤 My Profile'}</p>
+              <h1>{displayName}</h1>
+              <p className="tw-hero-sub">{activeTab === 'settings' ? 'Change your password and how Phonexis looks.' : `Teacher · ${email}`}</p>
+            </div>
           </div>
         </header>
 
@@ -492,11 +498,10 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
 
         {activeTab === 'info' && (
           <section className="tw-card" aria-label="Profile">
-            <div className="tw-profile-hero" style={{ marginBottom: '1.25rem' }}>
-              <span className="tw-avatar" aria-hidden="true">{initials}</span>
+            <div className="tw-card-head">
               <div>
-                <h2>{displayName}</h2>
-                <p>Teacher</p>
+                <h2>Account details</h2>
+                <p>This is how you appear to your students.</p>
               </div>
             </div>
             <dl className="tw-detail-list">
