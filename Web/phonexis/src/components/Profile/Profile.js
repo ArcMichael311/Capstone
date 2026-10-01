@@ -1,5 +1,6 @@
 import './Profile.css';
 import './StudentProfile.css';
+import '../Teacher/TeacherWorkspace.css';
 import { useEffect, useRef, useState } from 'react';
 import { supabase, syncSupabasePasswordToBackend } from '../../lib/supabaseClient';
 import { getLevel, getNextRank, getRank, getStars, getXpInLevel } from '../Dashboard/playerProgress';
@@ -452,6 +453,127 @@ export default function Profile({ onNavigate, onBack, user, overallProgress = 0,
       </section>
     </div>
   );
+
+  if (role === 'teacher') {
+    // Navigate so the URL (/profile/info or /profile/settings) and sidebar stay in sync.
+    const openTeacherTab = (tab) => {
+      setActiveTab(tab);
+      if (typeof onNavigate === 'function') {
+        onNavigate('profile', tab);
+      }
+    };
+    const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
+    const passwordField = (label, value, setValue, hint) => (
+      <label className="tw-field">
+        <span>{label}</span>
+        {hint && <small>{hint}</small>}
+        <input className="tw-input" type="password" value={value} onChange={(event) => setValue(event.target.value)} required />
+      </label>
+    );
+
+    return (
+      <section className="tw-theme tw-page">
+        <header className="tw-header">
+          <div>
+            <p className="tw-eyebrow">Account</p>
+            <h1>{activeTab === 'settings' ? 'Settings' : 'My Profile'}</h1>
+            <p className="tw-lead">{activeTab === 'settings' ? 'Change your password and how Phonexis looks.' : 'Your account details.'}</p>
+          </div>
+        </header>
+
+        <div className="tw-tabs" role="tablist" aria-label="Account pages" style={{ marginBottom: 0 }}>
+          <button type="button" role="tab" aria-selected={activeTab === 'info'} className={activeTab === 'info' ? 'active' : ''} onClick={() => openTeacherTab('info')}>
+            Profile
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === 'settings'} className={activeTab === 'settings' ? 'active' : ''} onClick={() => openTeacherTab('settings')}>
+            Settings
+          </button>
+        </div>
+
+        {activeTab === 'info' && (
+          <section className="tw-card" aria-label="Profile">
+            <div className="tw-profile-hero" style={{ marginBottom: '1.25rem' }}>
+              <span className="tw-avatar" aria-hidden="true">{initials}</span>
+              <div>
+                <h2>{displayName}</h2>
+                <p>Teacher</p>
+              </div>
+            </div>
+            <dl className="tw-detail-list">
+              <div>
+                <dt>Full name</dt>
+                <dd>{displayName}</dd>
+              </div>
+              <div>
+                <dt>Email address</dt>
+                <dd>{email || '—'}</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd><span className="tw-badge info">Teacher</span></dd>
+              </div>
+            </dl>
+          </section>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="tw-grid-2 tw-grid-even">
+            <section className="tw-card" aria-label="Change password">
+              <div className="tw-card-head">
+                <div>
+                  <h2>Change password</h2>
+                  <p>Use at least 8 characters.</p>
+                </div>
+              </div>
+              <form className="tw-form-narrow" onSubmit={handleChangePassword}>
+                {passwordField('Current password', currentPassword, setCurrentPassword)}
+                {passwordField('New password', newPassword, setNewPassword, 'At least 8 characters')}
+                {passwordField('Confirm new password', confirmPassword, setConfirmPassword)}
+                {error && <div className="tw-alert error">{error}</div>}
+                {success && <div className="tw-alert success">✓ {success}</div>}
+                <button type="submit" className="tw-btn tw-btn-primary" disabled={loading}>
+                  {loading ? 'Updating…' : 'Update password'}
+                </button>
+              </form>
+            </section>
+
+            <section className="tw-card" aria-label="Appearance">
+              <div className="tw-card-head">
+                <div>
+                  <h2>Appearance</h2>
+                  <p>Choose a light or dark screen.</p>
+                </div>
+              </div>
+              <div className="tw-theme-options" role="group" aria-label="Theme">
+                {[
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`tw-theme-option ${theme === option.value ? 'active' : ''}`}
+                    aria-pressed={theme === option.value}
+                    onClick={() => onThemeChange?.(option.value)}
+                  >
+                    <span className="tw-theme-option-top">
+                      {option.label}
+                      {theme === option.value && <span className="tw-badge info">Active</span>}
+                    </span>
+                    <span className={`tw-theme-swatch ${option.value}`} aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className={isStudent ? 'profile-shell student-profile' : 'profile-shell'}>

@@ -19,6 +19,14 @@ export const getDisplayName = (user) => {
   return `${firstName} ${lastName}`.trim() || user?.email || 'Student';
 };
 
+export const getInitials = (name) => String(name || '')
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part) => part[0])
+  .join('')
+  .toUpperCase() || '?';
+
 export const formatDuration = (durationMs) => {
   if (durationMs == null || Number.isNaN(durationMs) || durationMs < 0) {
     return 'N/A';

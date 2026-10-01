@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import './Teacher.css';
+import './TeacherWorkspace.css';
 import { fetchTeacherClasses } from '../../lib/supabaseClient';
 import { getDisplayName } from './teacherUtils';
 import TeacherDashboard from './TeacherDashboard';
@@ -38,19 +39,19 @@ export default function Teacher({ user, backendUserId, activeSection }) {
   }, [loadClasses]);
 
   const sectionCopy = {
-    dashboard: { title: `${teacherName}'s Classes`, subtitle: 'Create classes and manage each section’s roster.' },
-    materials: { title: 'Learning Materials', subtitle: 'Share PPT, PDF, MP4, and MP3 files with your classes.' },
-    pretest: { title: 'Pretest', subtitle: 'Build quizzes with your own voice recordings for each class.' },
-    progress: { title: 'Academic Progress', subtitle: 'Review each class’s students and their module progress.' },
+    dashboard: { eyebrow: `Welcome, ${teacherName}`, title: 'My Classes', subtitle: 'Open a class to manage its students.' },
+    materials: { eyebrow: 'Teaching resources', title: 'Learning Materials', subtitle: 'Upload PPT, PDF, MP4 or MP3 files for a class.' },
+    pretest: { eyebrow: 'Assessments', title: 'Pretest', subtitle: 'Build quizzes with your own voice recordings for each class.' },
+    progress: { eyebrow: 'Reports', title: 'Academic Progress', subtitle: 'Click a student to see their modules, pretest scores and games.' },
   }[section];
 
   return (
-    <section className="teacher-shell">
-      <header className="teacher-topbar">
+    <section className="tw-theme tw-page teacher-shell">
+      <header className="tw-header">
         <div>
-          <p className="teacher-kicker">Teacher Workspace</p>
-          <h2>{sectionCopy.title}</h2>
-          <p className="teacher-subtitle">{sectionCopy.subtitle}</p>
+          <p className="tw-eyebrow">{sectionCopy.eyebrow}</p>
+          <h1>{sectionCopy.title}</h1>
+          <p className="tw-lead">{sectionCopy.subtitle}</p>
         </div>
       </header>
 

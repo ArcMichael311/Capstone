@@ -1,20 +1,199 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchBackendGameScores, fetchBackendProgress, fetchClassStudents, fetchStudentPretests } from '../../lib/supabaseClient';
-import { MODULES, formatDuration, formatTimestamp, getDisplayName, hasMeaningfulProgress, safePercent } from './teacherUtils';
+import { MODULES, formatDuration, formatTimestamp, getDisplayName, getInitials, hasMeaningfulProgress, safePercent } from './teacherUtils';
 import { GAMES, GameRadarChart, PASSING_PERCENT, PassPieChart, PretestBarChart, attemptPercent } from './TeacherProgressCharts';
+import { ChartIcon, UsersIcon } from './TeacherIcons';
+import TeacherModal from './TeacherModal';
 import './TeacherProgressCharts.css';
+
+const getModuleRows = (progressRows = []) => {
+  const byModule = new Map(progressRows.map((entry) => [String(entry?.moduleName || '').toLowerCase(), entry]));
+  return MODULES.map((module) => {
+    const found = byModule.get(module.key);
+    return {
+      key: module.key,
+      title: module.title,
+      icon: module.icon,
+      completion: safePercent(found?.completionPercentage || 0),
+      updatedAt: found?.updatedAt || null,
+    };
+  });
+};
+
+function StudentDetailModal({ student, summary, moduleRows, pretests, gameScores, classTopScores, onClose }) {
+  const [tab, setTab] = useState('modules');
+  const name = getDisplayName(student);
+
+  return (
+    <TeacherModal title={name} subtitle={student.email} size="lg" onClose={onClose}>
+      <div className="tw-student-summary">
+        <div className="tw-mini-stat">
+          <span>Overall progress</span>
+          <strong>{summary.overall}%</strong>
+        </div>
+        <div className="tw-mini-stat">
+          <span>Modules completed</span>
+          <strong>{summary.modulesDone} / {MODULES.length}</strong>
+        </div>
+        <div className="tw-mini-stat">
+          <span>Pretests passed</span>
+          <strong>{summary.pretestsPassed} / {summary.pretestsTaken}</strong>
+        </div>
+        <div className="tw-mini-stat">
+          <span>Games played</span>
+          <strong>{summary.gamesPlayed} / {GAMES.length}</strong>
+        </div>
+      </div>
+
+      <div className="tw-tabs" role="tablist" aria-label="Student reports">
+        {[
+          { key: 'modules', label: '📚 Module Completion' },
+          { key: 'pretests', label: '📊 Pretest Scores' },
+          { key: 'games', label: '🎮 Game Scores' },
+        ].map((entry) => (
+          <button
+            key={entry.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === entry.key}
+            className={tab === entry.key ? 'active' : ''}
+            onClick={() => setTab(entry.key)}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'modules' && (
+        <div className="tw-module-rows" role="tabpanel">
+          {moduleRows.map((row) => (
+            <div key={row.key} className="tw-module-row">
+              <span className="tw-module-icon" aria-hidden="true">{row.icon}</span>
+              <div>
+                <div className="tw-module-row-top">
+                  <strong>{row.title}</strong>
+                  <span>
+                    {row.completion >= 100 ? '✓ Completed' : row.completion > 0 ? 'In progress' : 'Not started'}
+                  </span>
+                </div>
+                <div className="tw-progress">
+                  <div className="tw-progress-track"><div className="tw-progress-fill" style={{ width: `${row.completion}%` }} /></div>
+                  <strong>{row.completion}%</strong>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'pretests' && (
+        <div role="tabpanel">
+          <p className="tpc-sub">Latest attempt on each pretest · passing score is {PASSING_PERCENT}%</p>
+          <PretestBarChart pretests={pretests} />
+        </div>
+      )}
+
+      {tab === 'games' && (
+        <div role="tabpanel">
+          <p className="tpc-sub">Each point is this student&apos;s best score compared with the top score in the class.</p>
+          <GameRadarChart studentScores={gameScores} classTopScores={classTopScores} />
+        </div>
+      )}
+    </TeacherModal>
+  );
+}
+
+function ClassPretestModal({ classLabel, classPretests, roster, pretestsByUserId, onClose }) {
+  const [pretestId, setPretestId] = useState(classPretests[0]?.id ?? null);
+
+  const results = useMemo(() => roster.map((student) => {
+    const pretest = (pretestsByUserId[student.id] || []).find((entry) => entry.id === pretestId);
+    const percent = attemptPercent(pretest?.latestAttempt);
+    return {
+      student,
+      percent,
+      attempt: pretest?.latestAttempt || null,
+      status: percent == null ? 'notTaken' : percent >= PASSING_PERCENT ? 'passed' : 'failed',
+    };
+  }), [roster, pretestsByUserId, pretestId]);
+
+  const counts = useMemo(() => results.reduce((acc, row) => {
+    acc[row.status] += 1;
+    return acc;
+  }, { passed: 0, failed: 0, notTaken: 0 }), [results]);
+
+  return (
+    <TeacherModal title="Class Pretest Results" subtitle={`${classLabel} · passing score is ${PASSING_PERCENT}%`} size="lg" onClose={onClose}>
+      {classPretests.length === 0 ? (
+        <div className="tw-empty">
+          <span className="tw-empty-icon" aria-hidden="true">📝</span>
+          <strong>No pretests yet</strong>
+          <p>Create a pretest for this class from the Pretest page first.</p>
+        </div>
+      ) : (
+        <>
+          <label className="tw-field" style={{ maxWidth: '24rem' }}>
+            <span>Pretest</span>
+            <select className="tw-select" value={pretestId ?? ''} onChange={(event) => setPretestId(Number(event.target.value))}>
+              {classPretests.map((pretest) => (
+                <option key={pretest.id} value={pretest.id}>{pretest.title}</option>
+              ))}
+            </select>
+          </label>
+
+          <PassPieChart key={pretestId} counts={counts} />
+
+          <div className="tw-table-wrap" style={{ marginTop: '1.5rem' }}>
+            <table className="tw-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th className="tw-num">Score</th>
+                  <th className="tw-num">Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((row) => {
+                  const name = getDisplayName(row.student);
+                  return (
+                    <tr key={row.student.id}>
+                      <td>
+                        <div className="tw-person">
+                          <span className="tw-avatar" aria-hidden="true">{getInitials(name)}</span>
+                          <span><strong>{name}</strong></span>
+                        </div>
+                      </td>
+                      <td className="tw-num">
+                        {row.attempt ? `${row.attempt.score}/${row.attempt.totalQuestions} (${row.percent}%)` : '—'}
+                      </td>
+                      <td className="tw-num">
+                        <span className={`tw-badge ${row.status === 'passed' ? 'info' : row.status === 'failed' ? 'warning' : ''}`}>
+                          {row.status === 'passed' ? '✓ Passed' : row.status === 'failed' ? '✗ Below 75%' : 'Not taken'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </TeacherModal>
+  );
+}
 
 export default function TeacherAcademicProgress({ classes, loading }) {
   const [selectedClassId, setSelectedClassId] = useState(null);
-  const [subTab, setSubTab] = useState('students');
+  const [view, setView] = useState('students');
   const [selectedModule, setSelectedModule] = useState('alphabet');
   const [roster, setRoster] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [progressByUserId, setProgressByUserId] = useState({});
   const [pretestsByUserId, setPretestsByUserId] = useState({});
   const [gameScoresByUserId, setGameScoresByUserId] = useState({});
-  const [piePretestId, setPiePretestId] = useState(null);
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [openStudentId, setOpenStudentId] = useState(null);
+  const [isClassResultsOpen, setIsClassResultsOpen] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -64,17 +243,54 @@ export default function TeacherAcademicProgress({ classes, loading }) {
       setRosterLoading(false);
     };
 
+    setOpenStudentId(null);
     void loadClassProgress();
   }, [selectedClassId]);
 
-  useEffect(() => {
-    if (!roster.length) {
-      setSelectedStudentId(null);
-      return;
-    }
+  const studentRows = useMemo(() => roster.map((student) => {
+    const moduleRows = getModuleRows(progressByUserId[student.id] || []);
+    const pretests = pretestsByUserId[student.id] || [];
+    const games = gameScoresByUserId[student.id] || {};
+    const percents = pretests.map((pretest) => attemptPercent(pretest.latestAttempt)).filter((value) => value != null);
+    return {
+      student,
+      name: getDisplayName(student),
+      moduleRows,
+      summary: {
+        overall: Math.round(moduleRows.reduce((sum, row) => sum + row.completion, 0) / MODULES.length),
+        modulesDone: moduleRows.filter((row) => row.completion >= 100).length,
+        pretestsTaken: percents.length,
+        pretestsPassed: percents.filter((value) => value >= PASSING_PERCENT).length,
+        gamesPlayed: GAMES.filter((game) => games[game.key]).length,
+        totalPlays: Object.values(games).reduce((sum, row) => sum + (Number(row?.timesPlayed) || 0), 0),
+      },
+    };
+  }), [roster, progressByUserId, pretestsByUserId, gameScoresByUserId]);
 
-    setSelectedStudentId((current) => (current && roster.some((entry) => entry.id === current) ? current : roster[0].id));
-  }, [roster]);
+  const classStats = useMemo(() => {
+    const count = studentRows.length;
+    const taken = studentRows.reduce((sum, row) => sum + row.summary.pretestsTaken, 0);
+    const passed = studentRows.reduce((sum, row) => sum + row.summary.pretestsPassed, 0);
+    return {
+      averageProgress: count ? Math.round(studentRows.reduce((sum, row) => sum + row.summary.overall, 0) / count) : 0,
+      passRate: taken ? Math.round((passed / taken) * 100) : null,
+      totalPlays: studentRows.reduce((sum, row) => sum + row.summary.totalPlays, 0),
+    };
+  }, [studentRows]);
+
+  const classTopScores = useMemo(() => {
+    const tops = {};
+    GAMES.forEach((game) => {
+      tops[game.key] = Math.max(0, ...roster.map((student) => gameScoresByUserId[student.id]?.[game.key]?.bestScore || 0));
+    });
+    return tops;
+  }, [roster, gameScoresByUserId]);
+
+  // Every student in the class gets the same pretest list, so take it from whoever has one.
+  const classPretests = useMemo(() => {
+    const withList = roster.map((student) => pretestsByUserId[student.id] || []).find((list) => list.length > 0);
+    return withList || [];
+  }, [roster, pretestsByUserId]);
 
   const leaderboard = useMemo(() => {
     const entries = roster.map((student) => {
@@ -125,274 +341,250 @@ export default function TeacherAcademicProgress({ classes, loading }) {
     });
   }, [roster, progressByUserId, selectedModule]);
 
-  const selectedModuleTitle = MODULES.find((module) => module.key === selectedModule)?.title || 'Module';
+  const closeStudent = useCallback(() => setOpenStudentId(null), []);
+  const closeClassResults = useCallback(() => setIsClassResultsOpen(false), []);
 
-  const selectedStudent = useMemo(
-    () => roster.find((entry) => entry.id === selectedStudentId) || null,
-    [roster, selectedStudentId]
-  );
-
-  const selectedStudentProgress = useMemo(() => {
-    const rows = progressByUserId[selectedStudentId] || [];
-    const mapByModule = new Map(rows.map((entry) => [String(entry?.moduleName || '').toLowerCase(), entry]));
-
-    return MODULES.map((module) => {
-      const found = mapByModule.get(module.key);
-      return {
-        moduleName: module.title,
-        completionPercentage: safePercent(found?.completionPercentage || 0),
-        pretestCompleted: !!found?.pretestCompleted,
-        updatedAt: found?.updatedAt || null,
-      };
-    });
-  }, [progressByUserId, selectedStudentId]);
-
-  const studentAverage = useMemo(() => {
-    if (!selectedStudentProgress.length) {
-      return 0;
-    }
-
-    const total = selectedStudentProgress.reduce((sum, entry) => sum + entry.completionPercentage, 0);
-    return Math.round(total / selectedStudentProgress.length);
-  }, [selectedStudentProgress]);
-
-  const studentCompletedModules = selectedStudentProgress.filter((entry) => entry.completionPercentage >= 100).length;
-  const selectedStudentPretests = useMemo(
-    () => pretestsByUserId[selectedStudentId] || [],
-    [pretestsByUserId, selectedStudentId]
-  );
-  const studentPretestsTaken = selectedStudentPretests.filter((pretest) => attemptPercent(pretest.latestAttempt) != null).length;
-  const studentPretestsPassed = selectedStudentPretests.filter((pretest) => (attemptPercent(pretest.latestAttempt) ?? -1) >= PASSING_PERCENT).length;
-
-  const classTopScores = useMemo(() => {
-    const tops = {};
-    GAMES.forEach((game) => {
-      tops[game.key] = Math.max(0, ...roster.map((student) => gameScoresByUserId[student.id]?.[game.key]?.bestScore || 0));
-    });
-    return tops;
-  }, [roster, gameScoresByUserId]);
-
-  // Every student in the class gets the same pretest list, so take it from whoever has one.
-  const classPretests = useMemo(() => {
-    const withList = roster.map((student) => pretestsByUserId[student.id] || []).find((list) => list.length > 0);
-    return withList || [];
-  }, [roster, pretestsByUserId]);
-
-  useEffect(() => {
-    setPiePretestId((current) => (classPretests.some((pretest) => pretest.id === current) ? current : classPretests[0]?.id ?? null));
-  }, [classPretests]);
-
-  const pieCounts = useMemo(() => {
-    const counts = { passed: 0, failed: 0, notTaken: 0 };
-    roster.forEach((student) => {
-      const pretest = (pretestsByUserId[student.id] || []).find((entry) => entry.id === piePretestId);
-      const percent = attemptPercent(pretest?.latestAttempt);
-      if (percent == null) {
-        counts.notTaken += 1;
-      } else if (percent >= PASSING_PERCENT) {
-        counts.passed += 1;
-      } else {
-        counts.failed += 1;
-      }
-    });
-    return counts;
-  }, [roster, pretestsByUserId, piePretestId]);
+  const openRow = studentRows.find((row) => row.student.id === openStudentId) || null;
+  const selectedClassName = classes.find((classItem) => classItem.id === selectedClassId)?.name || 'Class';
 
   if (!loading && classes.length === 0) {
     return (
-      <section className="teacher-board" aria-label="Academic progress">
-        <p className="teacher-empty">Create a class first from the Dashboard, then add students to see their academic progress here.</p>
+      <section className="tw-card" aria-label="Academic progress">
+        <div className="tw-empty">
+          <span className="tw-empty-icon" aria-hidden="true">📈</span>
+          <strong>No classes yet</strong>
+          <p>Create a class on My Classes and add students to see their academic progress here.</p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section aria-label="Academic progress">
-      <div className="teacher-class-picker" role="group" aria-label="Select class">
-        {classes.map((classItem) => (
-          <button
-            key={classItem.id}
-            type="button"
-            className={selectedClassId === classItem.id ? 'active' : ''}
-            onClick={() => setSelectedClassId(classItem.id)}
-          >
-            {classItem.name}
-          </button>
-        ))}
-      </div>
-
-      {error && <div className="teacher-error">{error}</div>}
-
-      <section className="teacher-tabs" aria-label="Progress views">
-        <button type="button" className={`teacher-tab ${subTab === 'students' ? 'active' : ''}`} onClick={() => setSubTab('students')}>
-          Students
-        </button>
-        <button type="button" className={`teacher-tab ${subTab === 'leaderboard' ? 'active' : ''}`} onClick={() => setSubTab('leaderboard')}>
-          Module Leaderboard
-        </button>
-      </section>
-
-      {subTab === 'leaderboard' && (
-        <>
-          <div className="teacher-module-tabs" role="group" aria-label="Select module">
-            {MODULES.map((module) => (
+    <>
+      <div className="tw-toolbar">
+        <div>
+          <span className="tw-toolbar-label">Class</span>
+          <div className="tw-segment" role="group" aria-label="Select class">
+            {classes.map((classItem) => (
               <button
-                key={module.key}
+                key={classItem.id}
                 type="button"
-                className={module.key === selectedModule ? 'active' : ''}
-                onClick={() => setSelectedModule(module.key)}
+                className={selectedClassId === classItem.id ? 'active' : ''}
+                aria-pressed={selectedClassId === classItem.id}
+                onClick={() => setSelectedClassId(classItem.id)}
               >
-                {module.title}
+                {classItem.name}
               </button>
             ))}
           </div>
+        </div>
+        <button type="button" className="tw-btn tw-btn-ghost" onClick={() => setIsClassResultsOpen(true)} disabled={rosterLoading}>
+          🥧 Class Pretest Results
+        </button>
+      </div>
 
-          <section className="teacher-board" aria-label="Module leaderboard">
-            <div className="teacher-board-head">
-              <h3>{selectedModuleTitle} Leaderboard</h3>
-              <p>{rosterLoading ? 'Loading students...' : `${leaderboard.length} participants in class`}</p>
-            </div>
+      {error && <div className="tw-alert error">{error}</div>}
 
-            <div className="teacher-board-list">
-              {leaderboard.map((entry, index) => (
-                <article key={entry.id} className="teacher-board-item">
-                  <div className="teacher-board-rank">{index + 1}</div>
-                  <div className="teacher-board-main">
-                    <strong>{entry.name}</strong>
-                    <p>
-                      {entry.completed
-                        ? `${formatDuration(entry.durationMs)} (${formatTimestamp(entry.updatedAtRaw)})`
-                        : `${entry.completion}% completed`}
-                    </p>
-                  </div>
-                  <div className={`teacher-status ${entry.completed ? 'done' : 'ongoing'}`}>
-                    {entry.completed ? 'Done' : 'In Progress'}
-                  </div>
-                </article>
-              ))}
+      <div className="tw-stats">
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon"><UsersIcon /></span>
+          <span>
+            <span className="tw-stat-label">Students</span>
+            <span className="tw-stat-value">{rosterLoading ? '…' : roster.length}</span>
+          </span>
+        </div>
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon"><ChartIcon /></span>
+          <span>
+            <span className="tw-stat-label">Average progress</span>
+            <span className="tw-stat-value">{rosterLoading ? '…' : `${classStats.averageProgress}%`}</span>
+          </span>
+        </div>
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon" aria-hidden="true">📝</span>
+          <span>
+            <span className="tw-stat-label">Pretest pass rate</span>
+            <span className="tw-stat-value">{rosterLoading ? '…' : classStats.passRate == null ? '—' : `${classStats.passRate}%`}</span>
+          </span>
+        </div>
+        <div className="tw-card tw-stat">
+          <span className="tw-stat-icon" aria-hidden="true">🎮</span>
+          <span>
+            <span className="tw-stat-label">Games finished</span>
+            <span className="tw-stat-value">{rosterLoading ? '…' : classStats.totalPlays}</span>
+          </span>
+        </div>
+      </div>
 
-              {!rosterLoading && leaderboard.length === 0 && (
-                <p className="teacher-empty">No students with progress yet for this module.</p>
-              )}
-            </div>
-          </section>
-        </>
-      )}
+      <section className="tw-card" aria-label="Class report">
+        <div className="tw-tabs" role="tablist" aria-label="Report views">
+          <button type="button" role="tab" aria-selected={view === 'students'} className={view === 'students' ? 'active' : ''} onClick={() => setView('students')}>
+            Students
+          </button>
+          <button type="button" role="tab" aria-selected={view === 'leaderboard'} className={view === 'leaderboard' ? 'active' : ''} onClick={() => setView('leaderboard')}>
+            Module Leaderboard
+          </button>
+        </div>
 
-      {subTab === 'students' && (
-        <section className="teacher-analytics-layout" aria-label="Class data analytics">
-          <aside className="teacher-analytics-sidebar">
-            <div className="teacher-analytics-head">
-              <h3>Students</h3>
-              <span>{roster.length}</span>
-            </div>
-
-            <div className="teacher-participant-list">
-              {roster.map((participant) => {
-                const active = participant.id === selectedStudentId;
-                return (
-                  <button
-                    key={participant.id}
-                    type="button"
-                    className={`teacher-participant-item ${active ? 'active' : ''}`}
-                    onClick={() => setSelectedStudentId(participant.id)}
-                  >
-                    <strong>{getDisplayName(participant)}</strong>
-                    <span>{participant.email}</span>
-                  </button>
-                );
-              })}
-
-              {!rosterLoading && roster.length === 0 && (
-                <p className="teacher-empty">No students in this class yet.</p>
-              )}
-            </div>
-          </aside>
-
-          <div className="teacher-analytics-main">
-            <div className="teacher-board-head">
-              <h3>{selectedStudent ? `${getDisplayName(selectedStudent)} Progress Analytics` : 'Student Progress Analytics'}</h3>
-              <p>{selectedStudent ? 'Selected participant metrics and progress graph' : 'Select a participant to view analytics'}</p>
-            </div>
-
-            <div className="teacher-stats-grid">
-              <article className="teacher-stat-card">
-                <span>Overall Progress</span>
-                <strong>{studentAverage}%</strong>
-              </article>
-              <article className="teacher-stat-card">
-                <span>Completed Modules</span>
-                <strong>{studentCompletedModules} / 4</strong>
-              </article>
-              <article className="teacher-stat-card">
-                <span>Pretests Passed</span>
-                <strong>{studentPretestsPassed} / {studentPretestsTaken} taken</strong>
-              </article>
-            </div>
-
-            <div className="tpc-grid">
-              <div className="teacher-chart-card tpc-card">
-                <h4>📊 Pretest Scores</h4>
-                <p className="tpc-sub">Latest attempt on each pretest · passing is {PASSING_PERCENT}%</p>
-                {rosterLoading ? <p className="tpc-empty">Loading…</p> : <PretestBarChart key={selectedStudentId} pretests={selectedStudentPretests} />}
+        {view === 'students' && (
+          <>
+            {rosterLoading && <p className="tw-muted">Loading students…</p>}
+            {!rosterLoading && studentRows.length === 0 && (
+              <div className="tw-empty">
+                <span className="tw-empty-icon" aria-hidden="true">👥</span>
+                <strong>No students in this class</strong>
+                <p>Add students from My Classes to see their progress.</p>
               </div>
-
-              <div className="teacher-chart-card tpc-card">
-                <h4>🎮 Game Scores</h4>
-                <p className="tpc-sub">Best score as a share of the class&apos;s top score in each game</p>
-                {rosterLoading ? <p className="tpc-empty">Loading…</p> : (
-                  <GameRadarChart
-                    key={selectedStudentId}
-                    studentScores={gameScoresByUserId[selectedStudentId] || {}}
-                    classTopScores={classTopScores}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="teacher-bars-card">
-              <h4>Module Completion</h4>
-              <div className="teacher-bars">
-                {selectedStudentProgress.map((entry) => (
-                  <div key={entry.moduleName} className="teacher-bar-row">
-                    <div className="teacher-bar-label-wrap">
-                      <span className="teacher-bar-label">{entry.moduleName}</span>
-                      <strong>{entry.completionPercentage}%</strong>
-                    </div>
-                    <div className="teacher-bar-track">
-                      <div className="teacher-bar-fill" style={{ width: `${entry.completionPercentage}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="teacher-chart-card tpc-card">
-              <div className="tpc-card-head">
-                <div>
-                  <h4>🥧 Class Pretest Results</h4>
-                  <p className="tpc-sub">How many students in this class passed ({PASSING_PERCENT}% or higher)</p>
-                </div>
-                {classPretests.length > 0 && (
-                  <select
-                    className="tpc-select"
-                    value={piePretestId ?? ''}
-                    onChange={(event) => setPiePretestId(Number(event.target.value))}
-                    aria-label="Choose pretest"
-                  >
-                    {classPretests.map((pretest) => (
-                      <option key={pretest.id} value={pretest.id}>{pretest.title}</option>
+            )}
+            {!rosterLoading && studentRows.length > 0 && (
+              <div className="tw-table-wrap">
+                <table className="tw-table">
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Overall progress</th>
+                      <th className="tw-num tw-hide-sm">Modules</th>
+                      <th className="tw-num tw-hide-sm">Pretests passed</th>
+                      <th className="tw-num tw-hide-sm">Games played</th>
+                      <th className="tw-num"><span className="sr-only">Open</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentRows.map((row, index) => (
+                      <tr
+                        key={row.student.id}
+                        className="tw-clickable"
+                        style={{ animationDelay: `${index * 40}ms` }}
+                        onClick={() => setOpenStudentId(row.student.id)}
+                      >
+                        <td>
+                          <div className="tw-person">
+                            <span className="tw-avatar" aria-hidden="true">{getInitials(row.name)}</span>
+                            <span>
+                              <strong>{row.name}</strong>
+                              <span>{row.student.email}</span>
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="tw-progress">
+                            <div className="tw-progress-track"><div className="tw-progress-fill" style={{ width: `${row.summary.overall}%` }} /></div>
+                            <strong>{row.summary.overall}%</strong>
+                          </div>
+                        </td>
+                        <td className="tw-num tw-hide-sm">{row.summary.modulesDone} / {MODULES.length}</td>
+                        <td className="tw-num tw-hide-sm">
+                          {row.summary.pretestsTaken ? `${row.summary.pretestsPassed} / ${row.summary.pretestsTaken}` : <span className="tw-muted">None taken</span>}
+                        </td>
+                        <td className="tw-num tw-hide-sm">{row.summary.gamesPlayed} / {GAMES.length}</td>
+                        <td className="tw-num">
+                          <button
+                            type="button"
+                            className="tw-btn tw-btn-ghost tw-btn-sm"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenStudentId(row.student.id);
+                            }}
+                          >
+                            View report
+                          </button>
+                        </td>
+                      </tr>
                     ))}
-                  </select>
-                )}
+                  </tbody>
+                </table>
               </div>
-              {rosterLoading ? <p className="tpc-empty">Loading…</p>
-                : classPretests.length === 0 ? <p className="tpc-empty">No pretests have been created for this class yet.</p>
-                  : <PassPieChart key={piePretestId} counts={pieCounts} />}
+            )}
+          </>
+        )}
+
+        {view === 'leaderboard' && (
+          <>
+            <div className="tw-segment" role="group" aria-label="Select module" style={{ marginBottom: '1rem' }}>
+              {MODULES.map((module) => (
+                <button
+                  key={module.key}
+                  type="button"
+                  className={module.key === selectedModule ? 'active' : ''}
+                  aria-pressed={module.key === selectedModule}
+                  onClick={() => setSelectedModule(module.key)}
+                >
+                  {module.icon} {module.title}
+                </button>
+              ))}
             </div>
-          </div>
-        </section>
+
+            {!rosterLoading && leaderboard.length === 0 ? (
+              <div className="tw-empty">
+                <span className="tw-empty-icon" aria-hidden="true">🏁</span>
+                <strong>No progress yet</strong>
+                <p>Students appear here once they start this module.</p>
+              </div>
+            ) : (
+              <div className="tw-table-wrap">
+                <table className="tw-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Student</th>
+                      <th>Completion</th>
+                      <th className="tw-hide-sm">Finished in</th>
+                      <th className="tw-num">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboard.map((entry, index) => (
+                      <tr key={entry.id} style={{ animationDelay: `${index * 40}ms` }}>
+                        <td><strong>{index + 1}</strong></td>
+                        <td>
+                          <div className="tw-person">
+                            <span className="tw-avatar" aria-hidden="true">{getInitials(entry.name)}</span>
+                            <span><strong>{entry.name}</strong></span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="tw-progress">
+                            <div className="tw-progress-track"><div className="tw-progress-fill" style={{ width: `${entry.completion}%` }} /></div>
+                            <strong>{entry.completion}%</strong>
+                          </div>
+                        </td>
+                        <td className="tw-hide-sm">
+                          {entry.completed ? `${formatDuration(entry.durationMs)} · ${formatTimestamp(entry.updatedAtRaw)}` : '—'}
+                        </td>
+                        <td className="tw-num">
+                          <span className={`tw-badge ${entry.completed ? 'success' : 'info'}`}>{entry.completed ? 'Done' : 'In progress'}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+
+      {openRow && (
+        <StudentDetailModal
+          student={openRow.student}
+          summary={openRow.summary}
+          moduleRows={openRow.moduleRows}
+          pretests={pretestsByUserId[openRow.student.id] || []}
+          gameScores={gameScoresByUserId[openRow.student.id] || {}}
+          classTopScores={classTopScores}
+          onClose={closeStudent}
+        />
       )}
-    </section>
+
+      {isClassResultsOpen && (
+        <ClassPretestModal
+          classLabel={selectedClassName}
+          classPretests={classPretests}
+          roster={roster}
+          pretestsByUserId={pretestsByUserId}
+          onClose={closeClassResults}
+        />
+      )}
+    </>
   );
 }
