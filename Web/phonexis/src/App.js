@@ -10,6 +10,7 @@ import Profile from './components/Profile';
 import AlphabetRecognition from './components/Modules/AlphabetRecognition';
 import CVCWords from './components/Modules/CVCWords';
 import Vowels from './components/Modules/Vowels';
+import { setGameScoreUserId } from './components/Modules/shared/gameScores';
 import Consonants from './components/Modules/Consonants';
 import AdminSidebar from './components/Admin/AdminSidebar';
 import AdminDashboard from './components/Admin/AdminDashboard';
@@ -485,6 +486,11 @@ function App() {
     };
   }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, resolveBackendUserId, resetProgressState]);
 
+  // Let the games save their scores for the logged-in student.
+  useEffect(() => {
+    setGameScoreUserId(isAdminUser || isTeacherUser ? null : backendUserId);
+  }, [backendUserId, isAdminUser, isTeacherUser]);
+
   // Load the student's assigned class (if any) and the materials their teacher shared with it.
   useEffect(() => {
     if (isAdminUser || isTeacherUser || !backendUserId) {
@@ -698,7 +704,6 @@ function App() {
 
   const handleVowelsComplete = () => {
     setVowelsCompleted(true);
-    setActiveView('dashboard');
   };
 
   const handleConsonantsComplete = () => {
@@ -976,6 +981,7 @@ function App() {
             onNavigate={navigateTo}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
+            isCompleted={vowelsCompleted}
             initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}
           />
         );

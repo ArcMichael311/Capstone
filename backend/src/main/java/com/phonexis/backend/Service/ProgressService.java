@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.phonexis.backend.Entity.GameScore;
 import com.phonexis.backend.Entity.Progress;
 import com.phonexis.backend.Entity.User;
+import com.phonexis.backend.Repository.GameScoreRepository;
 import com.phonexis.backend.Repository.ProgressRepository;
 import com.phonexis.backend.Repository.UserRepository;
 
@@ -19,13 +21,17 @@ import com.phonexis.backend.Repository.UserRepository;
 public class ProgressService {
 	private final ProgressRepository progressRepository;
 	private final UserRepository userRepository;
+	private final GameScoreRepository gameScoreRepository;
+
+	private static final Set<String> GAME_NAMES = Set.of("alphaquest", "vowelrush", "wordblast", "balloonpop");
 
 	@Value("${app.device-lock.enabled:true}")
 	private boolean deviceLockEnabled = true;
 
-	public ProgressService(ProgressRepository progressRepository, UserRepository userRepository) {
+	public ProgressService(ProgressRepository progressRepository, UserRepository userRepository, GameScoreRepository gameScoreRepository) {
 		this.progressRepository = progressRepository;
 		this.userRepository = userRepository;
+		this.gameScoreRepository = gameScoreRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -137,10 +143,15 @@ public class ProgressService {
 				progress.setCompletionPercentage(Math.round((completed / 3.0f) * 100));
 			}
 		} else {
-			// Keep learning-material progress when assessment progress is updated.
-			int learningCompletion = progress.getCompletionPercentage() == null ? 0 : progress.getCompletionPercentage();
+			// Recompute from the watched videos (the frontend sends them on every sync) so the
+			// percentage follows the student's real progress instead of staying at its old value.
+			int learningCompletion = calculateLearningCompletion(moduleName, progress.getVideosWatched());
 			int assessmentCompletion = Boolean.TRUE.equals(progress.getPretestCompleted()) ? 100 : 0;
 			progress.setCompletionPercentage(Math.max(learningCompletion, assessmentCompletion));
+			if (learningCompletion >= 100) {
+				progress.setLessonUnlocked(true);
+				progress.setPretestUnlocked(true);
+			}
 		}
 
 		progressRepository.save(progress);
@@ -154,7 +165,7 @@ public class ProgressService {
 
 		ensureDefaultProgressRows(user);
 		List<Progress> progressList = progressRepository.findByUser(user);
-		return progressList.stream().map(ProgressDTO::new).toList();
+		return progressList.stream().map(this::withLearningCompletion).toList();
 	}
 
 	@Transactional
@@ -169,6 +180,66 @@ public class ProgressService {
 		Progress progress = new Progress(user, moduleName);
 		progressRepository.save(progress);
 		return progress;
+	}
+
+	// Rows saved before the completion fix may still hold 0% even though every video was watched.
+	private ProgressDTO withLearningCompletion(Progress progress) {
+		ProgressDTO dto = new ProgressDTO(progress);
+		if ("alphabet".equalsIgnoreCase(progress.getModuleName())) {
+			return dto;
+		}
+		int stored = progress.getCompletionPercentage() == null ? 0 : progress.getCompletionPercentage();
+		int learning = calculateLearningCompletion(progress.getModuleName(), progress.getVideosWatched());
+		if (learning <= stored) {
+			return dto;
+		}
+		return new ProgressDTO(
+			dto.progressId(), dto.moduleName(), dto.videosWatched(), dto.lessonUnlocked(), dto.pretestUnlocked(),
+			dto.pretestCompleted(), dto.easyModeCompleted(), dto.mediumModeCompleted(), dto.hardModeCompleted(),
+			learning, dto.assessmentScores(), dto.createdAt(), dto.updatedAt()
+		);
+	}
+
+	private int calculateLearningCompletion(String moduleName, String videosWatchedJson) {
+		int requiredVideos = getRequiredVideosCount(moduleName);
+		if (requiredVideos <= 0 || videosWatchedJson == null) {
+			return 0;
+		}
+		long watchedCount = java.util.Arrays.stream(videosWatchedJson.replaceAll("[\\[\\]\\s]", "").split(","))
+			.filter(id -> !id.isEmpty())
+			.distinct()
+			.count();
+		return Math.round((Math.min(watchedCount, requiredVideos) / (float) requiredVideos) * 100);
+	}
+
+	@Transactional
+	public GameScoreDTO recordGameScore(Long userId, String gameName, String deviceId, Integer score) {
+		String normalizedGame = gameName == null ? "" : gameName.trim().toLowerCase();
+		if (!GAME_NAMES.contains(normalizedGame)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown game: " + gameName);
+		}
+		if (score == null || score < 0) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Score must be zero or more");
+		}
+
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		assertActiveDevice(user, deviceId);
+
+		GameScore gameScore = gameScoreRepository.findByUserAndGameName(user, normalizedGame)
+			.orElseGet(() -> new GameScore(user, normalizedGame));
+		gameScore.setLastScore(score);
+		gameScore.setBestScore(Math.max(gameScore.getBestScore() == null ? 0 : gameScore.getBestScore(), score));
+		gameScore.setTimesPlayed((gameScore.getTimesPlayed() == null ? 0 : gameScore.getTimesPlayed()) + 1);
+
+		return new GameScoreDTO(gameScoreRepository.save(gameScore));
+	}
+
+	@Transactional(readOnly = true)
+	public List<GameScoreDTO> getGameScores(Long userId) {
+		User user = userRepository.findById(userId)
+			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		return gameScoreRepository.findByUser(user).stream().map(GameScoreDTO::new).toList();
 	}
 
 	private int getRequiredVideosCount(String moduleName) {
@@ -226,6 +297,27 @@ public class ProgressService {
 				progress.getUpdatedAt()
 			);
 		}
+	}
+
+	public record GameScoreDTO(
+		String gameName,
+		Integer bestScore,
+		Integer lastScore,
+		Integer timesPlayed,
+		java.time.LocalDateTime updatedAt
+	) {
+		public GameScoreDTO(GameScore gameScore) {
+			this(
+				gameScore.getGameName(),
+				gameScore.getBestScore(),
+				gameScore.getLastScore(),
+				gameScore.getTimesPlayed(),
+				gameScore.getUpdatedAt()
+			);
+		}
+	}
+
+	public record GameScoreRequest(String gameName, Integer score) {
 	}
 
 	public record UpdateProgressRequest(

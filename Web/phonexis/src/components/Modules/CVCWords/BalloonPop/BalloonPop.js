@@ -3,6 +3,7 @@ import './BalloonPop.css';
 import { speakText } from '../speechUtils';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
+import { reportGameScore } from '../../shared/gameScores';
 
 const wordBuildingDeck = [
   { target: 'cat', icon: '🐱', choices: ['C', 'A', 'T', 'O', 'E'], description: 'A small pet that says meow.' },
@@ -146,6 +147,14 @@ export default function BalloonPop({ onClose }) {
     setIsReadingInstructions(false);
     setIsReadingHint(false);
   };
+
+  // Save the finished run so the teacher sees it in Academic Progress.
+  useEffect(() => {
+    if (screen === 'gameover') {
+      reportGameScore('balloonpop', score);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   useEffect(() => () => {
     clearAllTimers();
