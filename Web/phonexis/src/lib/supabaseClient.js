@@ -232,6 +232,8 @@ export const createBackendGame = (payload) => postToBackend('/api/module-games',
 export const updateBackendGame = (gameId, payload) => putToBackend(`/api/module-games/${gameId}`, payload);
 export const deleteBackendGame = (gameId) => requestToBackend(`/api/module-games/${gameId}`, { method: 'DELETE' });
 export const updateBackendModuleProgress = (userId, moduleName, payload) => putToBackend(`/api/progress/user/${userId}/module/${encodeURIComponent(moduleName)}`, payload);
+export const fetchBackendGameScores = (userId) => getFromBackend(`/api/progress/user/${userId}/games`);
+export const recordBackendGameScore = (userId, gameName, score) => postToBackend(`/api/progress/user/${userId}/games`, { gameName, score });
 export const updateBackendUser = (userId, payload) => putToBackend(`/api/users/${userId}`, payload);
 export const deleteBackendUser = (userId) => requestToBackend(`/api/users/${userId}`, { method: 'DELETE' });
 export const generateBackendClassCode = (userId) => postToBackend(`/api/users/${userId}/generate-class-code`, {});

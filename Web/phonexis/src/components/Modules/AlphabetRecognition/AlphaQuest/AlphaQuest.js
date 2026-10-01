@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import './AlphaQuest.css';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
+import { reportGameScore } from '../../shared/gameScores';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -409,6 +410,14 @@ export default function AlphaQuest({ onClose }) {
   );
 
   // Listen for keyboard input
+  // Save the finished run so the teacher sees it in Academic Progress.
+  useEffect(() => {
+    if (gameState === 'victory' || gameState === 'gameOver') {
+      reportGameScore('alphaquest', score);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (gameState === 'playing') {

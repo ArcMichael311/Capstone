@@ -134,7 +134,7 @@ const videos = [
   },
 ];
 
-export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialMode = 'learning' }) {
+export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
@@ -152,6 +152,13 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
   const selectedItem = vowels.find((item) => item.letter === selectedLetter) ?? vowels[0];
   const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
   const allVideosWatched = videosWatched.length === videos.length;
+
+  // Watching every video completes the module (same rule as Consonants).
+  useEffect(() => {
+    if (allVideosWatched && !isCompleted && typeof onComplete === 'function') {
+      onComplete();
+    }
+  }, [allVideosWatched, isCompleted, onComplete]);
 
   useEffect(() => {
     setMode(initialMode);

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchBackendProgress, fetchClassStudents } from '../../lib/supabaseClient';
+import { fetchBackendGameScores, fetchBackendProgress, fetchClassStudents, fetchStudentPretests } from '../../lib/supabaseClient';
 import { MODULES, formatDuration, formatTimestamp, getDisplayName, hasMeaningfulProgress, safePercent } from './teacherUtils';
+import { GAMES, GameRadarChart, PASSING_PERCENT, PassPieChart, PretestBarChart, attemptPercent } from './TeacherProgressCharts';
+import './TeacherProgressCharts.css';
 
 export default function TeacherAcademicProgress({ classes, loading }) {
   const [selectedClassId, setSelectedClassId] = useState(null);
@@ -9,6 +11,9 @@ export default function TeacherAcademicProgress({ classes, loading }) {
   const [roster, setRoster] = useState([]);
   const [rosterLoading, setRosterLoading] = useState(false);
   const [progressByUserId, setProgressByUserId] = useState({});
+  const [pretestsByUserId, setPretestsByUserId] = useState({});
+  const [gameScoresByUserId, setGameScoresByUserId] = useState({});
+  const [piePretestId, setPiePretestId] = useState(null);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [error, setError] = useState(null);
 
@@ -36,14 +41,26 @@ export default function TeacherAcademicProgress({ classes, loading }) {
       const students = Array.isArray(rosterResult.data) ? rosterResult.data : [];
       setRoster(students);
 
-      const progressEntries = await Promise.all(
+      const studentEntries = await Promise.all(
         students.map(async (student) => {
-          const result = await fetchBackendProgress(student.id);
-          return [student.id, Array.isArray(result?.data) ? result.data : []];
+          const [progressResult, pretestResult, gameResult] = await Promise.all([
+            fetchBackendProgress(student.id),
+            fetchStudentPretests(selectedClassId, student.id),
+            fetchBackendGameScores(student.id),
+          ]);
+          const gameRows = Array.isArray(gameResult?.data) ? gameResult.data : [];
+          return {
+            id: student.id,
+            progress: Array.isArray(progressResult?.data) ? progressResult.data : [],
+            pretests: Array.isArray(pretestResult?.data) ? pretestResult.data : [],
+            games: Object.fromEntries(gameRows.map((row) => [String(row.gameName || '').toLowerCase(), row])),
+          };
         })
       );
 
-      setProgressByUserId(Object.fromEntries(progressEntries));
+      setProgressByUserId(Object.fromEntries(studentEntries.map((entry) => [entry.id, entry.progress])));
+      setPretestsByUserId(Object.fromEntries(studentEntries.map((entry) => [entry.id, entry.pretests])));
+      setGameScoresByUserId(Object.fromEntries(studentEntries.map((entry) => [entry.id, entry.games])));
       setRosterLoading(false);
     };
 
@@ -140,22 +157,46 @@ export default function TeacherAcademicProgress({ classes, loading }) {
   }, [selectedStudentProgress]);
 
   const studentCompletedModules = selectedStudentProgress.filter((entry) => entry.completionPercentage >= 100).length;
-  const studentCompletedPretests = selectedStudentProgress.filter((entry) => entry.pretestCompleted).length;
+  const selectedStudentPretests = useMemo(
+    () => pretestsByUserId[selectedStudentId] || [],
+    [pretestsByUserId, selectedStudentId]
+  );
+  const studentPretestsTaken = selectedStudentPretests.filter((pretest) => attemptPercent(pretest.latestAttempt) != null).length;
+  const studentPretestsPassed = selectedStudentPretests.filter((pretest) => (attemptPercent(pretest.latestAttempt) ?? -1) >= PASSING_PERCENT).length;
 
-  const studentTrendPoints = useMemo(() => {
-    if (!selectedStudentProgress.length) {
-      return '0,90 100,90';
-    }
+  const classTopScores = useMemo(() => {
+    const tops = {};
+    GAMES.forEach((game) => {
+      tops[game.key] = Math.max(0, ...roster.map((student) => gameScoresByUserId[student.id]?.[game.key]?.bestScore || 0));
+    });
+    return tops;
+  }, [roster, gameScoresByUserId]);
 
-    const step = selectedStudentProgress.length > 1 ? 100 / (selectedStudentProgress.length - 1) : 100;
-    return selectedStudentProgress
-      .map((entry, index) => {
-        const x = Math.round(step * index);
-        const y = 90 - Math.round((entry.completionPercentage / 100) * 80);
-        return `${x},${y}`;
-      })
-      .join(' ');
-  }, [selectedStudentProgress]);
+  // Every student in the class gets the same pretest list, so take it from whoever has one.
+  const classPretests = useMemo(() => {
+    const withList = roster.map((student) => pretestsByUserId[student.id] || []).find((list) => list.length > 0);
+    return withList || [];
+  }, [roster, pretestsByUserId]);
+
+  useEffect(() => {
+    setPiePretestId((current) => (classPretests.some((pretest) => pretest.id === current) ? current : classPretests[0]?.id ?? null));
+  }, [classPretests]);
+
+  const pieCounts = useMemo(() => {
+    const counts = { passed: 0, failed: 0, notTaken: 0 };
+    roster.forEach((student) => {
+      const pretest = (pretestsByUserId[student.id] || []).find((entry) => entry.id === piePretestId);
+      const percent = attemptPercent(pretest?.latestAttempt);
+      if (percent == null) {
+        counts.notTaken += 1;
+      } else if (percent >= PASSING_PERCENT) {
+        counts.passed += 1;
+      } else {
+        counts.failed += 1;
+      }
+    });
+    return counts;
+  }, [roster, pretestsByUserId, piePretestId]);
 
   if (!loading && classes.length === 0) {
     return (
@@ -284,22 +325,29 @@ export default function TeacherAcademicProgress({ classes, loading }) {
                 <strong>{studentCompletedModules} / 4</strong>
               </article>
               <article className="teacher-stat-card">
-                <span>Completed Pretests</span>
-                <strong>{studentCompletedPretests} / 4</strong>
+                <span>Pretests Passed</span>
+                <strong>{studentPretestsPassed} / {studentPretestsTaken} taken</strong>
               </article>
             </div>
 
-            <div className="teacher-chart-card">
-              <h4>Progress Trend</h4>
-              <svg viewBox="0 0 100 100" className="teacher-sparkline" role="img" aria-label="Selected student progress trend">
-                <polyline points={studentTrendPoints} fill="none" stroke="url(#studentProgressGradient)" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
-                <defs>
-                  <linearGradient id="studentProgressGradient" x1="0" x2="100" y1="0" y2="0" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#93c5fd" />
-                    <stop offset="100%" stopColor="#1d4ed8" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="tpc-grid">
+              <div className="teacher-chart-card tpc-card">
+                <h4>📊 Pretest Scores</h4>
+                <p className="tpc-sub">Latest attempt on each pretest · passing is {PASSING_PERCENT}%</p>
+                {rosterLoading ? <p className="tpc-empty">Loading…</p> : <PretestBarChart key={selectedStudentId} pretests={selectedStudentPretests} />}
+              </div>
+
+              <div className="teacher-chart-card tpc-card">
+                <h4>🎮 Game Scores</h4>
+                <p className="tpc-sub">Best score as a share of the class&apos;s top score in each game</p>
+                {rosterLoading ? <p className="tpc-empty">Loading…</p> : (
+                  <GameRadarChart
+                    key={selectedStudentId}
+                    studentScores={gameScoresByUserId[selectedStudentId] || {}}
+                    classTopScores={classTopScores}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="teacher-bars-card">
@@ -317,6 +365,30 @@ export default function TeacherAcademicProgress({ classes, loading }) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="teacher-chart-card tpc-card">
+              <div className="tpc-card-head">
+                <div>
+                  <h4>🥧 Class Pretest Results</h4>
+                  <p className="tpc-sub">How many students in this class passed ({PASSING_PERCENT}% or higher)</p>
+                </div>
+                {classPretests.length > 0 && (
+                  <select
+                    className="tpc-select"
+                    value={piePretestId ?? ''}
+                    onChange={(event) => setPiePretestId(Number(event.target.value))}
+                    aria-label="Choose pretest"
+                  >
+                    {classPretests.map((pretest) => (
+                      <option key={pretest.id} value={pretest.id}>{pretest.title}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              {rosterLoading ? <p className="tpc-empty">Loading…</p>
+                : classPretests.length === 0 ? <p className="tpc-empty">No pretests have been created for this class yet.</p>
+                  : <PassPieChart key={piePretestId} counts={pieCounts} />}
             </div>
           </div>
         </section>

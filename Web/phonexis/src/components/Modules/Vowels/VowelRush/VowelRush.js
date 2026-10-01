@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import './VowelRush.css';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
+import { reportGameScore } from '../../shared/gameScores';
 import { doubleVowelExamples } from '../DoubleVowelLesson/doubleVowelData';
 
 const vowelLetters = new Set(['A', 'E', 'I', 'O', 'U']);
@@ -264,6 +265,7 @@ export default function VowelRush({ onClose }) {
     setComboFlash(false);
     setScreen(nextScreen);
     playSound(nextScreen === 'gameover' ? 'lose' : 'victory');
+    reportGameScore('vowelrush', scoreRef.current);
   };
 
   const scheduleNextStar = () => {

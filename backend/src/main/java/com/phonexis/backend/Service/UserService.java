@@ -19,6 +19,7 @@ import com.phonexis.backend.Entity.User.Role;
 import com.phonexis.backend.Entity.Progress;
 import com.phonexis.backend.Repository.ClassEnrollmentRepository;
 import com.phonexis.backend.Repository.ClassSectionRepository;
+import com.phonexis.backend.Repository.GameScoreRepository;
 import com.phonexis.backend.Repository.ProgressRepository;
 import com.phonexis.backend.Repository.TeacherActivityRepository;
 import com.phonexis.backend.Repository.UserRepository;
@@ -37,6 +38,7 @@ public class UserService {
 	private final ClassEnrollmentRepository classEnrollmentRepository;
 	private final TeacherActivityRepository teacherActivityRepository;
 	private final LearningMaterialService learningMaterialService;
+	private final GameScoreRepository gameScoreRepository;
 
 	// One-device-per-account login lock. Disable locally (DEVICE_LOCK_ENABLED=false)
 	// to test teacher and student accounts side by side in separate browser windows.
@@ -49,7 +51,8 @@ public class UserService {
 		ClassSectionRepository classSectionRepository,
 		ClassEnrollmentRepository classEnrollmentRepository,
 		TeacherActivityRepository teacherActivityRepository,
-		LearningMaterialService learningMaterialService
+		LearningMaterialService learningMaterialService,
+		GameScoreRepository gameScoreRepository
 	) {
 		this.userRepository = userRepository;
 		this.progressRepository = progressRepository;
@@ -57,6 +60,7 @@ public class UserService {
 		this.classEnrollmentRepository = classEnrollmentRepository;
 		this.teacherActivityRepository = teacherActivityRepository;
 		this.learningMaterialService = learningMaterialService;
+		this.gameScoreRepository = gameScoreRepository;
 	}
 
 	@Transactional(readOnly = true)
@@ -206,6 +210,7 @@ public class UserService {
 		User user = getUserEntity(id);
 
 		progressRepository.deleteByUser(user);
+		gameScoreRepository.deleteByUser(user);
 		classEnrollmentRepository.deleteByStudent(user);
 		teacherActivityRepository.deleteByTeacher(user);
 

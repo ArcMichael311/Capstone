@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phonexis.backend.Service.ProgressService;
+import com.phonexis.backend.Service.ProgressService.GameScoreDTO;
+import com.phonexis.backend.Service.ProgressService.GameScoreRequest;
 import com.phonexis.backend.Service.ProgressService.ProgressDTO;
 import com.phonexis.backend.Service.ProgressService.UpdateProgressRequest;
 
@@ -60,6 +62,20 @@ public class ProgressController {
 	) {
 		ProgressDTO progress = progressService.updateModuleCompletion(userId, moduleName, deviceId, request);
 		return ResponseEntity.ok(progress);
+	}
+
+	@GetMapping("/user/{userId}/games")
+	public ResponseEntity<List<GameScoreDTO>> getGameScores(@PathVariable Long userId) {
+		return ResponseEntity.ok(progressService.getGameScores(userId));
+	}
+
+	@PostMapping("/user/{userId}/games")
+	public ResponseEntity<GameScoreDTO> recordGameScore(
+		@PathVariable Long userId,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
+		@RequestBody GameScoreRequest request
+	) {
+		return ResponseEntity.ok(progressService.recordGameScore(userId, request.gameName(), deviceId, request.score()));
 	}
 
 	@GetMapping("/user/{userId}/module/{moduleName}/can-access-lesson")

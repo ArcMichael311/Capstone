@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import './WordBlast.css';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
+import { reportGameScore } from '../../shared/gameScores';
 
 const wordDeck = [
   { word: 'CAT', emoji: '🐱' },
@@ -233,6 +234,14 @@ export default function WordBlast({ onClose }) {
     setIsReadingInstructions(false);
     setIsSpeaking(false);
   };
+
+  // Save the finished run so the teacher sees it in Academic Progress.
+  useEffect(() => {
+    if (screen === 'gameover') {
+      reportGameScore('wordblast', score);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   useEffect(() => () => {
     clearAllTimers();

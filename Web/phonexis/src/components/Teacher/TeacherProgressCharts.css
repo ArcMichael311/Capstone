@@ -1,0 +1,364 @@
+/* Academic Progress charts (pretest bars, game radar, class pass pie). */
+.tpc-grid,
+.tpc-card {
+  --tpc-pass: #2a78d6;
+  --tpc-fail: #eb6834;
+  --tpc-none: #8b8a84;
+  --tpc-ink: #2c3e50;
+  --tpc-muted: #6f7d8d;
+  --tpc-grid: rgba(15, 23, 42, 0.08);
+}
+
+.tpc-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.tpc-grid > .teacher-chart-card {
+  margin-top: 0.85rem;
+}
+
+.tpc-card {
+  animation: tpc-rise 0.45s ease both;
+}
+
+.tpc-sub {
+  margin: 0.2rem 0 0;
+  color: var(--tpc-muted);
+  font-size: 0.8rem;
+}
+
+.tpc-empty {
+  margin: 1rem 0 0.4rem;
+  color: var(--tpc-muted);
+  font-size: 0.88rem;
+}
+
+.tpc-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.tpc-select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--tpc-ink);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  background: #fff;
+  max-width: 100%;
+}
+
+/* ---------- Bar chart ---------- */
+.tpc-bar-chart {
+  margin-top: 0.9rem;
+}
+
+.tpc-bar-plot {
+  position: relative;
+  height: 190px;
+  margin-left: 3.4rem;
+}
+
+.tpc-gridline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--tpc-grid);
+}
+
+.tpc-gridline span {
+  position: absolute;
+  right: calc(100% + 0.45rem);
+  top: -0.55rem;
+  font-size: 0.7rem;
+  color: var(--tpc-muted);
+  white-space: nowrap;
+}
+
+.tpc-gridline.pass {
+  border-top: 1.5px dashed var(--tpc-muted);
+}
+
+.tpc-gridline.pass span {
+  font-weight: 700;
+  color: var(--tpc-ink);
+}
+
+.tpc-bars,
+.tpc-bar-labels {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+}
+
+.tpc-bars {
+  position: absolute;
+  inset: 0;
+  align-items: end;
+}
+
+.tpc-bar-col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  cursor: default;
+}
+
+.tpc-bar {
+  width: min(100%, 2.6rem);
+  border-radius: 4px 4px 0 0;
+  background: var(--tpc-pass);
+  transform-origin: bottom;
+  animation: tpc-grow 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation-delay: var(--d, 0ms);
+  transition: filter 0.15s ease;
+}
+
+.tpc-bar-col:hover .tpc-bar {
+  filter: brightness(1.12);
+}
+
+.tpc-bar.empty {
+  background: var(--tpc-none);
+  opacity: 0.5;
+}
+
+.tpc-bar-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--tpc-ink);
+  margin-bottom: 0.2rem;
+}
+
+.tpc-bar-labels {
+  margin: 0.45rem 0 0 3.4rem;
+}
+
+.tpc-bar-label {
+  text-align: center;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.tpc-bar-label strong {
+  display: block;
+  color: var(--tpc-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tpc-bar-label span.pass { color: #1c5cab; font-weight: 700; }
+.tpc-bar-label span.fail { color: #b5481c; font-weight: 700; }
+.tpc-bar-label span.muted { color: var(--tpc-muted); }
+
+/* Bars below passing switch to the "below 75%" color. */
+.tpc-bar.fail {
+  background: var(--tpc-fail);
+}
+
+/* ---------- Radar chart ---------- */
+.tpc-radar-wrap {
+  margin-top: 0.4rem;
+}
+
+.tpc-radar {
+  display: block;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.tpc-radar-ring {
+  fill: none;
+  stroke: var(--tpc-grid);
+  stroke-width: 1;
+}
+
+.tpc-radar-axis {
+  stroke: var(--tpc-grid);
+  stroke-width: 1;
+}
+
+.tpc-radar-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--tpc-ink);
+}
+
+.tpc-radar-shape {
+  fill: var(--tpc-pass);
+  fill-opacity: 0.2;
+  stroke: var(--tpc-pass);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transform-box: view-box;
+  transform-origin: 160px 130px;
+  animation: tpc-radar-in 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+
+.tpc-radar-hit {
+  fill: transparent;
+}
+
+.tpc-radar-dot {
+  fill: var(--tpc-pass);
+  stroke: #fff;
+  stroke-width: 2;
+  transition: r 0.15s ease;
+  animation: tpc-fade 0.4s ease 0.6s both;
+}
+
+.tpc-radar-point:hover .tpc-radar-dot {
+  r: 6.5;
+}
+
+.tpc-game-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.tpc-game-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.45rem;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.tpc-game-name {
+  font-weight: 700;
+  color: var(--tpc-ink);
+}
+
+.tpc-game-stats {
+  color: var(--tpc-muted);
+}
+
+.tpc-game-stats strong {
+  color: var(--tpc-ink);
+}
+
+/* ---------- Pie chart ---------- */
+.tpc-pie-wrap {
+  margin-top: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 2rem;
+}
+
+.tpc-pie {
+  width: min(210px, 100%);
+  height: auto;
+}
+
+.tpc-pie-slice {
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  transform-origin: 100px 100px;
+  animation: tpc-pie-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation-delay: var(--d, 0ms);
+  transition: transform 0.18s ease;
+}
+
+.tpc-pie-slice:hover {
+  transform: scale(1.04);
+}
+
+.tpc-pie-slice.passed,
+.tpc-swatch.passed { fill: var(--tpc-pass); background: var(--tpc-pass); }
+.tpc-pie-slice.failed,
+.tpc-swatch.failed { fill: var(--tpc-fail); background: var(--tpc-fail); }
+.tpc-pie-slice.not-taken,
+.tpc-swatch.not-taken { fill: var(--tpc-none); background: var(--tpc-none); }
+
+.tpc-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 200px;
+}
+
+.tpc-legend li {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.88rem;
+  color: var(--tpc-ink);
+}
+
+.tpc-swatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+}
+
+.tpc-legend strong {
+  font-size: 1rem;
+}
+
+.tpc-legend-percent {
+  color: var(--tpc-muted);
+  min-width: 2.6rem;
+  text-align: right;
+}
+
+/* ---------- Animations ---------- */
+@keyframes tpc-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes tpc-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes tpc-radar-in {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes tpc-pie-in {
+  from { transform: scale(0.4) rotate(-30deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+@keyframes tpc-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tpc-card,
+  .tpc-bar,
+  .tpc-radar-shape,
+  .tpc-radar-dot,
+  .tpc-pie-slice {
+    animation: none;
+  }
+}
