@@ -50,7 +50,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1.25rem;
-  padding: 1.5rem 1.75rem;
+  padding: 1.75rem 1.75rem 1.5rem;
   overflow: hidden;
   border-radius: 1.75rem;
   background: linear-gradient(135deg, #ec4899 0%, #d946ef 45%, #8b5cf6 100%);
@@ -89,6 +89,7 @@
   display: grid;
   gap: 0.25rem;
   min-width: 0;
+  padding-top: 0.35rem;
 }
 
 .sc-kicker {
@@ -118,8 +119,12 @@
 
 .sc-hero p {
   margin: 0;
+  overflow: hidden;
   font-weight: 700;
+  line-height: 1.35;
   opacity: 0.95;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sc-hero-stats {
@@ -127,6 +132,8 @@
   z-index: 1;
   display: flex;
   gap: 0.75rem;
+  align-self: end;
+  padding-top: 1.35rem;
 }
 
 .sc-hero-stats div {
@@ -168,6 +175,11 @@
   font-weight: 800;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sc-back:focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 3px;
 }
 
 .sc-back:hover {
@@ -973,11 +985,13 @@
 @media (max-width: 900px) {
   .sc-hero {
     grid-template-columns: auto minmax(0, 1fr);
-    padding-top: 2.5rem;
+    padding-top: 2.75rem;
   }
 
   .sc-hero-stats {
     grid-column: 1 / -1;
+    align-self: stretch;
+    padding-top: 0;
   }
 
   .sc-hero-stats div {
@@ -989,6 +1003,47 @@
   .sc-page {
     padding: 1rem;
     border-radius: 1.25rem;
+  }
+
+  .sc-hero {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 3.5rem 1rem 1rem;
+  }
+
+  .sc-hero-icon {
+    width: 4rem;
+    height: 4rem;
+    justify-self: center;
+  }
+
+  .sc-hero-copy {
+    justify-items: center;
+    padding-top: 0;
+    text-align: center;
+  }
+
+  .sc-hero h1,
+  .sc-hero p {
+    max-width: 100%;
+  }
+
+  .sc-hero-stats {
+    width: 100%;
+  }
+
+  .sc-hero-stats div {
+    min-width: 0;
+    padding: 0.7rem 0.5rem;
+  }
+
+  .sc-hero-stats span {
+    font-size: 0.68rem;
+  }
+
+  .sc-back {
+    top: 0.75rem;
+    right: 0.75rem;
   }
 
   .sc-tabs,
