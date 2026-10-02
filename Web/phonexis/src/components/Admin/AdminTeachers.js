@@ -33,6 +33,12 @@ export default function AdminTeachers() {
     void loadUsers();
   }, []);
 
+  useEffect(() => {
+    const refreshOnFocus = () => void loadUsers();
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, []);
+
   const demoteToStudent = async (userId) => {
     const confirmDemote = window.confirm('Demote this teacher back to a student account?');
     if (!confirmDemote) {
@@ -127,7 +133,9 @@ export default function AdminTeachers() {
       <div className="admin-content">
         <div className="admin-content-head">
           <h3>Teacher Accounts</h3>
-          <span className="admin-management-badge">Demote to Student</span>
+          <button type="button" className="admin-management-badge admin-refresh-button" onClick={() => void loadUsers()} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         <div className="admin-search-bar">
