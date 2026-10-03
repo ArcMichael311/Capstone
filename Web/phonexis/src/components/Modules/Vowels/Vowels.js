@@ -135,7 +135,7 @@ const videos = [
   },
 ];
 
-export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
+export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialExploredVowels = ['A'], onExploredVowelsChange, isCompleted = false, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(vowels[0].letter);
   const [feedback, setFeedback] = useState('Choose a vowel to hear its sound.');
@@ -143,12 +143,16 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [showDoubleVowelModal, setShowDoubleVowelModal] = useState(false);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
-  const [exploredVowels, setExploredVowels] = useState([vowels[0].letter]);
+  const [exploredVowels, setExploredVowels] = useState(initialExploredVowels);
   const [heardPairs, setHeardPairs] = useState([]);
   const [letterTap, setLetterTap] = useState(0);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
+
+  useEffect(() => {
+    setExploredVowels(Array.isArray(initialExploredVowels) && initialExploredVowels.length ? initialExploredVowels : ['A']);
+  }, [initialExploredVowels]);
 
   const selectedItem = vowels.find((item) => item.letter === selectedLetter) ?? vowels[0];
   const selectedPairs = vowelTeamBoards[selectedItem.letter] ?? [];
@@ -230,7 +234,12 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
   const handlePick = (letter) => {
     const nextItem = vowels.find((item) => item.letter === letter) ?? vowels[0];
     setSelectedLetter(nextItem.letter);
-    setExploredVowels((current) => (current.includes(nextItem.letter) ? current : [...current, nextItem.letter]));
+    setExploredVowels((current) => {
+      if (current.includes(nextItem.letter)) return current;
+      const next = [...current, nextItem.letter];
+      onExploredVowelsChange?.(next);
+      return next;
+    });
     setShowVoicePractice(false);
     setFeedback(`Selected ${nextItem.letter} - ${nextItem.word}.`);
   };

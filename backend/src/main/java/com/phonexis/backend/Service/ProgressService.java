@@ -130,6 +130,9 @@ public class ProgressService {
 		if (request.assessmentScores() != null) {
 			progress.setAssessmentScores(request.assessmentScores());
 		}
+		if (request.activityProgress() != null) {
+			progress.setActivityProgress(request.activityProgress());
+		}
 
 		// Calculate completion percentage for alphabet (needs all 3 modes completed)
 		if ("alphabet".equalsIgnoreCase(moduleName)) {
@@ -196,7 +199,7 @@ public class ProgressService {
 		return new ProgressDTO(
 			dto.progressId(), dto.moduleName(), dto.videosWatched(), dto.lessonUnlocked(), dto.pretestUnlocked(),
 			dto.pretestCompleted(), dto.easyModeCompleted(), dto.mediumModeCompleted(), dto.hardModeCompleted(),
-			learning, dto.assessmentScores(), dto.createdAt(), dto.updatedAt()
+			learning, dto.assessmentScores(), dto.activityProgress(), dto.createdAt(), dto.updatedAt()
 		);
 	}
 
@@ -277,6 +280,7 @@ public class ProgressService {
 		Boolean hardModeCompleted,
 		Integer completionPercentage,
 		String assessmentScores,
+		String activityProgress,
 		java.time.LocalDateTime createdAt,
 		java.time.LocalDateTime updatedAt
 	) {
@@ -293,6 +297,7 @@ public class ProgressService {
 				progress.getHardModeCompleted(),
 				progress.getCompletionPercentage(),
 				progress.getAssessmentScores(),
+				progress.getActivityProgress(),
 				progress.getCreatedAt(),
 				progress.getUpdatedAt()
 			);
@@ -326,7 +331,8 @@ public class ProgressService {
 		Boolean hardModeCompleted,
 		Boolean pretestCompleted,
 		List<Integer> videosWatched,
-		String assessmentScores
+		String assessmentScores,
+		String activityProgress
 	) {
 	}
 }

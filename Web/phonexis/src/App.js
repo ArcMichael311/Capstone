@@ -57,9 +57,16 @@ function App() {
   const [completedPretests, setCompletedPretests] = useState([]);
   const [completedAlphabetModes, setCompletedAlphabetModes] = useState([]); // Track easy, medium, hard
   const [alphabetScores, setAlphabetScores] = useState({});
+  const [alphabetExploredLetters, setAlphabetExploredLetters] = useState(['A']);
+  const [alphabetHeardFryWords, setAlphabetHeardFryWords] = useState([]);
   const [vowelsCompleted, setVowelsCompleted] = useState(false);
+  const [vowelsExplored, setVowelsExplored] = useState(['A']);
   const [consonantsCompleted, setConsonantsCompleted] = useState(false);
+  const [consonantsExplored, setConsonantsExplored] = useState(['B']);
   const [cvcCompleted, setCvcCompleted] = useState(false);
+  const [cvcExploredFamilies, setCvcExploredFamilies] = useState([]);
+  const [cvcHeardWords, setCvcHeardWords] = useState([]);
+  const [cvcSelectionCompleted, setCvcSelectionCompleted] = useState(false);
   const [vowelsWatchedVideos, setVowelsWatchedVideos] = useState([]);
   const [consonantsWatchedVideos, setConsonantsWatchedVideos] = useState([]);
   const [cvcWatchedVideos, setCvcWatchedVideos] = useState([]);
@@ -340,9 +347,16 @@ function App() {
     if (Object.prototype.hasOwnProperty.call(snapshot, 'alphabetScores')) {
       setAlphabetScores(snapshot.alphabetScores || {});
     }
+    setAlphabetExploredLetters(Array.isArray(snapshot.alphabetExploredLetters) && snapshot.alphabetExploredLetters.length ? snapshot.alphabetExploredLetters : ['A']);
+    setAlphabetHeardFryWords(Array.isArray(snapshot.alphabetHeardFryWords) ? snapshot.alphabetHeardFryWords : []);
     setVowelsCompleted(!!snapshot.vowelsCompleted);
+    setVowelsExplored(Array.isArray(snapshot.vowelsExplored) && snapshot.vowelsExplored.length ? snapshot.vowelsExplored : ['A']);
     setConsonantsCompleted(!!snapshot.consonantsCompleted);
+    setConsonantsExplored(Array.isArray(snapshot.consonantsExplored) && snapshot.consonantsExplored.length ? snapshot.consonantsExplored : ['B']);
     setCvcCompleted(!!snapshot.cvcCompleted);
+    setCvcExploredFamilies(Array.isArray(snapshot.cvcExploredFamilies) ? snapshot.cvcExploredFamilies : []);
+    setCvcHeardWords(Array.isArray(snapshot.cvcHeardWords) ? snapshot.cvcHeardWords : []);
+    setCvcSelectionCompleted(!!snapshot.cvcSelectionCompleted);
     setVowelsWatchedVideos(parseVideoIds(snapshot.vowelsWatchedVideos));
     setConsonantsWatchedVideos(parseVideoIds(snapshot.consonantsWatchedVideos));
     setCvcWatchedVideos(parseVideoIds(snapshot.cvcWatchedVideos));
@@ -361,9 +375,23 @@ function App() {
     } catch (error) {
       alphabetScores = {};
     }
+    const parseActivityProgress = (progress) => {
+      try {
+        const parsed = JSON.parse(progress?.activityProgress || '{}');
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (error) {
+        return {};
+      }
+    };
+    const alphabetActivity = parseActivityProgress(alphabetProgress);
+    const vowelsActivity = parseActivityProgress(vowelsProgress);
+    const consonantsActivity = parseActivityProgress(consonantsProgress);
+    const cvcActivity = parseActivityProgress(cvcProgress);
 
     return {
       alphabetScores,
+      alphabetExploredLetters: alphabetActivity.exploredLetters,
+      alphabetHeardFryWords: alphabetActivity.heardFryWords,
       completedPretests: [
         alphabetProgress?.easyModeCompleted ? 'easy' : null,
         alphabetProgress?.mediumModeCompleted ? 'medium' : null,
@@ -375,8 +403,13 @@ function App() {
         alphabetProgress?.hardModeCompleted ? 'hard' : null,
       ].filter(Boolean),
       vowelsCompleted: !!(vowelsProgress?.pretestCompleted || vowelsProgress?.completionPercentage >= 100),
+      vowelsExplored: vowelsActivity.exploredVowels,
       consonantsCompleted: !!(consonantsProgress?.pretestCompleted || consonantsProgress?.completionPercentage >= 100),
+      consonantsExplored: consonantsActivity.exploredConsonants,
       cvcCompleted: !!(cvcProgress?.pretestCompleted || cvcProgress?.completionPercentage >= 100),
+      cvcExploredFamilies: cvcActivity.exploredFamilies,
+      cvcHeardWords: cvcActivity.heardWords,
+      cvcSelectionCompleted: cvcActivity.selectionCompleted,
       vowelsWatchedVideos: parseVideoIds(vowelsProgress?.videosWatched),
       consonantsWatchedVideos: parseVideoIds(consonantsProgress?.videosWatched),
       cvcWatchedVideos: parseVideoIds(cvcProgress?.videosWatched),
@@ -387,9 +420,16 @@ function App() {
     setCompletedPretests([]);
     setCompletedAlphabetModes([]);
     setAlphabetScores({});
+    setAlphabetExploredLetters(['A']);
+    setAlphabetHeardFryWords([]);
     setVowelsCompleted(false);
+    setVowelsExplored(['A']);
     setConsonantsCompleted(false);
+    setConsonantsExplored(['B']);
     setCvcCompleted(false);
+    setCvcExploredFamilies([]);
+    setCvcHeardWords([]);
+    setCvcSelectionCompleted(false);
     setVowelsWatchedVideos([]);
     setConsonantsWatchedVideos([]);
     setCvcWatchedVideos([]);
@@ -554,6 +594,13 @@ function App() {
         vowelsCompleted,
         consonantsCompleted,
         cvcCompleted,
+        alphabetExploredLetters,
+        alphabetHeardFryWords,
+        vowelsExplored,
+        consonantsExplored,
+        cvcExploredFamilies,
+        cvcHeardWords,
+        cvcSelectionCompleted,
         vowelsWatchedVideos,
         consonantsWatchedVideos,
         cvcWatchedVideos,
@@ -576,24 +623,28 @@ function App() {
           mediumModeCompleted: completedPretests.includes('medium'),
           hardModeCompleted: completedPretests.includes('hard'),
           assessmentScores: JSON.stringify(alphabetScores),
+          activityProgress: JSON.stringify({ exploredLetters: alphabetExploredLetters, heardFryWords: alphabetHeardFryWords }),
         }),
         updateBackendModuleProgress(backendUserId, 'vowels', {
           pretestCompleted: vowelsCompleted,
           videosWatched: vowelsWatchedVideos,
+          activityProgress: JSON.stringify({ exploredVowels: vowelsExplored }),
         }),
         updateBackendModuleProgress(backendUserId, 'consonants', {
           pretestCompleted: consonantsCompleted,
           videosWatched: consonantsWatchedVideos,
+          activityProgress: JSON.stringify({ exploredConsonants: consonantsExplored }),
         }),
         updateBackendModuleProgress(backendUserId, 'cvc', {
           pretestCompleted: cvcCompleted,
           videosWatched: cvcWatchedVideos,
+          activityProgress: JSON.stringify({ exploredFamilies: cvcExploredFamilies, heardWords: cvcHeardWords, selectionCompleted: cvcSelectionCompleted }),
         }),
       ]);
     };
 
     progressSyncRef.current = progressSyncRef.current.then(syncBackendProgress, syncBackendProgress);
-  }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, vowelsCompleted, consonantsCompleted, cvcCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
+  }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, alphabetExploredLetters, alphabetHeardFryWords, vowelsCompleted, vowelsExplored, consonantsCompleted, consonantsExplored, cvcCompleted, cvcExploredFamilies, cvcHeardWords, cvcSelectionCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
   // Keep one music instance playing across authenticated views.
   useEffect(() => {
@@ -662,7 +713,7 @@ function App() {
       ...currentScores,
       [difficulty]: { score, total },
     }));
-    if (score !== total) {
+    if (total <= 0 || score / total < 0.7) {
       return;
     }
 
@@ -910,6 +961,10 @@ function App() {
             onBack={() => goBack('dashboard')}
             completedModes={completedAlphabetModes}
             alphabetScores={alphabetScores}
+            initialExploredLetters={alphabetExploredLetters}
+            initialHeardFryWords={alphabetHeardFryWords}
+            onExploredLettersChange={setAlphabetExploredLetters}
+            onHeardFryWordsChange={setAlphabetHeardFryWords}
             initialSection={activeSection}
             onNavigate={navigateTo}
           />
@@ -946,6 +1001,12 @@ function App() {
             onNavigate={navigateTo}
             initialVideosWatched={cvcWatchedVideos}
             onVideosWatchedChange={setCvcWatchedVideos}
+            initialExploredFamilies={cvcExploredFamilies}
+            initialHeardWords={cvcHeardWords}
+            initialSelectionCompleted={cvcSelectionCompleted}
+            onExploredFamiliesChange={setCvcExploredFamilies}
+            onHeardWordsChange={setCvcHeardWords}
+            onSelectionCompletedChange={setCvcSelectionCompleted}
             initialType={['learning', 'families', 'selection', 'building'].includes(activeSection) ? activeSection : 'learning'}
           />
         );
@@ -981,6 +1042,8 @@ function App() {
             onNavigate={navigateTo}
             initialVideosWatched={vowelsWatchedVideos}
             onVideosWatchedChange={setVowelsWatchedVideos}
+            initialExploredVowels={vowelsExplored}
+            onExploredVowelsChange={setVowelsExplored}
             isCompleted={vowelsCompleted}
             initialMode={['learning', 'lesson', 'vowelrush'].includes(activeSection) ? activeSection : 'learning'}
           />
@@ -1017,6 +1080,8 @@ function App() {
             onNavigate={navigateTo}
             initialVideosWatched={consonantsWatchedVideos}
             onVideosWatchedChange={setConsonantsWatchedVideos}
+            initialExploredConsonants={consonantsExplored}
+            onExploredConsonantsChange={setConsonantsExplored}
             isCompleted={consonantsCompleted}
             initialMode={['learning', 'explore', 'wordblast'].includes(activeSection) ? activeSection : 'learning'}
           />

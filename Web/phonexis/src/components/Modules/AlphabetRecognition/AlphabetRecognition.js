@@ -58,7 +58,7 @@ const getResultStars = (score, max) => {
   return 0;
 };
 
-export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], alphabetScores = {}, initialSection = null, onNavigate }) {
+export default function AlphabetRecognition({ onPretestComplete, onBack, onProgressUpdate, completedModes = [], alphabetScores = {}, initialExploredLetters = ['A'], initialHeardFryWords = [], onExploredLettersChange, onHeardFryWordsChange, initialSection = null, onNavigate }) {
   const [selectedLetter, setSelectedLetter] = useState(alphabet[0]);
   const [feedback, setFeedback] = useState('Choose a letter to see its sample object.');
   const [mode, setMode] = useState('learning'); // 'learning', 'pretest' or 'result'
@@ -74,8 +74,8 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   const [showAlphaQuest, setShowAlphaQuest] = useState(false); // Track if AlphaQuest is active
 
   // Gamification + animation state
-  const [exploredLetters, setExploredLetters] = useState(['A']);
-  const [heardFryWords, setHeardFryWords] = useState([]);
+  const [exploredLetters, setExploredLetters] = useState(initialExploredLetters);
+  const [heardFryWords, setHeardFryWords] = useState(initialHeardFryWords);
   const [attemptHistory, setAttemptHistory] = useState([]);
   const [lastAnswer, setLastAnswer] = useState(null);
   const [pretestResult, setPretestResult] = useState(null);
@@ -96,8 +96,21 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
   );
   const totalFryWords = fryWordColumns.reduce((sum, column) => sum + column.length, 0);
 
+  useEffect(() => {
+    setExploredLetters(Array.isArray(initialExploredLetters) && initialExploredLetters.length ? initialExploredLetters : ['A']);
+  }, [initialExploredLetters]);
+
+  useEffect(() => {
+    setHeardFryWords(Array.isArray(initialHeardFryWords) ? initialHeardFryWords : []);
+  }, [initialHeardFryWords]);
+
   const markExplored = (letter) => {
-    setExploredLetters((current) => (current.includes(letter) ? current : [...current, letter]));
+    setExploredLetters((current) => {
+      if (current.includes(letter)) return current;
+      const next = [...current, letter];
+      onExploredLettersChange?.(next);
+      return next;
+    });
   };
 
   const speakLetter = (letterToSpeak = selectedLetter) => {
@@ -161,7 +174,12 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
 
   const handleFryWord = (key, word) => {
     speakFryWord(word);
-    setHeardFryWords((current) => (current.includes(key) ? current : [...current, key]));
+    setHeardFryWords((current) => {
+      if (current.includes(key)) return current;
+      const next = [...current, key];
+      onHeardFryWordsChange?.(next);
+      return next;
+    });
   };
 
   const handlePick = (letter) => {
@@ -366,7 +384,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
           subtitle: 'Tap a letter to hear it and meet its friend!',
           stat: (
             <div className="ar-hero-stat">
-              <strong key={exploredLetters.length} className="ar-pop">{exploredLetters.length}<small>/26</small></strong>
+              <strong className="ar-pop">{exploredLetters.length}<small>/26</small></strong>
               <span>Letters explored</span>
               <div className="ar-meter"><div style={{ '--p': `${exploredPercent}%` }} /></div>
             </div>
@@ -502,7 +520,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
           color: info.color,
           stat: (
             <div className="ar-hero-stat ar-score-stat">
-              <strong key={pretestScore} className="ar-pop">⭐ {pretestScore}<small>/{maxAttempts}</small></strong>
+              <strong className="ar-pop">⭐ {pretestScore}<small>/{maxAttempts}</small></strong>
               <span>Score</span>
               {lastAnswer ? (
                 <span key={lastAnswer.id} className={`ar-float ${lastAnswer.correct ? 'good' : 'bad'}`} aria-hidden="true">
@@ -649,7 +667,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
           color: 'purple',
           stat: (
             <div className="ar-hero-stat">
-              <strong key={heardFryWords.length} className="ar-pop">{heardFryWords.length}<small>/{totalFryWords}</small></strong>
+              <strong className="ar-pop">{heardFryWords.length}<small>/{totalFryWords}</small></strong>
               <span>Words read</span>
               <div className="ar-meter"><div style={{ '--p': `${heardPercent}%` }} /></div>
             </div>

@@ -207,7 +207,7 @@ const getQuizStars = (score, total) => {
   return 0;
 };
 
-export default function CVCWords({ onComplete, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialType = 'learning' }) {
+export default function CVCWords({ onComplete, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialExploredFamilies = [], initialHeardWords = [], initialSelectionCompleted = false, onExploredFamiliesChange, onHeardWordsChange, onSelectionCompletedChange, initialType = 'learning' }) {
   const [activeType, setActiveType] = useState(initialType);
   const [selectedFamily, setSelectedFamily] = useState(wordFamilies[0].family);
   const [selectedWord, setSelectedWord] = useState(wordFamilies[0].words[0]);
@@ -222,13 +222,13 @@ export default function CVCWords({ onComplete, onNavigate, initialVideosWatched 
   const [isReadingSelectionWord, setIsReadingSelectionWord] = useState(false);
 
   // Gamification state
-  const [exploredFamilies, setExploredFamilies] = useState([wordFamilies[0].family]);
-  const [heardWords, setHeardWords] = useState([]);
+  const [exploredFamilies, setExploredFamilies] = useState(initialExploredFamilies.length ? initialExploredFamilies : [wordFamilies[0].family]);
+  const [heardWords, setHeardWords] = useState(initialHeardWords);
   const [wrongPicks, setWrongPicks] = useState([]);
   const [firstTryScore, setFirstTryScore] = useState(0);
   const [selectionStreak, setSelectionStreak] = useState(0);
   const [bestStreak, setBestStreak] = useState(0);
-  const [selectionDone, setSelectionDone] = useState(false);
+  const [selectionDone, setSelectionDone] = useState(initialSelectionCompleted);
   const [wordTap, setWordTap] = useState(0);
 
   useEffect(() => {
@@ -238,6 +238,12 @@ export default function CVCWords({ onComplete, onNavigate, initialVideosWatched 
   useEffect(() => {
     setActiveType(initialType);
   }, [initialType]);
+
+  useEffect(() => {
+    setExploredFamilies(Array.isArray(initialExploredFamilies) && initialExploredFamilies.length ? initialExploredFamilies : [wordFamilies[0].family]);
+    setHeardWords(Array.isArray(initialHeardWords) ? initialHeardWords : []);
+    setSelectionDone(!!initialSelectionCompleted);
+  }, [initialExploredFamilies, initialHeardWords, initialSelectionCompleted]);
 
   const currentSelection = selectionDeck[selectionIndex];
   const currentFamily = wordFamilies.find((item) => item.family === selectedFamily) ?? wordFamilies[0];
@@ -296,12 +302,22 @@ export default function CVCWords({ onComplete, onNavigate, initialVideosWatched 
 
   const markHeard = (familyKey, word) => {
     const key = `${familyKey}-${word}`;
-    setHeardWords((current) => (current.includes(key) ? current : [...current, key]));
+    setHeardWords((current) => {
+      if (current.includes(key)) return current;
+      const next = [...current, key];
+      onHeardWordsChange?.(next);
+      return next;
+    });
   };
 
   const handleFamilyPick = (family) => {
     setSelectedFamily(family);
-    setExploredFamilies((current) => (current.includes(family) ? current : [...current, family]));
+    setExploredFamilies((current) => {
+      if (current.includes(family)) return current;
+      const next = [...current, family];
+      onExploredFamiliesChange?.(next);
+      return next;
+    });
     const nextFamily = wordFamilies.find((item) => item.family === family) ?? wordFamilies[0];
     setSelectedWord(nextFamily.words[0]);
     setShowVoicePractice(false);
@@ -355,6 +371,7 @@ export default function CVCWords({ onComplete, onNavigate, initialVideosWatched 
 
     if (nextIndex >= selectionDeck.length) {
       setSelectionDone(true);
+      onSelectionCompletedChange?.(true);
 
       if (typeof onComplete === 'function') {
         onComplete();

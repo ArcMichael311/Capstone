@@ -74,19 +74,23 @@ const videos = [
   },
 ];
 
-export default function Consonants({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, isCompleted = false, initialMode = 'learning' }) {
+export default function Consonants({ onComplete, onBack, onNavigate, initialVideosWatched = [], onVideosWatchedChange, initialExploredConsonants = ['B'], onExploredConsonantsChange, isCompleted = false, initialMode = 'learning' }) {
   const [mode, setMode] = useState(initialMode);
   const [selectedLetter, setSelectedLetter] = useState(consonants[0].letter);
   const [feedback, setFeedback] = useState('Choose a consonant to hear the object name.');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(null);
   const [completionNotified, setCompletionNotified] = useState(false);
   const [showVoicePractice, setShowVoicePractice] = useState(false);
-  const [exploredConsonants, setExploredConsonants] = useState([consonants[0].letter]);
+  const [exploredConsonants, setExploredConsonants] = useState(initialExploredConsonants);
   const [letterTap, setLetterTap] = useState(0);
 
   const selectedItem = consonants.find((item) => item.letter === selectedLetter) ?? consonants[0];
   const videosWatched = Array.isArray(initialVideosWatched) ? initialVideosWatched : [];
   const allVideosWatched = videosWatched.length === videos.length;
+
+  useEffect(() => {
+    setExploredConsonants(Array.isArray(initialExploredConsonants) && initialExploredConsonants.length ? initialExploredConsonants : ['B']);
+  }, [initialExploredConsonants]);
 
   useEffect(() => {
     setMode(initialMode);
@@ -180,7 +184,12 @@ export default function Consonants({ onComplete, onBack, onNavigate, initialVide
   };
 
   const markExplored = (letter) => {
-    setExploredConsonants((current) => (current.includes(letter) ? current : [...current, letter]));
+    setExploredConsonants((current) => {
+      if (current.includes(letter)) return current;
+      const next = [...current, letter];
+      onExploredConsonantsChange?.(next);
+      return next;
+    });
   };
 
   const handlePick = (letter) => {

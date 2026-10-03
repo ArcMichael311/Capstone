@@ -54,6 +54,9 @@ public class Progress {
 	@Column(name = "assessment_scores", columnDefinition = "TEXT")
 	private String assessmentScores;
 
+	@Column(name = "activity_progress", columnDefinition = "TEXT")
+	private String activityProgress;
+
 	@Column(name = "module_completion_percentage", nullable = false)
 	private Integer completionPercentage = 0;
 
@@ -166,6 +169,14 @@ public class Progress {
 
 	public void setAssessmentScores(String assessmentScores) {
 		this.assessmentScores = assessmentScores;
+	}
+
+	public String getActivityProgress() {
+		return activityProgress;
+	}
+
+	public void setActivityProgress(String activityProgress) {
+		this.activityProgress = activityProgress;
 	}
 
 	public Integer getCompletionPercentage() {
