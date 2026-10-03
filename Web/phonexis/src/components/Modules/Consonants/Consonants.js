@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Consonants.css';
+import { configureFemaleVoice } from '../../../lib/speechUtils';
 import './ConsonantsPage.css';
 import WordBlast from './WordBlast';
 import VoicePractice from '../../VoicePractice/VoicePractice';
@@ -109,6 +110,7 @@ export default function Consonants({ onComplete, onBack, onNavigate, initialVide
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(message);
   };
@@ -174,7 +176,7 @@ export default function Consonants({ onComplete, onBack, onNavigate, initialVide
   };
 
   const speakLetterAndWord = (letterToSpeak = selectedItem) => {
-    speakText(`${letterToSpeak.letter}. ${letterToSpeak.word}.`, `Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
+    speakText(`${letterToSpeak.letter} ... ${letterToSpeak.word}.`, `Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
   };
 
   const markExplored = (letter) => {

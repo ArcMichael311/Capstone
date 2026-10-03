@@ -30,6 +30,12 @@ export default function AdminDashboard({ onNavigate }) {
     void loadUsers();
   }, []);
 
+  useEffect(() => {
+    const refreshOnFocus = () => void loadUsers();
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, []);
+
   const students = useMemo(() => users.filter((u) => String(u.role || '').toLowerCase() === 'student'), [users]);
   const teachers = useMemo(() => users.filter((u) => String(u.role || '').toLowerCase() === 'teacher'), [users]);
   const admins = useMemo(() => users.filter((u) => String(u.role || '').toLowerCase() === 'admin'), [users]);
@@ -120,7 +126,9 @@ export default function AdminDashboard({ onNavigate }) {
         <div className="admin-content admin-recent-card">
           <div className="admin-content-head">
             <h3>Recently Joined</h3>
-            <span className="admin-management-badge">Latest 6</span>
+            <button type="button" className="admin-management-badge admin-refresh-button" onClick={() => void loadUsers()} disabled={loading}>
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
 
           {loading && <p className="admin-loading">Loading accounts...</p>}

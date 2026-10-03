@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import './DoubleVowelLesson.css';
 import { doubleVowelExamples } from './doubleVowelData';
+import { configureFemaleVoice } from '../../../../lib/speechUtils';
 
 function speakWord(text) {
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
@@ -10,6 +11,7 @@ function speakWord(text) {
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 0.88;
+  configureFemaleVoice(utterance);
   window.speechSynthesis.speak(utterance);
   return true;
 }
@@ -34,7 +36,7 @@ export default function DoubleVowelLesson({ onFeedback }) {
     doubleVowelExamples.find((item) => item.letters === selectedLetters) ?? doubleVowelExamples[0];
 
   const handleListen = () => {
-    const phrase = `${selected.letters} says ${selected.soundLabel}. ${selected.word}.`;
+    const phrase = `${selected.letters} ... ${selected.word}.`;
     const spoke = speakWord(phrase);
     const message = spoke
       ? `Listen: ${selected.word} has ${selected.letters}!`

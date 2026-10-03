@@ -35,6 +35,12 @@ export default function AdminStudents() {
     void loadUsers();
   }, []);
 
+  useEffect(() => {
+    const refreshOnFocus = () => void loadUsers();
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
+  }, []);
+
   const promoteToTeacher = async (userId) => {
     setPromotingUserId(userId);
     setError(null);
@@ -124,7 +130,9 @@ export default function AdminStudents() {
       <div className="admin-content">
         <div className="admin-content-head">
           <h3>Student Accounts</h3>
-          <span className="admin-management-badge">Promote to Teacher</span>
+          <button type="button" className="admin-management-badge admin-refresh-button" onClick={() => void loadUsers()} disabled={loading}>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         <div className="admin-search-bar">
