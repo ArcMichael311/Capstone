@@ -3,6 +3,7 @@ import './WordBlast.css';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
 import { reportGameScore } from '../../shared/gameScores';
+import { configureFemaleVoice } from '../../../../lib/speechUtils';
 
 const wordDeck = [
   { word: 'CAT', emoji: '🐱' },
@@ -276,6 +277,7 @@ export default function WordBlast({ onClose }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.rate = 0.8;
+    configureFemaleVoice(utterance);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
     setIsSpeaking(true);
@@ -302,6 +304,7 @@ export default function WordBlast({ onClose }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(instructionText);
     utterance.rate = 0.8;
+    configureFemaleVoice(utterance);
     utterance.onend = () => setIsReadingInstructions(false);
     utterance.onerror = () => setIsReadingInstructions(false);
     window.speechSynthesis.speak(utterance);

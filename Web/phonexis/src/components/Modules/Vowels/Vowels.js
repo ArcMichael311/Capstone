@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './Vowels.css';
+import { configureFemaleVoice } from '../../../lib/speechUtils';
 import './VowelsPage.css';
 import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
@@ -173,6 +174,7 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(message);
   };

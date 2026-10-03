@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './VowelsConsonant.css';
+import { configureFemaleVoice } from '../../../lib/speechUtils';
 
 const vowels = [
   { letter: 'A', sound: 'ah', word: 'Apple', icon: '🍎' },
@@ -112,6 +113,7 @@ export default function VowelsConsonant({ onComplete, onBack }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 0.9;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(message);
   };

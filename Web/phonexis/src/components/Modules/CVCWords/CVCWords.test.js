@@ -7,7 +7,7 @@ describe('CVC balloon speech', () => {
 
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
-      value: { speak, cancel },
+      value: { speak, cancel, getVoices: () => [] },
     });
 
     global.SpeechSynthesisUtterance = function SpeechSynthesisUtterance(text) {
@@ -23,5 +23,14 @@ describe('CVC balloon speech', () => {
     expect(window.speechSynthesis.speak).toHaveBeenCalledTimes(2);
     expect(window.speechSynthesis.speak.mock.calls[0][0].text).toBe('M');
     expect(window.speechSynthesis.speak.mock.calls[1][0].text).toBe('MEN');
+  });
+
+  it('uses an available female voice', () => {
+    const femaleVoice = { name: 'Microsoft Zira Desktop', lang: 'en-US' };
+    window.speechSynthesis.getVoices = () => [femaleVoice];
+
+    speakText('M', { lang: 'en-US' });
+
+    expect(window.speechSynthesis.speak.mock.calls[0][0].voice).toBe(femaleVoice);
   });
 });

@@ -4,6 +4,7 @@ import './AlphaQuest.css';
 import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
 import { reportGameScore } from '../../shared/gameScores';
+import { configureFemaleVoice, speakText } from '../../../../lib/speechUtils';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
@@ -46,6 +47,7 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => ({
 
 const BOSS_DEFEAT_DELAY = 900;
 const PLAYER_DEFEAT_DELAY = 900;
+const ALPHAQUEST_INSTRUCTIONS = 'Listen to each letter, then type or tap the matching letter to attack the boss. Defeat the boss and choose a reward before the next round.';
 
 const DIFFICULTY_MODES = {
   beginner: {
@@ -177,7 +179,15 @@ export default function AlphaQuest({ onClose }) {
     const utterance = new SpeechSynthesisUtterance(letter);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+    configureFemaleVoice(utterance);
+    utterance.onerror = () => {
+      setFeedback('Could not play the letter. Press Listen Again to retry.');
+    };
     window.speechSynthesis.speak(utterance);
+  }, []);
+
+  const speakInstructions = useCallback(() => {
+    speakText(ALPHAQUEST_INSTRUCTIONS, { rate: 0.85, lang: 'en-US' });
   }, []);
 
   // Get player emoji based on health
@@ -303,10 +313,8 @@ export default function AlphaQuest({ onClose }) {
     setCurrentLetter(letter);
     setCurrentBoss(boss);
 
-    // Speak the letter
-    setTimeout(() => {
-      speakLetter(letter);
-    }, 500);
+    // Speak during the Start button gesture so browsers allow playback.
+    speakLetter(letter);
   };
 
   const returnToMenu = () => {
@@ -484,6 +492,9 @@ export default function AlphaQuest({ onClose }) {
               <p className="aq-kicker">Letter battle</p>
               <h2>Choose your quest!</h2>
               <p>Listen to each letter, then type or tap it to attack the boss.</p>
+              <button type="button" className="aq-btn aq-listen" onClick={speakInstructions}>
+                🔊 Listen to Instructions
+              </button>
             </div>
 
             <div className="aq-rules">

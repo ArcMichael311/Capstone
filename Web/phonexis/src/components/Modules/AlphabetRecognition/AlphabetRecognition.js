@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './AlphabetRecognition.css';
+import { configureFemaleVoice } from '../../../lib/speechUtils';
 import './AlphabetPage.css';
 import AlphaQuest from './AlphaQuest';
 import VoicePractice from '../../VoicePractice/VoicePractice';
@@ -109,6 +110,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     const utterance = new SpeechSynthesisUtterance(letterToSpeak.letter);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking letter: ${letterToSpeak.letter}.`);
   };
@@ -120,9 +122,10 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(`${letterToSpeak.letter}. ${letterToSpeak.word}.`);
+    const utterance = new SpeechSynthesisUtterance(`${letterToSpeak.letter} ... ${letterToSpeak.word}.`);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking ${letterToSpeak.letter}: ${letterToSpeak.word}.`);
   };
@@ -137,6 +140,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     const utterance = new SpeechSynthesisUtterance(wordToSpeak);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking word: ${wordToSpeak}.`);
   };
@@ -150,6 +154,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.rate = 0.9;
     utterance.pitch = 1;
+    configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(`Speaking word: ${word}`);
   };
@@ -271,6 +276,7 @@ export default function AlphabetRecognition({ onPretestComplete, onBack, onProgr
       const utterance = new SpeechSynthesisUtterance(letter);
       utterance.rate = 0.9;
       utterance.pitch = 1;
+      configureFemaleVoice(utterance);
       window.speechSynthesis.speak(utterance);
       setFeedback('Listen to the letter...');
     }

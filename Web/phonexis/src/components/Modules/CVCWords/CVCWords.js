@@ -43,7 +43,7 @@ const wordFamilies = [
   },
   {
     family: '-an',
-    icon: '🐻',
+    icon: '🧑',
     words: [
       { word: 'man', icon: '🧑', description: 'A grown-up person' },
       { word: 'fan', icon: '🪭', description: 'It moves air when it spins' },

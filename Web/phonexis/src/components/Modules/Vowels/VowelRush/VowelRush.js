@@ -4,6 +4,7 @@ import { playSound } from '../../shared/gameSounds';
 import SoundToggle from '../../shared/SoundToggle';
 import { reportGameScore } from '../../shared/gameScores';
 import { doubleVowelExamples } from '../DoubleVowelLesson/doubleVowelData';
+import { configureFemaleVoice } from '../../../../lib/speechUtils';
 
 const vowelLetters = new Set(['A', 'E', 'I', 'O', 'U']);
 const vowelTeams = doubleVowelExamples.map(({ letters }) => letters.toUpperCase());
@@ -149,7 +150,7 @@ export default function VowelRush({ onClose }) {
   const currentMode = useMemo(() => difficultyModes[selectedDifficulty], [selectedDifficulty]);
   const playerFace = getPlayerFace(hearts);
   const roundGoal = currentMode.totalStars === null ? '∞' : currentMode.totalStars;
-  const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, U, and double vowel pairs like EE, OO, AI, OA, AY, AA, and II. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel or vowel pair gives one point. Catching a consonant removes one heart. Catch five vowel stars in a row to gain one heart.';
+  const instructionText = 'Welcome to Vowel Rush. Catch the vowel stars: A, E, I, O, U, and double vowel pairs like EE, OO, AI, OA, and AY. Move the rocket with the left or right arrow keys, or the A and D keys. Catching a vowel or vowel pair gives one point. Catching a consonant removes one heart. Catch five vowel stars in a row to gain one heart.';
 
   const scheduleFx = (fn, ms) => {
     fxTimersRef.current.push(window.setTimeout(fn, ms));
@@ -343,6 +344,7 @@ export default function VowelRush({ onClose }) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(instructionText);
     utterance.rate = 0.8;
+    configureFemaleVoice(utterance);
     utterance.onend = () => setIsReadingInstructions(false);
     utterance.onerror = () => setIsReadingInstructions(false);
     window.speechSynthesis.speak(utterance);

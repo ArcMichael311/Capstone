@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMicrophoneLevel } from '../../lib/useMicrophoneLevel';
 import { startPronunciationSession } from '../../lib/pronunciationChecker';
+import { configureFemaleVoice } from '../../lib/speechUtils';
 import './VoicePractice.css';
 
 const VOICE_DETECTED_LEVEL = 12;
@@ -75,6 +76,7 @@ export default function VoicePractice({
       utterance.rate = 0.8;
       utterance.pitch = 1;
       utterance.lang = language;
+      configureFemaleVoice(utterance, language);
 
       utterance.onend = () => {
         setIsSpeaking(false);
