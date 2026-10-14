@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './Vowels.css';
 import { configureFemaleVoice } from '../../../lib/speechUtils';
 import './VowelsPage.css';
@@ -6,13 +6,18 @@ import DoubleVowelLesson from './DoubleVowelLesson';
 import VowelRush from './VowelRush';
 import VoicePractice from '../../VoicePractice/VoicePractice';
 import VideoEpisodes from '../shared/VideoEpisodes';
+import vowelASound from './BasicVowelsRecording/Vowel_A_.mp3';
+import vowelESound from './BasicVowelsRecording/Vowel_E_.mp3';
+import vowelISound from './BasicVowelsRecording/Vowel_I_.mp3';
+import vowelOSound from './BasicVowelsRecording/Vowel_O_.mp3';
+import vowelUSound from './BasicVowelsRecording/Vowel_U_.mp3';
 
 const vowels = [
-  { letter: 'A', sound: 'ah', word: 'Cat', icon: '🐱' },
-  { letter: 'E', sound: 'eh', word: 'Egg', icon: '🥚' },
-  { letter: 'I', sound: 'ih', word: 'Ice', icon: '🧊' },
-  { letter: 'O', sound: 'oh', word: 'Owl', icon: '🦉' },
-  { letter: 'U', sound: 'uh', word: 'Umbrella', icon: '☂️' },
+  { letter: 'A', sound: 'ah', audio: vowelASound, word: 'Cat', icon: '🐱' },
+  { letter: 'E', sound: 'eh', audio: vowelESound, word: 'Egg', icon: '🥚' },
+  { letter: 'I', sound: 'ih', audio: vowelISound, word: 'Ice', icon: '🧊' },
+  { letter: 'O', sound: 'oh', audio: vowelOSound, word: 'Owl', icon: '🦉' },
+  { letter: 'U', sound: 'uh', audio: vowelUSound, word: 'Umbrella', icon: '☂️' },
 ];
 
 const vowelTeamBoards = {
@@ -146,6 +151,7 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
   const [exploredVowels, setExploredVowels] = useState(initialExploredVowels);
   const [heardPairs, setHeardPairs] = useState([]);
   const [letterTap, setLetterTap] = useState(0);
+  const vowelAudioRef = useRef(null);
   useEffect(() => {
     setVideosWatched(Array.isArray(initialVideosWatched) ? initialVideosWatched : []);
   }, [initialVideosWatched]);
@@ -181,6 +187,26 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
     configureFemaleVoice(utterance);
     window.speechSynthesis.speak(utterance);
     setFeedback(message);
+  };
+
+  const playVowelSound = (item) => {
+    if (typeof window === 'undefined' || typeof Audio === 'undefined') {
+      setFeedback(`Speaking vowel: ${item.letter}.`);
+      return;
+    }
+
+    window.speechSynthesis?.cancel();
+    vowelAudioRef.current?.pause();
+
+    const audio = new Audio(item.audio);
+    vowelAudioRef.current = audio;
+    audio.currentTime = 0;
+    audio.play()
+      .then(() => setFeedback(`Speaking vowel: ${item.letter}.`))
+      .catch((error) => {
+        console.error(`Unable to play vowel audio for ${item.letter}.`, error);
+        setFeedback(`Unable to play the vowel ${item.letter} sound.`);
+      });
   };
 
   const handleModeChange = (nextMode) => {
@@ -386,7 +412,7 @@ export default function Vowels({ onComplete, onBack, onNavigate, initialVideosWa
             className="vw-letter-card"
             onClick={() => {
               setLetterTap((current) => current + 1);
-              speakText(selectedItem.letter, `Speaking vowel: ${selectedItem.letter}.`);
+              playVowelSound(selectedItem);
             }}
             aria-label={`Hear the vowel ${selectedItem.letter}`}
           >
