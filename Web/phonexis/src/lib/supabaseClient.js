@@ -5,8 +5,10 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
 const defaultBackendUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:8080'
-  : 'https://phonexis-backend.onrender.com';
-const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
+  : '';
+const backendUrl = (configuredBackendUrl !== undefined && configuredBackendUrl !== null
+  ? configuredBackendUrl
+  : defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
 export const clearBackendSession = () => {};

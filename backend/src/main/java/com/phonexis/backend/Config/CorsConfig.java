@@ -22,6 +22,8 @@ public class CorsConfig implements WebMvcConfigurer {
 			allowedOrigins.add("http://127.0.0.1:3000");
 		}
 
+		allowedOrigins.add("https://phonexis.vercel.app");
+
 		if (frontendUrl != null && !frontendUrl.isBlank()) {
 			for (String origin : frontendUrl.split(",")) {
 				String normalizedOrigin = origin.trim();
@@ -37,7 +39,7 @@ public class CorsConfig implements WebMvcConfigurer {
 		registry.addMapping("/api/**")
 			.allowedOriginPatterns(allowedOrigins.toArray(String[]::new))
 			.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-			.allowedHeaders("*")
+			.allowedHeaders("Content-Type", "X-Device-Id", "X-CSRF-Token", "Authorization")
 			.allowCredentials(true);
 	}
 }
