@@ -64,6 +64,14 @@ const readBackendError = async (response) => {
   }
 };
 
+const getCsrfToken = () => {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie
+    .split('; ')
+    .find((entry) => entry.startsWith('PHONEXIS_CSRF='));
+  return match ? decodeURIComponent(match.substring(match.indexOf('=') + 1)) : null;
+};
+
 export const isBackendUnavailable = (error) => error?.message === 'Backend unavailable';
 
 const requestToBackend = async (path, options = {}) => {
@@ -74,6 +82,7 @@ const requestToBackend = async (path, options = {}) => {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
+        ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken() } : {}),
         ...(options.headers || {}),
       },
       ...options,

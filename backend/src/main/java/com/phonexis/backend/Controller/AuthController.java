@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.phonexis.backend.Service.AuthService;
 import com.phonexis.backend.Service.UserService;
 import com.phonexis.backend.Config.SessionAuthenticationFilter;
+import com.phonexis.backend.Config.CsrfCookieFilter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -51,6 +52,9 @@ public class AuthController {
 			request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader));
 		servletResponse.addHeader("Set-Cookie", createSessionCookie(
 			session.sessionToken(), 8 * 60 * 60, servletRequest).toString());
+		servletResponse.addHeader("Set-Cookie",
+			CsrfCookieFilter.createCsrfCookie(
+				CsrfCookieFilter.createToken(), 8 * 60 * 60, servletRequest).toString());
 		return ResponseEntity.ok(new AuthResponse(session.user()));
 	}
 
@@ -70,6 +74,8 @@ public class AuthController {
 		authService.logout(authentication.getName(), request.deviceId());
 		servletResponse.addHeader("Set-Cookie",
 			createSessionCookie("", 0, servletRequest).toString());
+		servletResponse.addHeader("Set-Cookie",
+			CsrfCookieFilter.createCsrfCookie("", 0, servletRequest).toString());
 		return ResponseEntity.ok(new MessageResponse("Device released"));
 	}
 

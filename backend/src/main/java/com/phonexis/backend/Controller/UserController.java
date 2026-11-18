@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,14 +15,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phonexis.backend.Service.UserService;
+import com.phonexis.backend.Service.AccessControlService;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 	private final UserService userService;
+	private final AccessControlService accessControlService;
 
-	public UserController(UserService userService) {
+	public UserController(UserService userService, AccessControlService accessControlService) {
 		this.userService = userService;
+		this.accessControlService = accessControlService;
 	}
 
 	@GetMapping
@@ -73,7 +77,8 @@ public class UserController {
 	}
 
 	@PostMapping("/{id}/join-class")
-	public ResponseEntity<UserResponse> joinClass(@PathVariable Long id, @RequestBody JoinClassRequest request) {
+	public ResponseEntity<UserResponse> joinClass(@PathVariable Long id, @RequestBody JoinClassRequest request, Authentication authentication) {
+		accessControlService.requireSelfOrElevated(id, authentication);
 		return ResponseEntity.ok(new UserResponse(userService.joinClass(id, request.classCode())));
 	}
 

@@ -38,8 +38,8 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 	private void authenticate(User user) {
-		if (user.getSessionExpiresAt() != null
-			&& user.getSessionExpiresAt().isBefore(LocalDateTime.now())) {
+		if (user.getSessionExpiresAt() == null
+			|| user.getSessionExpiresAt().isBefore(LocalDateTime.now())) {
 			return;
 		}
 		SecurityContextHolder.getContext().setAuthentication(

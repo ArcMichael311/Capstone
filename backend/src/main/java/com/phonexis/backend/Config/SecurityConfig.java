@@ -14,9 +14,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 	private final SessionAuthenticationFilter sessionAuthenticationFilter;
+	private final CsrfCookieFilter csrfCookieFilter;
 
-	public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter) {
+	public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter, CsrfCookieFilter csrfCookieFilter) {
 		this.sessionAuthenticationFilter = sessionAuthenticationFilter;
+		this.csrfCookieFilter = csrfCookieFilter;
 	}
 
 	@Bean
@@ -32,7 +34,8 @@ public class SecurityConfig {
 				.requestMatchers("/api/**").authenticated()
 				.requestMatchers("/actuator/health").permitAll()
 				.anyRequest().denyAll())
-			.addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+			.addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+			.addFilterAfter(csrfCookieFilter, SessionAuthenticationFilter.class);
 
 		return http.build();
 	}
