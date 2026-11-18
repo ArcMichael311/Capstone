@@ -9,6 +9,33 @@ const defaultBackendUrl = process.env.NODE_ENV === 'development'
 const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
+let memoryAccessToken = '';
+
+const getAccessToken = () => {
+  if (memoryAccessToken) return memoryAccessToken;
+  try {
+    memoryAccessToken = window.sessionStorage.getItem('phonexis_access_token')
+      || '';
+  } catch (error) {
+    memoryAccessToken = '';
+  }
+  return memoryAccessToken;
+};
+
+const setAccessToken = (token) => {
+  memoryAccessToken = token || '';
+  try {
+    if (memoryAccessToken) {
+      window.sessionStorage.setItem('phonexis_access_token', memoryAccessToken);
+    } else {
+      window.sessionStorage.removeItem('phonexis_access_token');
+    }
+  } catch (error) {
+    // In-memory storage remains available when browser storage is blocked.
+  }
+};
+
+export const clearBackendSession = () => setAccessToken('');
 
 const createDeviceId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -49,11 +76,6 @@ const getDeviceId = () => {
 
 export const getSessionDeviceId = getDeviceId;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // eslint-disable-next-line no-console
-  console.warn('Supabase URL or ANON KEY is not set in environment variables.');
-}
-
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 const readBackendError = async (response) => {
@@ -73,22 +95,18 @@ export const isBackendUnavailable = (error) => error?.message === 'Backend unava
 const requestToBackend = async (path, options = {}) => {
   try {
     const url = `${backendUrl}${path}`;
-    console.log(`[Backend] ${options.method || 'GET'} ${url}`);
-    
     const response = await fetch(url, {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
     });
 
-    console.log(`[Backend Response] Status: ${response.status}`);
-
     if (!response.ok) {
       const backendError = await readBackendError(response);
-      console.error(`[Backend Error] ${response.status}: ${backendError.message}`);
       return {
         data: null,
         error: backendError,
@@ -97,14 +115,14 @@ const requestToBackend = async (path, options = {}) => {
 
     const responseText = await response.text();
     const data = responseText ? JSON.parse(responseText) : null;
-    console.log(`[Backend Success]`, data);
-
+    if (data?.accessToken) {
+      setAccessToken(data.accessToken);
+    }
     return {
       data,
       error: null,
     };
   } catch (error) {
-    console.error('[Backend Exception]', error);
     return {
       data: null,
       error: { message: 'Backend unavailable' },
@@ -192,9 +210,7 @@ const syncBackendPassword = async (email, currentPassword, password) => {
       password,
     });
   }
-
-  return postToBackend('/api/auth/reset-password', {
-    email,
+  return postToBackend('/api/auth/session-change-password', {
     password,
   });
 };
@@ -212,7 +228,7 @@ export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/veri
 export const releaseSupabaseUserDevice = (email) => postToBackend('/api/auth/logout', {
   email,
   deviceId: getDeviceId(),
-});
+}).finally(() => clearBackendSession());
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);

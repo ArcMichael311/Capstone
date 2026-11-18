@@ -3,6 +3,7 @@ package com.phonexis.backend.Controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,16 +25,19 @@ public class UserController {
 	}
 
 	@GetMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<List<UserService.UserProfile>> listUsers() {
 		return ResponseEntity.ok(userService.listUsers());
 	}
 
 	@GetMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
 		return ResponseEntity.ok(new UserResponse(userService.getUser(id)));
 	}
 
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
 		return ResponseEntity.ok(new UserResponse(
 			userService.createUser(new UserService.CreateUserRequest(
@@ -47,6 +51,7 @@ public class UserController {
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
 		return ResponseEntity.ok(new UserResponse(
 			userService.updateUser(id, new UserService.UpdateUserRequest(
@@ -62,6 +67,7 @@ public class UserController {
 	}
 
 	@PostMapping("/{id}/generate-class-code")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
 	public ResponseEntity<UserResponse> generateClassCode(@PathVariable Long id) {
 		return ResponseEntity.ok(new UserResponse(userService.generateClassCode(id)));
 	}
@@ -72,6 +78,7 @@ public class UserController {
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteUser(@PathVariable Long id) {
 		userService.deleteUser(id);
 		return ResponseEntity.ok(new MessageResponse("User deleted successfully"));

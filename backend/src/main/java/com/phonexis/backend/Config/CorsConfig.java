@@ -15,15 +15,19 @@ public class CorsConfig implements WebMvcConfigurer {
 
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
-		List<String> allowedOrigins = new ArrayList<>(List.of(
-			"http://localhost:*",
-			"http://127.0.0.1:*",
-			"https://*.vercel.app"
-		));
+		List<String> allowedOrigins = new ArrayList<>();
+
+		if (frontendUrl == null || frontendUrl.isBlank()) {
+			allowedOrigins.add("http://localhost:3000");
+			allowedOrigins.add("http://127.0.0.1:3000");
+		}
 
 		if (frontendUrl != null && !frontendUrl.isBlank()) {
 			for (String origin : frontendUrl.split(",")) {
 				String normalizedOrigin = origin.trim();
+				while (normalizedOrigin.endsWith("/")) {
+					normalizedOrigin = normalizedOrigin.substring(0, normalizedOrigin.length() - 1);
+				}
 				if (!normalizedOrigin.isEmpty()) {
 					allowedOrigins.add(normalizedOrigin);
 				}

@@ -1,6 +1,10 @@
 package com.phonexis.backend.Service;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +35,7 @@ public class UserService {
 	private static final int CLASS_CODE_LENGTH = 6;
 	private static final int DEVICE_LOCK_STALE_MINUTES = 30;
 	private static final Random RANDOM = new Random();
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
@@ -224,7 +229,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public UserProfile login(String email, String password, String deviceId) {
+	public AuthSession login(String email, String password, String deviceId) {
 		User user = getUserByEmail(email);
 		if (!PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
@@ -243,7 +248,10 @@ public class UserService {
 
 		user.setActiveDeviceId(normalizedDeviceId);
 		user.setLastActiveAt(LocalDateTime.now());
-		return toUserProfile(userRepository.save(user));
+		user.setSessionToken(createSecureToken());
+		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
+		userRepository.save(user);
+		return new AuthSession(toUserProfile(user), user.getSessionToken());
 	}
 
 	@Transactional
@@ -264,6 +272,10 @@ public class UserService {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
 		if (!deviceLockEnabled) {
+			user.setActiveDeviceId(null);
+			user.setSessionToken(null);
+			user.setSessionExpiresAt(null);
+			userRepository.save(user);
 			return;
 		}
 		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
@@ -271,18 +283,39 @@ public class UserService {
 		}
 
 		user.setActiveDeviceId(null);
+		user.setSessionToken(null);
 		userRepository.save(user);
 	}
 
 	@Transactional
-	public void resetPassword(String email, String password) {
+	public void resetPassword(String email, String token, String password) {
 		if (password == null || password.length() < 8) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
 		}
 
 		User user = getUserByEmail(email);
+		if (token == null || token.isBlank()
+			|| user.getResetTokenHash() == null
+			|| user.getResetTokenExpiresAt() == null
+			|| user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())
+			|| !MessageDigest.isEqual(user.getResetTokenHash().getBytes(StandardCharsets.UTF_8), hashResetToken(token).getBytes(StandardCharsets.UTF_8))) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Reset token is invalid or expired");
+		}
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setResetTokenHash(null);
+		user.setResetTokenExpiresAt(null);
+		user.setSessionToken(null);
 		userRepository.save(user);
+	}
+
+	@Transactional
+	public void requestPasswordReset(String email) {
+		User user = getUserByEmail(email);
+		String token = createSecureToken();
+		user.setResetTokenHash(hashResetToken(token));
+		user.setResetTokenExpiresAt(LocalDateTime.now().plusMinutes(15));
+		userRepository.save(user);
+		// Delivery requires an email provider. The raw token must never be returned by this API.
 	}
 
 	@Transactional
@@ -297,6 +330,19 @@ public class UserService {
 		}
 
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setSessionToken(null);
+		userRepository.save(user);
+	}
+
+	@Transactional
+	public void changePasswordWithoutCurrentPassword(String email, String password) {
+		if (password == null || password.length() < 8) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
+		}
+		User user = getUserByEmail(email);
+		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setSessionToken(null);
+		user.setSessionExpiresAt(null);
 		userRepository.save(user);
 	}
 
@@ -406,6 +452,21 @@ public class UserService {
 		);
 	}
 
+	private String createSecureToken() {
+		byte[] bytes = new byte[32];
+		SECURE_RANDOM.nextBytes(bytes);
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+	}
+
+	private String hashResetToken(String token) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			return Base64.getUrlEncoder().withoutPadding().encodeToString(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+		} catch (java.security.NoSuchAlgorithmException exception) {
+			throw new IllegalStateException("SHA-256 is unavailable", exception);
+		}
+	}
+
 	public record CreateUserRequest(String firstName, String lastName, String email, String password, String role, String deviceId) {
 		public CreateUserRequest(String firstName, String lastName, String email, String password, String role) {
 			this(firstName, lastName, email, password, role, null);
@@ -416,5 +477,8 @@ public class UserService {
 	}
 
 	public record UserProfile(Long id, String email, String firstName, String lastName, String role, String classroom, String classCode, java.time.LocalDateTime createdAt, Map<String, Object> user_metadata) {
+	}
+
+	public record AuthSession(UserProfile user, String accessToken) {
 	}
 }

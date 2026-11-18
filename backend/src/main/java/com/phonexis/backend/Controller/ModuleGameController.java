@@ -3,6 +3,7 @@ package com.phonexis.backend.Controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,16 +46,19 @@ public class ModuleGameController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ModuleGameService.ModuleGameResponse> createGame(@RequestBody ModuleGameService.CreateGameRequest request) {
 		return ResponseEntity.ok(moduleGameService.createGame(request));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<ModuleGameService.ModuleGameResponse> updateGame(@PathVariable Long id, @RequestBody ModuleGameService.UpdateGameRequest request) {
 		return ResponseEntity.ok(moduleGameService.updateGame(id, request));
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteGame(@PathVariable Long id) {
 		moduleGameService.deleteGame(id);
 		return ResponseEntity.ok(new MessageResponse("Game deleted successfully"));
