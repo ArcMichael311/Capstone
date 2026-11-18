@@ -30,7 +30,7 @@ public class SecurityConfig {
 				new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers("/health", "/", "/api/auth/login", "/api/auth/register",
-					"/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+					"/api/auth/restore-session", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
 				.requestMatchers("/api/**").authenticated()
 				.requestMatchers("/actuator/health").permitAll()
 				.anyRequest().denyAll())

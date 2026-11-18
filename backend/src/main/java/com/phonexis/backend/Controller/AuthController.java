@@ -58,6 +58,24 @@ public class AuthController {
 		return ResponseEntity.ok(new AuthResponse(session.user()));
 	}
 
+	@PostMapping("/restore-session")
+	public ResponseEntity<AuthResponse> restoreSession(
+		@RequestBody RestoreSessionRequest request,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader,
+		HttpServletRequest servletRequest,
+		HttpServletResponse servletResponse
+	) {
+		String accessToken = request == null ? null : request.accessToken();
+		String deviceId = resolveDeviceId(request == null ? null : request.deviceId(), deviceHeader);
+		UserService.AuthSession session = authService.restoreSupabaseSession(accessToken, deviceId);
+		servletResponse.addHeader("Set-Cookie", createSessionCookie(
+			session.sessionToken(), 8 * 60 * 60, servletRequest).toString());
+		servletResponse.addHeader("Set-Cookie",
+			CsrfCookieFilter.createCsrfCookie(
+				CsrfCookieFilter.createToken(), 8 * 60 * 60, servletRequest).toString());
+		return ResponseEntity.ok(new AuthResponse(session.user()));
+	}
+
 	@PostMapping("/verify-device")
 	public ResponseEntity<MessageResponse> verifyDevice(@RequestBody DeviceRequest request, Authentication authentication) {
 		authService.verifyDevice(authentication.getName(), request.deviceId());
@@ -107,6 +125,9 @@ public class AuthController {
 	}
 
 	public record LoginRequest(String email, String password, String deviceId) {
+	}
+
+	public record RestoreSessionRequest(String accessToken, String deviceId) {
 	}
 
 	public record DeviceRequest(String email, String deviceId) {

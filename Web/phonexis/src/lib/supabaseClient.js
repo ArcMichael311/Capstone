@@ -203,6 +203,10 @@ export const loginBackendUser = (email, password) => postToBackend('/api/auth/lo
   password,
   deviceId: getDeviceId(),
 });
+export const restoreBackendSession = (accessToken) => postToBackend('/api/auth/restore-session', {
+  accessToken,
+  deviceId: getDeviceId(),
+});
 export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/verify-device', {
   email,
   deviceId: getDeviceId(),

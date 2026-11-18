@@ -256,6 +256,28 @@ public class UserService {
 	}
 
 	@Transactional
+	public AuthSession restoreSession(String email, String deviceId) {
+		User user = getUserByEmail(email);
+		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		if (normalizedDeviceId.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
+		}
+
+		LocalDateTime staleBefore = LocalDateTime.now().minusMinutes(DEVICE_LOCK_STALE_MINUTES);
+		if (deviceLockEnabled && userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
+		}
+
+		user.setActiveDeviceId(normalizedDeviceId);
+		user.setLastActiveAt(LocalDateTime.now());
+		String sessionToken = createSecureToken();
+		user.setSessionToken(sessionToken);
+		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
+		userRepository.save(user);
+		return new AuthSession(toUserProfile(user), sessionToken);
+	}
+
+	@Transactional
 	public void verifyDevice(String email, String deviceId) {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
