@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
 	Optional<User> findByEmailIgnoreCase(String email);
 
+	Optional<User> findBySessionToken(String sessionToken);
+
 	@Query("select u from User u where u.role = com.phonexis.backend.Entity.User.Role.STUDENT "
 		+ "and u.userId not in (select ce.student.userId from ClassEnrollment ce) "
 		+ "order by u.firstName, u.lastName")

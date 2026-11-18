@@ -16,9 +16,8 @@ public class CorsConfig implements WebMvcConfigurer {
 	@Override
 	public void addCorsMappings(CorsRegistry registry) {
 		List<String> allowedOrigins = new ArrayList<>(List.of(
-			"http://localhost:*",
-			"http://127.0.0.1:*",
-			"https://*.vercel.app"
+			"http://localhost:3000",
+			"http://127.0.0.1:3000"
 		));
 
 		if (frontendUrl != null && !frontendUrl.isBlank()) {
@@ -34,6 +33,6 @@ public class CorsConfig implements WebMvcConfigurer {
 			.allowedOriginPatterns(allowedOrigins.toArray(String[]::new))
 			.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 			.allowedHeaders("*")
-			.allowCredentials(false);
+			.allowCredentials(true);
 	}
 }

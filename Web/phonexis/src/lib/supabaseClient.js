@@ -49,11 +49,6 @@ const getDeviceId = () => {
 
 export const getSessionDeviceId = getDeviceId;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // eslint-disable-next-line no-console
-  console.warn('Supabase URL or ANON KEY is not set in environment variables.');
-}
-
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 const readBackendError = async (response) => {
@@ -73,9 +68,8 @@ export const isBackendUnavailable = (error) => error?.message === 'Backend unava
 const requestToBackend = async (path, options = {}) => {
   try {
     const url = `${backendUrl}${path}`;
-    console.log(`[Backend] ${options.method || 'GET'} ${url}`);
-    
     const response = await fetch(url, {
+      credentials: 'include',
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
@@ -84,11 +78,8 @@ const requestToBackend = async (path, options = {}) => {
       ...options,
     });
 
-    console.log(`[Backend Response] Status: ${response.status}`);
-
     if (!response.ok) {
       const backendError = await readBackendError(response);
-      console.error(`[Backend Error] ${response.status}: ${backendError.message}`);
       return {
         data: null,
         error: backendError,
@@ -97,14 +88,11 @@ const requestToBackend = async (path, options = {}) => {
 
     const responseText = await response.text();
     const data = responseText ? JSON.parse(responseText) : null;
-    console.log(`[Backend Success]`, data);
-
     return {
       data,
       error: null,
     };
   } catch (error) {
-    console.error('[Backend Exception]', error);
     return {
       data: null,
       error: { message: 'Backend unavailable' },

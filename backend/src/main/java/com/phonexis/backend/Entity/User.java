@@ -51,6 +51,12 @@ public class User {
 	@Column(name = "active_device_id", length = 128)
 	private String activeDeviceId;
 
+	@Column(name = "session_token", length = 64)
+	private String sessionToken;
+
+	@Column(name = "session_expires_at")
+	private LocalDateTime sessionExpiresAt;
+
 	@Column(name = "last_active_at")
 	private LocalDateTime lastActiveAt;
 
@@ -146,6 +152,22 @@ public class User {
 
 	public void setActiveDeviceId(String activeDeviceId) {
 		this.activeDeviceId = activeDeviceId;
+	}
+
+	public String getSessionToken() {
+		return sessionToken;
+	}
+
+	public void setSessionToken(String sessionToken) {
+		this.sessionToken = sessionToken;
+	}
+
+	public LocalDateTime getSessionExpiresAt() {
+		return sessionExpiresAt;
+	}
+
+	public void setSessionExpiresAt(LocalDateTime sessionExpiresAt) {
+		this.sessionExpiresAt = sessionExpiresAt;
 	}
 
 	public LocalDateTime getLastActiveAt() {

@@ -21,10 +21,10 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lastname is required");
 		}
 
-		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, role, deviceId));
+		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, "STUDENT", deviceId));
 	}
 
-	public UserService.UserProfile login(String email, String password, String deviceId) {
+	public UserService.AuthSession login(String email, String password, String deviceId) {
 		return userService.login(email, password, deviceId);
 	}
 
