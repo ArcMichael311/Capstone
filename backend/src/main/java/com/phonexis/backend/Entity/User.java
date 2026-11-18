@@ -54,15 +54,12 @@ public class User {
 	@Column(name = "session_token", length = 64)
 	private String sessionToken;
 
-<<<<<<< HEAD
-=======
 	@Column(name = "reset_token_hash", length = 64)
 	private String resetTokenHash;
 
 	@Column(name = "reset_token_expires_at")
 	private LocalDateTime resetTokenExpiresAt;
 
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	@Column(name = "session_expires_at")
 	private LocalDateTime sessionExpiresAt;
 
@@ -171,8 +168,6 @@ public class User {
 		this.sessionToken = sessionToken;
 	}
 
-<<<<<<< HEAD
-=======
 	public String getResetTokenHash() {
 		return resetTokenHash;
 	}
@@ -189,7 +184,6 @@ public class User {
 		this.resetTokenExpiresAt = resetTokenExpiresAt;
 	}
 
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	public LocalDateTime getSessionExpiresAt() {
 		return sessionExpiresAt;
 	}
