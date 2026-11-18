@@ -1,6 +1,11 @@
 package com.phonexis.backend.Service;
 
 import java.time.LocalDateTime;
+<<<<<<< HEAD
+=======
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -246,11 +251,18 @@ public class UserService {
 
 		user.setActiveDeviceId(normalizedDeviceId);
 		user.setLastActiveAt(LocalDateTime.now());
+<<<<<<< HEAD
 		String sessionToken = createSecureToken();
 		user.setSessionToken(sessionToken);
 		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
 		userRepository.save(user);
 		return new AuthSession(toUserProfile(user), sessionToken);
+=======
+		user.setSessionToken(createSecureToken());
+		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
+		userRepository.save(user);
+		return new AuthSession(toUserProfile(user), user.getSessionToken());
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 
 	@Transactional
@@ -271,6 +283,10 @@ public class UserService {
 		User user = getUserByEmail(email);
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
 		if (!deviceLockEnabled) {
+			user.setActiveDeviceId(null);
+			user.setSessionToken(null);
+			user.setSessionExpiresAt(null);
+			userRepository.save(user);
 			return;
 		}
 		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
@@ -279,19 +295,42 @@ public class UserService {
 
 		user.setActiveDeviceId(null);
 		user.setSessionToken(null);
+<<<<<<< HEAD
 		user.setSessionExpiresAt(null);
+=======
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 		userRepository.save(user);
 	}
 
 	@Transactional
-	public void resetPassword(String email, String password) {
+	public void resetPassword(String email, String token, String password) {
 		if (password == null || password.length() < 8) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
 		}
 
 		User user = getUserByEmail(email);
+		if (token == null || token.isBlank()
+			|| user.getResetTokenHash() == null
+			|| user.getResetTokenExpiresAt() == null
+			|| user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())
+			|| !MessageDigest.isEqual(user.getResetTokenHash().getBytes(StandardCharsets.UTF_8), hashResetToken(token).getBytes(StandardCharsets.UTF_8))) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Reset token is invalid or expired");
+		}
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setResetTokenHash(null);
+		user.setResetTokenExpiresAt(null);
+		user.setSessionToken(null);
 		userRepository.save(user);
+	}
+
+	@Transactional
+	public void requestPasswordReset(String email) {
+		User user = getUserByEmail(email);
+		String token = createSecureToken();
+		user.setResetTokenHash(hashResetToken(token));
+		user.setResetTokenExpiresAt(LocalDateTime.now().plusMinutes(15));
+		userRepository.save(user);
+		// Delivery requires an email provider. The raw token must never be returned by this API.
 	}
 
 	@Transactional
@@ -306,6 +345,19 @@ public class UserService {
 		}
 
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setSessionToken(null);
+		userRepository.save(user);
+	}
+
+	@Transactional
+	public void changePasswordWithoutCurrentPassword(String email, String password) {
+		if (password == null || password.length() < 8) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
+		}
+		User user = getUserByEmail(email);
+		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		user.setSessionToken(null);
+		user.setSessionExpiresAt(null);
 		userRepository.save(user);
 	}
 
@@ -415,6 +467,21 @@ public class UserService {
 		);
 	}
 
+	private String createSecureToken() {
+		byte[] bytes = new byte[32];
+		SECURE_RANDOM.nextBytes(bytes);
+		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+	}
+
+	private String hashResetToken(String token) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			return Base64.getUrlEncoder().withoutPadding().encodeToString(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+		} catch (java.security.NoSuchAlgorithmException exception) {
+			throw new IllegalStateException("SHA-256 is unavailable", exception);
+		}
+	}
+
 	public record CreateUserRequest(String firstName, String lastName, String email, String password, String role, String deviceId) {
 		public CreateUserRequest(String firstName, String lastName, String email, String password, String role) {
 			this(firstName, lastName, email, password, role, null);
@@ -427,6 +494,7 @@ public class UserService {
 	public record UserProfile(Long id, String email, String firstName, String lastName, String role, String classroom, String classCode, java.time.LocalDateTime createdAt, Map<String, Object> user_metadata) {
 	}
 
+<<<<<<< HEAD
 	public record AuthSession(UserProfile user, String sessionToken) {
 	}
 
@@ -434,5 +502,8 @@ public class UserService {
 		byte[] bytes = new byte[32];
 		SECURE_RANDOM.nextBytes(bytes);
 		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+=======
+	public record AuthSession(UserProfile user, String accessToken) {
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 }

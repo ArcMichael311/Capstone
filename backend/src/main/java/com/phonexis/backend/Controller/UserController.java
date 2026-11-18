@@ -67,6 +67,7 @@ public class UserController {
 	}
 
 	@PostMapping("/{id}/generate-class-code")
+	@PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
 	public ResponseEntity<UserResponse> generateClassCode(@PathVariable Long id) {
 		return ResponseEntity.ok(new UserResponse(userService.generateClassCode(id)));
 	}

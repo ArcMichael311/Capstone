@@ -16,6 +16,15 @@ ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS session_token VARCHAR(64);
 
 ALTER TABLE IF EXISTS public.users
+<<<<<<< HEAD
+=======
+	ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(64);
+
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMPTZ;
+
+ALTER TABLE IF EXISTS public.users
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_session_token_uq

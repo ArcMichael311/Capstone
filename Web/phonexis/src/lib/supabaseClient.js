@@ -9,6 +9,33 @@ const defaultBackendUrl = process.env.NODE_ENV === 'development'
 const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
+let memoryAccessToken = '';
+
+const getAccessToken = () => {
+  if (memoryAccessToken) return memoryAccessToken;
+  try {
+    memoryAccessToken = window.sessionStorage.getItem('phonexis_access_token')
+      || '';
+  } catch (error) {
+    memoryAccessToken = '';
+  }
+  return memoryAccessToken;
+};
+
+const setAccessToken = (token) => {
+  memoryAccessToken = token || '';
+  try {
+    if (memoryAccessToken) {
+      window.sessionStorage.setItem('phonexis_access_token', memoryAccessToken);
+    } else {
+      window.sessionStorage.removeItem('phonexis_access_token');
+    }
+  } catch (error) {
+    // In-memory storage remains available when browser storage is blocked.
+  }
+};
+
+export const clearBackendSession = () => setAccessToken('');
 
 const createDeviceId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -73,6 +100,7 @@ const requestToBackend = async (path, options = {}) => {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
@@ -88,6 +116,12 @@ const requestToBackend = async (path, options = {}) => {
 
     const responseText = await response.text();
     const data = responseText ? JSON.parse(responseText) : null;
+<<<<<<< HEAD
+=======
+    if (data?.accessToken) {
+      setAccessToken(data.accessToken);
+    }
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
     return {
       data,
       error: null,
@@ -180,9 +214,7 @@ const syncBackendPassword = async (email, currentPassword, password) => {
       password,
     });
   }
-
-  return postToBackend('/api/auth/reset-password', {
-    email,
+  return postToBackend('/api/auth/session-change-password', {
     password,
   });
 };
@@ -200,7 +232,7 @@ export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/veri
 export const releaseSupabaseUserDevice = (email) => postToBackend('/api/auth/logout', {
   email,
   deviceId: getDeviceId(),
-});
+}).finally(() => clearBackendSession());
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);

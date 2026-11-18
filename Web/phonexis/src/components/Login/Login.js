@@ -1,7 +1,7 @@
 import './Login.css';
 import { useState } from 'react';
 import logo from './logoB.png';
-import { getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { clearBackendSession, getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
 
 export default function Login({ onNavigate, onSuccess }) {
@@ -52,6 +52,7 @@ export default function Login({ onNavigate, onSuccess }) {
         });
 
         if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
+          clearBackendSession();
           await supabase.auth.signOut();
           setError(formatLoginError(backendResult.error, 'Login failed'));
           return;

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, clearBackendSession } from '../lib/supabaseClient';
 
 const AuthContext = createContext(null);
 
@@ -37,7 +37,10 @@ export function AuthProvider({ children }) {
     user,
     isAuthenticated: Boolean(user),
     isLoading,
-    signOut: () => supabase.auth.signOut(),
+    signOut: () => {
+      clearBackendSession();
+      return supabase.auth.signOut();
+    },
   }), [isLoading, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

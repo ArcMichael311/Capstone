@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.phonexis.backend.Service.LearningMaterialService;
 
@@ -24,6 +25,7 @@ public class LearningMaterialController {
 	}
 
 	@PostMapping(value = "/class/{classId}", consumes = "multipart/form-data")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<LearningMaterialService.MaterialResponse> upload(
 		@PathVariable Long classId,
 		@RequestParam Long teacherId,
@@ -39,6 +41,7 @@ public class LearningMaterialController {
 	}
 
 	@DeleteMapping("/{materialId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteMaterial(@PathVariable Long materialId, @RequestParam Long teacherId) {
 		learningMaterialService.deleteMaterial(materialId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Material deleted successfully"));
