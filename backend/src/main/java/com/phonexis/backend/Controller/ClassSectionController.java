@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.phonexis.backend.Service.ClassSectionService;
 
@@ -39,6 +40,7 @@ public class ClassSectionController {
 	}
 
 	@PostMapping("/teacher/{teacherId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<ClassSectionService.ClassResponse> createClass(
 		@PathVariable Long teacherId,
 		@RequestBody ClassSectionService.CreateClassRequest request
@@ -52,6 +54,7 @@ public class ClassSectionController {
 	}
 
 	@DeleteMapping("/{classId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteClass(@PathVariable Long classId, @RequestParam Long teacherId) {
 		classSectionService.deleteClass(classId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Class deleted successfully"));
@@ -63,6 +66,7 @@ public class ClassSectionController {
 	}
 
 	@PostMapping("/{classId}/students")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<ClassSectionService.AddStudentsResponse> addStudents(
 		@PathVariable Long classId,
 		@RequestParam Long teacherId,
@@ -72,6 +76,7 @@ public class ClassSectionController {
 	}
 
 	@DeleteMapping("/{classId}/students/{studentId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> removeStudent(
 		@PathVariable Long classId,
 		@PathVariable Long studentId,

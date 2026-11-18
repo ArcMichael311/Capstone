@@ -32,6 +32,7 @@ import {
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
   isLocalDevelopment,
+  clearBackendSession,
 } from './lib/supabaseClient';
 
 function App() {
@@ -249,6 +250,7 @@ function App() {
       const mappedUser = mapAuthUserToProfile(sessionUser);
       const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
+        clearBackendSession();
         await supabase.auth.signOut();
         return;
       }
@@ -283,6 +285,7 @@ function App() {
         const mappedUser = mapAuthUserToProfile(session.user);
         const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
+          clearBackendSession();
           await supabase.auth.signOut();
           return;
         }
@@ -734,6 +737,7 @@ function App() {
       if (currentUser?.email) {
         await releaseSupabaseUserDevice(currentUser.email);
       }
+      clearBackendSession();
       await supabase.auth.signOut();
     } catch (error) {
       // ignore sign-out errors and clear local state anyway

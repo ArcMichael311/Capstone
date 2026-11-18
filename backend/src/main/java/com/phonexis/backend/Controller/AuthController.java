@@ -1,6 +1,7 @@
 package com.phonexis.backend.Controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.phonexis.backend.Service.AuthService;
+import com.phonexis.backend.Service.UserService;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,9 +25,8 @@ public class AuthController {
 		@RequestBody RegisterRequest request,
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader
 	) {
-		return ResponseEntity.ok(new AuthResponse(
-			authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), resolveDeviceId(request.deviceId(), deviceHeader))
-		));
+		UserService.UserProfile user = authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), resolveDeviceId(request.deviceId(), deviceHeader));
+		return ResponseEntity.ok(new AuthResponse(user, null));
 	}
 
 	@PostMapping("/login")
@@ -39,18 +40,19 @@ public class AuthController {
 				org.springframework.http.HttpStatus.BAD_REQUEST, "Email and password are required");
 		}
 
-		return ResponseEntity.ok(new AuthResponse(authService.login(request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader))));
+		UserService.AuthSession session = authService.login(request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader));
+		return ResponseEntity.ok(new AuthResponse(session.user(), session.accessToken()));
 	}
 
 	@PostMapping("/verify-device")
-	public ResponseEntity<MessageResponse> verifyDevice(@RequestBody DeviceRequest request) {
-		authService.verifyDevice(request.email(), request.deviceId());
+	public ResponseEntity<MessageResponse> verifyDevice(@RequestBody DeviceRequest request, Authentication authentication) {
+		authService.verifyDevice(authentication.getName(), request.deviceId());
 		return ResponseEntity.ok(new MessageResponse("Device verified"));
 	}
 
 	@PostMapping("/logout")
-	public ResponseEntity<MessageResponse> logout(@RequestBody DeviceRequest request) {
-		authService.logout(request.email(), request.deviceId());
+	public ResponseEntity<MessageResponse> logout(@RequestBody DeviceRequest request, Authentication authentication) {
+		authService.logout(authentication.getName(), request.deviceId());
 		return ResponseEntity.ok(new MessageResponse("Device released"));
 	}
 
@@ -62,13 +64,19 @@ public class AuthController {
 
 	@PostMapping("/reset-password")
 	public ResponseEntity<MessageResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
-		authService.resetPassword(request.email(), request.password());
+		authService.resetPassword(request.email(), request.token(), request.password());
 		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
 	}
 
 	@PostMapping("/change-password")
-	public ResponseEntity<MessageResponse> changePassword(@RequestBody ChangePasswordRequest request) {
-		authService.changePassword(request.email(), request.currentPassword(), request.password());
+	public ResponseEntity<MessageResponse> changePassword(@RequestBody ChangePasswordRequest request, Authentication authentication) {
+		authService.changePassword(authentication.getName(), request.currentPassword(), request.password());
+		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
+	}
+
+	@PostMapping("/session-change-password")
+	public ResponseEntity<MessageResponse> sessionChangePassword(@RequestBody SessionChangePasswordRequest request, Authentication authentication) {
+		authService.changePasswordWithoutCurrentPassword(authentication.getName(), request.password());
 		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
 	}
 
@@ -84,17 +92,20 @@ public class AuthController {
 	public record EmailRequest(String email) {
 	}
 
-	public record ResetPasswordRequest(String email, String password) {
+	public record ResetPasswordRequest(String email, String token, String password) {
 	}
 
 	public record ChangePasswordRequest(String email, String currentPassword, String password) {
+	}
+
+	public record SessionChangePasswordRequest(String password) {
 	}
 
 	private String resolveDeviceId(String requestDeviceId, String deviceHeader) {
 		return requestDeviceId == null || requestDeviceId.isBlank() ? deviceHeader : requestDeviceId;
 	}
 
-	public record AuthResponse(com.phonexis.backend.Service.UserService.UserProfile user) {
+	public record AuthResponse(com.phonexis.backend.Service.UserService.UserProfile user, String accessToken) {
 	}
 
 	public record MessageResponse(String message) {

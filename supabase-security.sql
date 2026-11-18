@@ -12,6 +12,22 @@ ALTER TABLE IF EXISTS public.game_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS active_device_id VARCHAR(128);
 
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS session_token VARCHAR(64);
+
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(64);
+
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMPTZ;
+
+ALTER TABLE IF EXISTS public.users
+	ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_session_token_uq
+	ON public.users(session_token)
+	WHERE session_token IS NOT NULL;
+
 -- Do not expose application data through the Supabase REST API. The backend
 -- remains the only data access path for the application.
 REVOKE ALL ON TABLE public.module_games FROM anon, authenticated;

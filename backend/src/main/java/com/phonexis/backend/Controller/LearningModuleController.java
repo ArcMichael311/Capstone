@@ -3,6 +3,7 @@ package com.phonexis.backend.Controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,16 +40,19 @@ public class LearningModuleController {
 	}
 
 	@PostMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<LearningModuleService.ModuleResponse> createModule(@RequestBody LearningModuleService.CreateModuleRequest request) {
 		return ResponseEntity.ok(learningModuleService.createModule(request));
 	}
 
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<LearningModuleService.ModuleResponse> updateModule(@PathVariable Long id, @RequestBody LearningModuleService.UpdateModuleRequest request) {
 		return ResponseEntity.ok(learningModuleService.updateModule(id, request));
 	}
 
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteModule(@PathVariable Long id) {
 		learningModuleService.deleteModule(id);
 		return ResponseEntity.ok(new MessageResponse("Module deleted successfully"));

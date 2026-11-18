@@ -21,10 +21,10 @@ public class AuthService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lastname is required");
 		}
 
-		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, role, deviceId));
+		return userService.createUser(new UserService.CreateUserRequest(firstname, lastname, email, password, "STUDENT", deviceId));
 	}
 
-	public UserService.UserProfile login(String email, String password, String deviceId) {
+	public UserService.AuthSession login(String email, String password, String deviceId) {
 		return userService.login(email, password, deviceId);
 	}
 
@@ -37,17 +37,27 @@ public class AuthService {
 	}
 
 	public void requestPasswordReset(String email) {
-		String normalizedEmail = email == null ? "" : email.trim().toLowerCase();
-		if (normalizedEmail.isEmpty()) {
+		if (email == null || email.trim().isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+		}
+		try {
+			userService.requestPasswordReset(email);
+		} catch (ResponseStatusException exception) {
+			if (exception.getStatusCode().value() != 404) {
+				throw exception;
+			}
 		}
 	}
 
-	public void resetPassword(String email, String password) {
-		userService.resetPassword(email, password);
+	public void resetPassword(String email, String token, String password) {
+		userService.resetPassword(email, token, password);
 	}
 
 	public void changePassword(String email, String currentPassword, String password) {
 		userService.changePassword(email, currentPassword, password);
+	}
+
+	public void changePasswordWithoutCurrentPassword(String email, String password) {
+		userService.changePasswordWithoutCurrentPassword(email, password);
 	}
 }

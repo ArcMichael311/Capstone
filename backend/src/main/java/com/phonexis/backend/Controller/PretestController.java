@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import com.phonexis.backend.Service.PretestService;
 
@@ -26,6 +27,7 @@ public class PretestController {
 	}
 
 	@PostMapping("/class/{classId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.PretestSummaryResponse> createPretest(
 		@PathVariable Long classId,
 		@RequestParam Long teacherId,
@@ -56,6 +58,7 @@ public class PretestController {
 	}
 
 	@PutMapping("/{pretestId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.PretestSummaryResponse> updatePretest(
 		@PathVariable Long pretestId,
 		@RequestParam Long teacherId,
@@ -65,12 +68,14 @@ public class PretestController {
 	}
 
 	@DeleteMapping("/{pretestId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deletePretest(@PathVariable Long pretestId, @RequestParam Long teacherId) {
 		pretestService.deletePretest(pretestId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Pretest deleted successfully"));
 	}
 
 	@PostMapping("/{pretestId}/questions")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.QuestionResponse> addQuestion(
 		@PathVariable Long pretestId,
 		@RequestParam Long teacherId,
@@ -80,6 +85,7 @@ public class PretestController {
 	}
 
 	@PutMapping("/questions/{questionId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.QuestionResponse> updateQuestion(
 		@PathVariable Long questionId,
 		@RequestParam Long teacherId,
@@ -89,12 +95,14 @@ public class PretestController {
 	}
 
 	@DeleteMapping("/questions/{questionId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteQuestion(@PathVariable Long questionId, @RequestParam Long teacherId) {
 		pretestService.deleteQuestion(questionId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Question deleted successfully"));
 	}
 
 	@PostMapping(value = "/{pretestId}/audio", consumes = "multipart/form-data")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.AudioUploadResponse> uploadAudio(
 		@PathVariable Long pretestId,
 		@RequestParam Long teacherId,
@@ -112,6 +120,7 @@ public class PretestController {
 	}
 
 	@PostMapping("/{pretestId}/submit")
+	@PreAuthorize("hasRole('STUDENT') or hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.SubmitAttemptResponse> submitAttempt(
 		@PathVariable Long pretestId,
 		@RequestParam Long studentId,
