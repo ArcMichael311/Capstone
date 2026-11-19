@@ -5,13 +5,37 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
 const defaultBackendUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:8080'
-  : '';
-const backendUrl = (configuredBackendUrl !== undefined && configuredBackendUrl !== null
-  ? configuredBackendUrl
-  : defaultBackendUrl).replace(/\/$/, '');
+  : 'https://phonexis-backend.onrender.com';
+const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
-export const clearBackendSession = () => {};
+let memoryAccessToken = '';
+
+const getAccessToken = () => {
+  if (memoryAccessToken) return memoryAccessToken;
+  try {
+    memoryAccessToken = window.sessionStorage.getItem('phonexis_access_token')
+      || '';
+  } catch (error) {
+    memoryAccessToken = '';
+  }
+  return memoryAccessToken;
+};
+
+const setAccessToken = (token) => {
+  memoryAccessToken = token || '';
+  try {
+    if (memoryAccessToken) {
+      window.sessionStorage.setItem('phonexis_access_token', memoryAccessToken);
+    } else {
+      window.sessionStorage.removeItem('phonexis_access_token');
+    }
+  } catch (error) {
+    // In-memory storage remains available when browser storage is blocked.
+  }
+};
+
+export const clearBackendSession = () => setAccessToken('');
 
 const createDeviceId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -66,14 +90,6 @@ const readBackendError = async (response) => {
   }
 };
 
-const getCsrfToken = () => {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie
-    .split('; ')
-    .find((entry) => entry.startsWith('PHONEXIS_CSRF='));
-  return match ? decodeURIComponent(match.substring(match.indexOf('=') + 1)) : null;
-};
-
 export const isBackendUnavailable = (error) => error?.message === 'Backend unavailable';
 
 const requestToBackend = async (path, options = {}) => {
@@ -84,7 +100,7 @@ const requestToBackend = async (path, options = {}) => {
       headers: {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Device-Id': getDeviceId(),
-        ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken() } : {}),
+        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
         ...(options.headers || {}),
       },
       ...options,
@@ -100,6 +116,12 @@ const requestToBackend = async (path, options = {}) => {
 
     const responseText = await response.text();
     const data = responseText ? JSON.parse(responseText) : null;
+<<<<<<< HEAD
+=======
+    if (data?.accessToken) {
+      setAccessToken(data.accessToken);
+    }
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
     return {
       data,
       error: null,
@@ -201,10 +223,6 @@ export const syncSupabaseUserToBackend = syncBackendUser;
 export const loginBackendUser = (email, password) => postToBackend('/api/auth/login', {
   email,
   password,
-  deviceId: getDeviceId(),
-});
-export const restoreBackendSession = (accessToken) => postToBackend('/api/auth/restore-session', {
-  accessToken,
   deviceId: getDeviceId(),
 });
 export const verifySupabaseUserDevice = (email) => postToBackend('/api/auth/verify-device', {

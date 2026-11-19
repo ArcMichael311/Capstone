@@ -1,7 +1,10 @@
 package com.phonexis.backend.Controller;
 
 import org.springframework.http.ResponseEntity;
+<<<<<<< HEAD
 import org.springframework.http.ResponseCookie;
+=======
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,11 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.phonexis.backend.Service.AuthService;
 import com.phonexis.backend.Service.UserService;
+<<<<<<< HEAD
 import com.phonexis.backend.Config.SessionAuthenticationFilter;
-import com.phonexis.backend.Config.CsrfCookieFilter;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+=======
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,7 +37,7 @@ public class AuthController {
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader
 	) {
 		UserService.UserProfile user = authService.register(request.firstname(), request.lastname(), request.email(), request.password(), request.role(), resolveDeviceId(request.deviceId(), deviceHeader));
-		return ResponseEntity.ok(new AuthResponse(user));
+		return ResponseEntity.ok(new AuthResponse(user, null));
 	}
 
 	@PostMapping("/login")
@@ -48,32 +53,16 @@ public class AuthController {
 				org.springframework.http.HttpStatus.BAD_REQUEST, "Email and password are required");
 		}
 
+<<<<<<< HEAD
 		UserService.AuthSession session = authService.login(
 			request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader));
 		servletResponse.addHeader("Set-Cookie", createSessionCookie(
 			session.sessionToken(), 8 * 60 * 60, servletRequest).toString());
-		servletResponse.addHeader("Set-Cookie",
-			CsrfCookieFilter.createCsrfCookie(
-				CsrfCookieFilter.createToken(), 8 * 60 * 60, servletRequest).toString());
 		return ResponseEntity.ok(new AuthResponse(session.user()));
-	}
-
-	@PostMapping("/restore-session")
-	public ResponseEntity<AuthResponse> restoreSession(
-		@RequestBody RestoreSessionRequest request,
-		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader,
-		HttpServletRequest servletRequest,
-		HttpServletResponse servletResponse
-	) {
-		String accessToken = request == null ? null : request.accessToken();
-		String deviceId = resolveDeviceId(request == null ? null : request.deviceId(), deviceHeader);
-		UserService.AuthSession session = authService.restoreSupabaseSession(accessToken, deviceId);
-		servletResponse.addHeader("Set-Cookie", createSessionCookie(
-			session.sessionToken(), 8 * 60 * 60, servletRequest).toString());
-		servletResponse.addHeader("Set-Cookie",
-			CsrfCookieFilter.createCsrfCookie(
-				CsrfCookieFilter.createToken(), 8 * 60 * 60, servletRequest).toString());
-		return ResponseEntity.ok(new AuthResponse(session.user()));
+=======
+		UserService.AuthSession session = authService.login(request.email(), request.password(), resolveDeviceId(request.deviceId(), deviceHeader));
+		return ResponseEntity.ok(new AuthResponse(session.user(), session.accessToken()));
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 
 	@PostMapping("/verify-device")
@@ -83,6 +72,7 @@ public class AuthController {
 	}
 
 	@PostMapping("/logout")
+<<<<<<< HEAD
 	public ResponseEntity<MessageResponse> logout(
 		@RequestBody DeviceRequest request,
 		Authentication authentication,
@@ -92,8 +82,10 @@ public class AuthController {
 		authService.logout(authentication.getName(), request.deviceId());
 		servletResponse.addHeader("Set-Cookie",
 			createSessionCookie("", 0, servletRequest).toString());
-		servletResponse.addHeader("Set-Cookie",
-			CsrfCookieFilter.createCsrfCookie("", 0, servletRequest).toString());
+=======
+	public ResponseEntity<MessageResponse> logout(@RequestBody DeviceRequest request, Authentication authentication) {
+		authService.logout(authentication.getName(), request.deviceId());
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 		return ResponseEntity.ok(new MessageResponse("Device released"));
 	}
 
@@ -105,6 +97,19 @@ public class AuthController {
 
 	@PostMapping("/reset-password")
 	public ResponseEntity<MessageResponse> resetPassword(@RequestBody ResetPasswordRequest request) {
+<<<<<<< HEAD
+		throw new org.springframework.web.server.ResponseStatusException(
+			org.springframework.http.HttpStatus.BAD_REQUEST,
+			"Use the authenticated password reset flow");
+	}
+
+	@PostMapping("/change-password")
+	public ResponseEntity<MessageResponse> changePassword(
+		@RequestBody ChangePasswordRequest request,
+		Authentication authentication
+	) {
+		authService.changePassword(authentication.getName(), request.currentPassword(), request.password());
+=======
 		authService.resetPassword(request.email(), request.token(), request.password());
 		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
 	}
@@ -118,6 +123,7 @@ public class AuthController {
 	@PostMapping("/session-change-password")
 	public ResponseEntity<MessageResponse> sessionChangePassword(@RequestBody SessionChangePasswordRequest request, Authentication authentication) {
 		authService.changePasswordWithoutCurrentPassword(authentication.getName(), request.password());
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 		return ResponseEntity.ok(new MessageResponse("Password updated successfully"));
 	}
 
@@ -125,9 +131,6 @@ public class AuthController {
 	}
 
 	public record LoginRequest(String email, String password, String deviceId) {
-	}
-
-	public record RestoreSessionRequest(String accessToken, String deviceId) {
 	}
 
 	public record DeviceRequest(String email, String deviceId) {
@@ -149,6 +152,7 @@ public class AuthController {
 		return requestDeviceId == null || requestDeviceId.isBlank() ? deviceHeader : requestDeviceId;
 	}
 
+<<<<<<< HEAD
 	private ResponseCookie createSessionCookie(String token, int maxAgeSeconds, HttpServletRequest request) {
 		boolean secure = "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"))
 			|| request.isSecure();
@@ -162,6 +166,9 @@ public class AuthController {
 	}
 
 	public record AuthResponse(com.phonexis.backend.Service.UserService.UserProfile user) {
+=======
+	public record AuthResponse(com.phonexis.backend.Service.UserService.UserProfile user, String accessToken) {
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 
 	public record MessageResponse(String message) {

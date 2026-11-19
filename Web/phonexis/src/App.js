@@ -33,7 +33,6 @@ import {
   releaseSupabaseUserDevice,
   isLocalDevelopment,
   clearBackendSession,
-  restoreBackendSession,
 } from './lib/supabaseClient';
 
 function App() {
@@ -256,13 +255,11 @@ function App() {
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
-      if (!isLocalDevelopment && data?.session?.access_token) {
-        await restoreBackendSession(data.session.access_token);
-      }
       const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
-        // A temporary backend cookie/availability failure must not invalidate the
-        // user's persisted Supabase login or log them out during a reload.
+        clearBackendSession();
+        await supabase.auth.signOut();
+        return;
       }
       const roleAwareUser = await applyBackendRole(mappedUser);
       if (cancelled) {
@@ -293,12 +290,11 @@ function App() {
 
       const syncProfile = async () => {
         const mappedUser = mapAuthUserToProfile(session.user);
-        if (!isLocalDevelopment && session.access_token) {
-          await restoreBackendSession(session.access_token);
-        }
         const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
-          // Preserve the restored Supabase profile if the backend is temporarily unavailable.
+          clearBackendSession();
+          await supabase.auth.signOut();
+          return;
         }
         const roleAwareUser = await applyBackendRole(mappedUser);
         if (cancelled) {
