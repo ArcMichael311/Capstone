@@ -16,12 +16,15 @@ ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS session_token VARCHAR(64);
 
 ALTER TABLE IF EXISTS public.users
+<<<<<<< HEAD
+=======
 	ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(64);
 
 ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMPTZ;
 
 ALTER TABLE IF EXISTS public.users
+>>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_session_token_uq
@@ -35,30 +38,6 @@ REVOKE ALL ON TABLE public.modules FROM anon, authenticated;
 REVOKE ALL ON TABLE public.progress FROM anon, authenticated;
 REVOKE ALL ON TABLE public.user_activity FROM anon, authenticated;
 REVOKE ALL ON TABLE public.game_scores FROM anon, authenticated;
-
--- Backend-only tables: never expose account, session, class, pretest, material,
--- or activity data through the browser-facing Supabase REST API.
-ALTER TABLE IF EXISTS public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.class_sections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.class_enrollments ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.learning_materials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.teacher_activities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.pretests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.pretest_questions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.pretest_options ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.pretest_attempts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.pretest_answers ENABLE ROW LEVEL SECURITY;
-
-REVOKE ALL ON TABLE public.users FROM anon, authenticated;
-REVOKE ALL ON TABLE public.class_sections FROM anon, authenticated;
-REVOKE ALL ON TABLE public.class_enrollments FROM anon, authenticated;
-REVOKE ALL ON TABLE public.learning_materials FROM anon, authenticated;
-REVOKE ALL ON TABLE public.teacher_activities FROM anon, authenticated;
-REVOKE ALL ON TABLE public.pretests FROM anon, authenticated;
-REVOKE ALL ON TABLE public.pretest_questions FROM anon, authenticated;
-REVOKE ALL ON TABLE public.pretest_options FROM anon, authenticated;
-REVOKE ALL ON TABLE public.pretest_attempts FROM anon, authenticated;
-REVOKE ALL ON TABLE public.pretest_answers FROM anon, authenticated;
 
 -- These views must respect the permissions and RLS policies of the querying
 -- role instead of running with the view owner's privileges.

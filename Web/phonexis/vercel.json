@@ -1,6 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://phonexis-backend.onrender.com/api/:path*" },
     { "source": "/((?!static/|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
   ]
 }
