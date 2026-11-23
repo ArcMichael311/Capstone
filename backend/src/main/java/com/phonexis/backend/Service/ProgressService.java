@@ -30,7 +30,7 @@ public class ProgressService {
 		this.gameScoreRepository = gameScoreRepository;
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional // not read-only: it may create the missing progress row
 	public ProgressDTO getProgress(Long userId, String moduleName) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -159,22 +159,22 @@ public class ProgressService {
 		return new ProgressDTO(progress);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional // not read-only: it may create missing progress rows
 	public List<ProgressDTO> getUserProgress(Long userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-		ensureDefaultProgressRows(user);
-		List<Progress> progressList = progressRepository.findByUser(user);
-		return progressList.stream().map(this::withLearningCompletion).toList();
-	}
-
-	@Transactional
-	private void ensureDefaultProgressRows(User user) {
+		// One query for all rows; only missing modules are created (usually none). This used to be
+		// 4 lookups + 1 list on every load, which is slow when the database is far from the server.
+		List<Progress> progressList = new java.util.ArrayList<>(progressRepository.findByUser(user));
+		Set<String> existingModules = new java.util.HashSet<>();
+		progressList.forEach(progress -> existingModules.add(String.valueOf(progress.getModuleName()).toLowerCase()));
 		for (String moduleName : List.of("alphabet", "vowels", "consonants", "cvc")) {
-			progressRepository.findByUserAndModuleName(user, moduleName)
-				.orElseGet(() -> progressRepository.save(new Progress(user, moduleName)));
+			if (!existingModules.contains(moduleName)) {
+				progressList.add(progressRepository.save(new Progress(user, moduleName)));
+			}
 		}
+		return progressList.stream().map(this::withLearningCompletion).toList();
 	}
 
 	private Progress createDefaultProgress(User user, String moduleName) {

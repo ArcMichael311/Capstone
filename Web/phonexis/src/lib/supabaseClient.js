@@ -58,7 +58,40 @@ const setAccessToken = (token) => {
 
 export const hasBackendSession = () => !!getAccessToken();
 
-export const clearBackendSession = () => setAccessToken('');
+// The logged-in user's profile (role, backend id, name), remembered so a page refresh can show
+// the right dashboard instantly while the session is re-checked in the background. It is only
+// used together with a backend session token and is removed whenever that session ends.
+const PROFILE_CACHE_KEY = 'phonexis_profile_cache';
+
+export const readCachedProfile = () => {
+  if (!getAccessToken()) {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    const profile = raw ? JSON.parse(raw) : null;
+    return profile && profile.email ? profile : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+export const writeCachedProfile = (profile) => {
+  try {
+    if (profile && profile.email) {
+      window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+    } else {
+      window.localStorage.removeItem(PROFILE_CACHE_KEY);
+    }
+  } catch (error) {
+    // ignore storage errors
+  }
+};
+
+export const clearBackendSession = () => {
+  setAccessToken('');
+  writeCachedProfile(null);
+};
 
 const createDeviceId = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -247,6 +280,8 @@ const getFromBackend = async (path) => requestToBackend(path, { method: 'GET' })
 const putToBackend = async (path, body) => requestToBackend(path, {
   method: 'PUT',
   body: JSON.stringify(body),
+  // Lets a progress save finish even if the tab is being closed.
+  keepalive: true,
 });
 
 const getNameParts = (user, profile = {}) => {

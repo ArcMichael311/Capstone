@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
@@ -7,17 +7,8 @@ import Register from './components/Register';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Profile from './components/Profile';
-import AlphabetRecognition from './components/Modules/AlphabetRecognition';
-import CVCWords from './components/Modules/CVCWords';
-import Vowels from './components/Modules/Vowels';
 import { setGameScoreUserId } from './components/Modules/shared/gameScores';
-import Consonants from './components/Modules/Consonants';
 import AdminSidebar from './components/Admin/AdminSidebar';
-import AdminDashboard from './components/Admin/AdminDashboard';
-import AdminStudents from './components/Admin/AdminStudents';
-import AdminTeachers from './components/Admin/AdminTeachers';
-import AdminAdmins from './components/Admin/AdminAdmins';
-import Teacher from './components/Teacher/Teacher';
 import TeacherSidebar from './components/Teacher/TeacherSidebar';
 import Sidebar from './components/Sidebar/Sidebar';
 import StudentClassModal from './components/Dashboard/StudentClassModal';
@@ -34,18 +25,87 @@ import {
   verifySupabaseUserDevice,
   releaseSupabaseUserDevice,
   isLocalDevelopment,
+  isBackendUnavailable,
   clearBackendSession,
   SESSION_ENDED_EVENT,
   LOGOUT_REASON_KEY,
+  readCachedProfile,
+  writeCachedProfile,
 } from './lib/supabaseClient';
 
+// Screens that only some users need are downloaded on demand (smaller first load). They are
+// prefetched in the background right after login, so opening them later is still instant.
+const loadAlphabetRecognition = () => import('./components/Modules/AlphabetRecognition');
+const loadCVCWords = () => import('./components/Modules/CVCWords');
+const loadVowels = () => import('./components/Modules/Vowels');
+const loadConsonants = () => import('./components/Modules/Consonants');
+const loadAdminDashboard = () => import('./components/Admin/AdminDashboard');
+const loadAdminStudents = () => import('./components/Admin/AdminStudents');
+const loadAdminTeachers = () => import('./components/Admin/AdminTeachers');
+const loadAdminAdmins = () => import('./components/Admin/AdminAdmins');
+const loadTeacher = () => import('./components/Teacher/Teacher');
+const AlphabetRecognition = lazy(loadAlphabetRecognition);
+const CVCWords = lazy(loadCVCWords);
+const Vowels = lazy(loadVowels);
+const Consonants = lazy(loadConsonants);
+const AdminDashboard = lazy(loadAdminDashboard);
+const AdminStudents = lazy(loadAdminStudents);
+const AdminTeachers = lazy(loadAdminTeachers);
+const AdminAdmins = lazy(loadAdminAdmins);
+const Teacher = lazy(loadTeacher);
+
+const prefetchScreensForRole = (role) => {
+  const loaders = role === 'admin'
+    ? [loadAdminDashboard, loadAdminStudents, loadAdminTeachers, loadAdminAdmins]
+    : role === 'teacher'
+      ? [loadTeacher]
+      : [loadAlphabetRecognition, loadVowels, loadConsonants, loadCVCWords];
+  loaders.forEach((load) => { load().catch(() => null); });
+};
+
+const AUTH_ONLY_VIEWS = ['login', 'register', 'forgotpassword'];
+
+const landingViewForRole = (userProfile) => {
+  const normalizedRole = String(userProfile?.role || userProfile?.user_metadata?.role || '').toLowerCase();
+  if (normalizedRole === 'admin') {
+    return 'admin';
+  }
+  if (normalizedRole === 'teacher') {
+    return 'teacher';
+  }
+  return 'dashboard';
+};
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeView, setActiveView] = useState(() => getViewFromPath(window.location.pathname));
+  // On refresh, show the remembered user's dashboard immediately instead of flashing the login
+  // page; the session is re-checked in the background (restoreSession) and, if it has ended,
+  // the user is sent to login.
+  const [initialProfile] = useState(() => readCachedProfile());
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!initialProfile);
+  // Logged in, but no remembered profile yet: show a short loading screen, not the login page.
+  const [isRestoringSession, setIsRestoringSession] = useState(() => !initialProfile && hasBackendSession());
+  const [activeView, setActiveView] = useState(() => {
+    const pathView = getViewFromPath(window.location.pathname);
+    return initialProfile && AUTH_ONLY_VIEWS.includes(pathView) ? landingViewForRole(initialProfile) : pathView;
+  });
   const [activeSection, setActiveSection] = useState(() => getSectionFromPath(window.location.pathname));
   const [, setNavigationHistory] = useState([]);
   const audioRef = useRef(null);
   const progressSyncRef = useRef(Promise.resolve());
+  // Debounced progress upload: the latest pending sync, its timer, and what was last uploaded.
+  const pendingProgressSyncRef = useRef(null);
+  const progressSyncTimerRef = useRef(null);
+  const lastSentProgressRef = useRef({});
+  // Sends any pending progress now (used by the debounce timer, logout and tab close).
+  const flushProgressSyncRef = useRef(() => {
+    clearTimeout(progressSyncTimerRef.current);
+    const pending = pendingProgressSyncRef.current;
+    pendingProgressSyncRef.current = null;
+    if (pending) {
+      progressSyncRef.current = progressSyncRef.current.then(pending, pending);
+    }
+    return progressSyncRef.current;
+  });
   const activeViewRef = useRef('login');
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [theme, setTheme] = useState(() => {
@@ -57,7 +117,7 @@ function App() {
     }
   });
   const [activeModule, setActiveModule] = useState('alphabet');
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => initialProfile);
   const [resetEmail, setResetEmail] = useState(null);
   const [completedPretests, setCompletedPretests] = useState([]);
   const [completedAlphabetModes, setCompletedAlphabetModes] = useState([]); // Track easy, medium, hard
@@ -160,18 +220,32 @@ function App() {
     }
   }, []);
 
-  const getLandingViewByRole = useCallback((userProfile) => {
-    const normalizedRole = String(userProfile?.role || userProfile?.user_metadata?.role || '').toLowerCase();
-    if (normalizedRole === 'admin') {
-      return 'admin';
-    }
+  const getLandingViewByRole = useCallback((userProfile) => landingViewForRole(userProfile), []);
 
-    if (normalizedRole === 'teacher') {
-      return 'teacher';
+  // Once the dashboard is on screen, download this role's other screens in the background.
+  const prefetchRole = isAuthenticated ? landingViewForRole(currentUser) : null;
+  useEffect(() => {
+    if (!prefetchRole) {
+      return undefined;
     }
+    const role = prefetchRole === 'dashboard' ? 'student' : prefetchRole;
+    const run = () => prefetchScreensForRole(role);
+    if (typeof window.requestIdleCallback === 'function') {
+      const handle = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(run, 1500);
+    return () => clearTimeout(timer);
+  }, [prefetchRole]);
 
-    return 'dashboard';
-  }, []);
+  // Remember the logged-in profile so the next refresh can render the dashboard instantly.
+  useEffect(() => {
+    if (isAuthenticated && currentUser?.email) {
+      writeCachedProfile(currentUser);
+    } else if (!isAuthenticated) {
+      writeCachedProfile(null);
+    }
+  }, [isAuthenticated, currentUser]);
 
   const navigateTo = useCallback((nextView, nextSection = null) => {
     if (!nextView) {
@@ -253,39 +327,70 @@ function App() {
   useEffect(() => {
     let cancelled = false;
 
+    const endRestoredSession = async () => {
+      clearBackendSession();
+      await supabase.auth.signOut({ scope: 'local' });
+      if (!cancelled) {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        setActiveView((currentView) => (AUTH_ONLY_VIEWS.includes(currentView) ? currentView : 'login'));
+      }
+    };
+
     const restoreSession = async () => {
       const { data } = await supabase.auth.getSession();
       const sessionUser = data?.session?.user;
 
-      if (cancelled || !sessionUser) {
+      if (cancelled) {
+        return;
+      }
+      if (!sessionUser) {
+        // Signed out of Supabase (e.g. elsewhere) but a dashboard was shown from the cache.
+        if (initialProfile) {
+          await endRestoredSession();
+        }
         return;
       }
 
       // Without a backend session nothing (including progress) can be loaded or saved,
       // so ask the user to log in again instead of showing an empty dashboard.
       if (!isLocalDevelopment && !hasBackendSession()) {
-        await supabase.auth.signOut({ scope: 'local' });
+        await endRestoredSession();
         return;
       }
 
       const mappedUser = mapAuthUserToProfile(sessionUser);
-      const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
-      if (deviceResult.error) {
-        clearBackendSession();
-        await supabase.auth.signOut({ scope: 'local' });
+      // Both checks are independent, so run them at the same time (one round trip, not two).
+      const [deviceResult, roleAwareUser] = await Promise.all([
+        isLocalDevelopment ? Promise.resolve({ error: null }) : verifySupabaseUserDevice(sessionUser.email),
+        applyBackendRole(mappedUser),
+      ]);
+      if (cancelled) {
         return;
       }
-      const roleAwareUser = await applyBackendRole(mappedUser);
-      if (cancelled) {
+      if (deviceResult.error && !isBackendUnavailable(deviceResult.error)) {
+        await endRestoredSession();
+        return;
+      }
+
+      // Backend briefly unreachable (e.g. waking up): keep the remembered profile for now.
+      const lookupFailed = typeof roleAwareUser?.id !== 'number';
+      const sameCachedUser = initialProfile
+        && String(initialProfile.email || '').toLowerCase() === String(sessionUser.email || '').toLowerCase();
+      if (lookupFailed && sameCachedUser) {
         return;
       }
 
       setCurrentUser(roleAwareUser);
       setIsAuthenticated(true);
-      setActiveView((currentView) => (currentView === 'login' ? getLandingViewByRole(roleAwareUser) : currentView));
+      setActiveView((currentView) => (AUTH_ONLY_VIEWS.includes(currentView) ? getLandingViewByRole(roleAwareUser) : currentView));
     };
 
-    void restoreSession();
+    void restoreSession().finally(() => {
+      if (!cancelled) {
+        setIsRestoringSession(false);
+      }
+    });
 
     const {
       data: { subscription },
@@ -335,7 +440,7 @@ function App() {
       cancelled = true;
       subscription?.unsubscribe();
     };
-  }, [mapAuthUserToProfile, applyBackendRole, getLandingViewByRole]);
+  }, [mapAuthUserToProfile, applyBackendRole, getLandingViewByRole, initialProfile]);
 
   // Build a stable storage key for the logged-in user
   const getProgressKey = (user) => {
@@ -557,43 +662,43 @@ function App() {
 
     let cancelled = false;
 
+    const readLocalSnapshot = () => {
+      try {
+        const raw = localStorage.getItem(progressUserKey);
+        return raw ? JSON.parse(raw) : {};
+      } catch (error) {
+        return {};
+      }
+    };
+
     const loadProgress = async () => {
       resetProgressState();
       setIsBackendSyncReady(false);
       const user = currentUserRef.current;
 
-      let localSnapshot = {};
-      try {
-        const raw = localStorage.getItem(progressUserKey);
-        localSnapshot = raw ? JSON.parse(raw) : {};
-      } catch (error) {
-        localSnapshot = {};
-      }
+      // 1) Show the progress this browser already knows right away - no "Loading..." screen.
+      applyProgressSnapshot(readLocalSnapshot());
+      setIsProgressHydrated(true);
 
+      // 2) Then fetch the saved progress from the server in the background and merge it in.
       const resolvedBackendUserId = await resolveBackendUserId(user);
       if (cancelled) {
         return;
       }
       setBackendUserId(resolvedBackendUserId);
-
-      let snapshot = localSnapshot;
-      let backendLoaded = false;
-      if (resolvedBackendUserId) {
-        const backendResult = await fetchBackendProgress(resolvedBackendUserId);
-        if (cancelled) {
-          return;
-        }
-        if (!backendResult.error && Array.isArray(backendResult.data)) {
-          // The database is the source of truth; anything this browser saved locally but
-          // had not uploaded yet is merged in and uploaded on the next sync.
-          snapshot = mergeProgressSnapshots(mapBackendProgressToSnapshot(backendResult.data), localSnapshot);
-          backendLoaded = true;
-        }
+      if (!resolvedBackendUserId) {
+        return;
       }
 
-      applyProgressSnapshot(snapshot);
-      setIsBackendSyncReady(backendLoaded);
-      setIsProgressHydrated(true);
+      const backendResult = await fetchBackendProgress(resolvedBackendUserId);
+      if (cancelled || backendResult.error || !Array.isArray(backendResult.data)) {
+        return;
+      }
+      // The database is the source of truth; anything this browser saved locally but had not
+      // uploaded yet (including progress made in the last few seconds) is merged in and
+      // uploaded on the next sync. Merging only adds progress, it never removes any.
+      applyProgressSnapshot(mergeProgressSnapshots(mapBackendProgressToSnapshot(backendResult.data), readLocalSnapshot()));
+      setIsBackendSyncReady(true);
     };
 
     void loadProgress();
@@ -693,34 +798,51 @@ function App() {
       return;
     }
 
-    const syncBackendProgress = async () => {
-      await Promise.all([
-        updateBackendModuleProgress(backendUserId, 'alphabet', {
-          easyModeCompleted: completedPretests.includes('easy'),
-          mediumModeCompleted: completedPretests.includes('medium'),
-          hardModeCompleted: completedPretests.includes('hard'),
-          assessmentScores: JSON.stringify(alphabetScores),
-          activityProgress: JSON.stringify({ exploredLetters: alphabetExploredLetters, heardFryWords: alphabetHeardFryWords }),
-        }),
-        updateBackendModuleProgress(backendUserId, 'vowels', {
-          pretestCompleted: vowelsCompleted,
-          videosWatched: vowelsWatchedVideos,
-          activityProgress: JSON.stringify({ exploredVowels: vowelsExplored }),
-        }),
-        updateBackendModuleProgress(backendUserId, 'consonants', {
-          pretestCompleted: consonantsCompleted,
-          videosWatched: consonantsWatchedVideos,
-          activityProgress: JSON.stringify({ exploredConsonants: consonantsExplored }),
-        }),
-        updateBackendModuleProgress(backendUserId, 'cvc', {
-          pretestCompleted: cvcCompleted,
-          videosWatched: cvcWatchedVideos,
-          activityProgress: JSON.stringify({ exploredFamilies: cvcExploredFamilies, heardWords: cvcHeardWords, selectionCompleted: cvcSelectionCompleted }),
-        }),
-      ]);
+    const modulePayloads = {
+      alphabet: {
+        easyModeCompleted: completedPretests.includes('easy'),
+        mediumModeCompleted: completedPretests.includes('medium'),
+        hardModeCompleted: completedPretests.includes('hard'),
+        assessmentScores: JSON.stringify(alphabetScores),
+        activityProgress: JSON.stringify({ exploredLetters: alphabetExploredLetters, heardFryWords: alphabetHeardFryWords }),
+      },
+      vowels: {
+        pretestCompleted: vowelsCompleted,
+        videosWatched: vowelsWatchedVideos,
+        activityProgress: JSON.stringify({ exploredVowels: vowelsExplored }),
+      },
+      consonants: {
+        pretestCompleted: consonantsCompleted,
+        videosWatched: consonantsWatchedVideos,
+        activityProgress: JSON.stringify({ exploredConsonants: consonantsExplored }),
+      },
+      cvc: {
+        pretestCompleted: cvcCompleted,
+        videosWatched: cvcWatchedVideos,
+        activityProgress: JSON.stringify({ exploredFamilies: cvcExploredFamilies, heardWords: cvcHeardWords, selectionCompleted: cvcSelectionCompleted }),
+      },
     };
 
-    progressSyncRef.current = progressSyncRef.current.then(syncBackendProgress, syncBackendProgress);
+    // Only modules whose data changed since the last successful upload are sent.
+    const syncBackendProgress = async () => {
+      const sent = lastSentProgressRef.current;
+      const changed = Object.entries(modulePayloads)
+        .map(([moduleName, payload]) => [moduleName, payload, JSON.stringify(payload)])
+        .filter(([moduleName, , serialized]) => sent[`${backendUserId}:${moduleName}`] !== serialized);
+      await Promise.all(changed.map(async ([moduleName, payload, serialized]) => {
+        const result = await updateBackendModuleProgress(backendUserId, moduleName, payload);
+        if (!result.error) {
+          sent[`${backendUserId}:${moduleName}`] = serialized;
+        }
+      }));
+    };
+
+    // Wait until the activity pauses, then send one batch (instead of 4 requests per click).
+    clearTimeout(progressSyncTimerRef.current);
+    pendingProgressSyncRef.current = syncBackendProgress;
+    progressSyncTimerRef.current = setTimeout(() => {
+      flushProgressSyncRef.current();
+    }, 1000);
   }, [currentUser, backendUserId, isProgressHydrated, isBackendSyncReady, completedPretests, completedAlphabetModes, alphabetScores, alphabetExploredLetters, alphabetHeardFryWords, vowelsCompleted, vowelsExplored, consonantsCompleted, consonantsExplored, cvcCompleted, cvcExploredFamilies, cvcHeardWords, cvcSelectionCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
   // Keep one music instance playing across authenticated views.
@@ -856,9 +978,25 @@ function App() {
     setActiveSection(null);
   };
 
+  // Upload pending progress as soon as the tab is hidden or closed, instead of waiting for the timer.
+  useEffect(() => {
+    const flushWhenHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        void flushProgressSyncRef.current();
+      }
+    };
+    const flushNow = () => void flushProgressSyncRef.current();
+    document.addEventListener('visibilitychange', flushWhenHidden);
+    window.addEventListener('pagehide', flushNow);
+    return () => {
+      document.removeEventListener('visibilitychange', flushWhenHidden);
+      window.removeEventListener('pagehide', flushNow);
+    };
+  }, []);
+
   const handleLogout = useCallback(async () => {
     try {
-      await progressSyncRef.current;
+      await flushProgressSyncRef.current();
       if (currentUser?.email) {
         await releaseSupabaseUserDevice(currentUser.email);
       }
@@ -911,8 +1049,14 @@ function App() {
     let idleTimer;
     let lastHeartbeatAt = 0;
 
+    let lastResetAt = 0;
     const resetIdleTimer = () => {
       const now = Date.now();
+      // mousemove / timeupdate fire many times per second; once per second is plenty.
+      if (now - lastResetAt < 1000) {
+        return;
+      }
+      lastResetAt = now;
       if (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
         lastHeartbeatAt = now;
         verifySupabaseUserDevice(email).catch(() => {
@@ -971,6 +1115,11 @@ function App() {
   };
 
   const renderView = () => {
+    // A session exists but is still being checked: don't flash the login page.
+    if (!isAuthenticated && isRestoringSession) {
+      return <section className="app-loading" aria-live="polite">Loading...</section>;
+    }
+
     if (!isAuthenticated) {
       switch (activeView) {
         case 'register':
@@ -1336,7 +1485,9 @@ function App() {
             onLogout={handleLogout}
           />
         )}
-        <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>{renderView()}</main>
+        <main className={isSidebarOpen ? 'app-authenticated-content' : 'app-authenticated-content sidebar-collapsed'}>
+          <Suspense fallback={<section className="app-loading" aria-live="polite">Loading...</section>}>{renderView()}</Suspense>
+        </main>
       </div>
     </Routing>
   );
