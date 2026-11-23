@@ -36,6 +36,7 @@ import {
   isLocalDevelopment,
   clearBackendSession,
   SESSION_ENDED_EVENT,
+  LOGOUT_REASON_KEY,
 } from './lib/supabaseClient';
 
 function App() {
@@ -894,15 +895,17 @@ function App() {
     return () => window.removeEventListener(SESSION_ENDED_EVENT, handleSessionEnded);
   }, []);
 
-  // Auto-logout after 30 minutes with no user activity, and heartbeat the backend
-  // periodically so the account's device lock doesn't stay held by a closed/crashed tab.
+  // Auto-logout after 10 minutes with no user activity. While the user is active, a heartbeat
+  // tells the backend the session is in use; without it the backend ends the session after
+  // 10 minutes (app.session.idle-timeout-minutes), which also frees the account if this tab
+  // was closed without logging out. Only then can the account log in on another device.
   useEffect(() => {
     if (!isAuthenticated || !currentUser?.email) {
       return undefined;
     }
 
-    const IDLE_LIMIT_MS = 30 * 60 * 1000;
-    const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
+    const IDLE_LIMIT_MS = 10 * 60 * 1000;
+    const HEARTBEAT_INTERVAL_MS = 2 * 60 * 1000;
     const email = currentUser.email;
 
     let idleTimer;
@@ -919,17 +922,27 @@ function App() {
 
       clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
+        try {
+          window.sessionStorage.setItem(LOGOUT_REASON_KEY, 'You were logged out after 10 minutes of inactivity. Please log in again.');
+        } catch (error) {
+          // ignore storage errors
+        }
         handleLogout();
       }, IDLE_LIMIT_MS);
     };
 
     const activityEvents = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
     activityEvents.forEach((eventName) => window.addEventListener(eventName, resetIdleTimer));
+    // A lesson video/audio that is playing counts as activity, so students watching without
+    // touching the mouse are not logged out. Media events don't bubble, so listen in capture phase.
+    const mediaEvents = ['play', 'timeupdate'];
+    mediaEvents.forEach((eventName) => document.addEventListener(eventName, resetIdleTimer, true));
     resetIdleTimer();
 
     return () => {
       clearTimeout(idleTimer);
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+      mediaEvents.forEach((eventName) => document.removeEventListener(eventName, resetIdleTimer, true));
     };
   }, [isAuthenticated, currentUser, handleLogout]);
 

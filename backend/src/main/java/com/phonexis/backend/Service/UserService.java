@@ -52,6 +52,18 @@ public class UserService {
 	@Value("${app.device-lock.enabled:true}")
 	private boolean deviceLockEnabled = true;
 
+	// A session with no activity for this long is logged out automatically (see SessionAuthenticationFilter).
+	@Value("${app.session.idle-timeout-minutes:10}")
+	private long sessionIdleMinutes = 10;
+
+	/** True when the account is logged in somewhere and that session is still alive (not logged out, not idle/expired). */
+	private boolean hasActiveSession(User user) {
+		LocalDateTime now = LocalDateTime.now();
+		return user.getSessionToken() != null
+			&& user.getSessionExpiresAt() != null && user.getSessionExpiresAt().isAfter(now)
+			&& user.getLastActiveAt() != null && user.getLastActiveAt().isAfter(now.minusMinutes(sessionIdleMinutes));
+	}
+
 	public UserService(
 		UserRepository userRepository,
 		ProgressRepository progressRepository,
@@ -267,10 +279,16 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
 		}
 
-		// One active session per account, "latest login wins": a successful login (correct
-		// password) replaces any previous session. The old device's token stops working at once,
-		// so it is signed out. This keeps the one-device rule without ever locking a user out
-		// when a logout never reached the server (closed tab, idle timeout, cleared storage...).
+		// One device per account: while the account is logged in and active on another device,
+		// new logins are refused. The account frees up when that device logs out, or after
+		// SESSION_IDLE_MINUTES without activity (its session then expires automatically).
+		// The same browser (same device id) may always log in again, e.g. after a page refresh.
+		if (deviceLockEnabled && hasActiveSession(user) && !normalizedDeviceId.equals(user.getActiveDeviceId())) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT,
+				"This account is already logged in on another device. Log out there first, or try again after "
+					+ sessionIdleMinutes + " minutes of inactivity.");
+		}
+
 		user.setActiveDeviceId(normalizedDeviceId);
 		user.setLastActiveAt(LocalDateTime.now());
 		// The raw token goes to the client once; only its SHA-256 hash is stored.

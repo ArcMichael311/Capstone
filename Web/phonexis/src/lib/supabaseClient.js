@@ -181,7 +181,7 @@ const requestToBackend = async (path, options = {}) => {
         if (hadSession && path !== '/api/auth/login' && typeof window !== 'undefined') {
           try {
             window.sessionStorage.setItem(LOGOUT_REASON_KEY,
-              'You were signed out because your session ended or this account signed in on another device. Please log in again.');
+              'Your session ended (no activity for 10 minutes, or it expired). Please log in again.');
           } catch (storageError) {
             // ignore storage errors
           }
