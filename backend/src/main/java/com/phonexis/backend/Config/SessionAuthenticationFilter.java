@@ -13,6 +13,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -32,9 +33,12 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 	private static final int MAX_TOKEN_LENGTH = 256;
 
 	private final UserRepository userRepository;
+	private final long sessionIdleMinutes;
 
-	public SessionAuthenticationFilter(UserRepository userRepository) {
+	public SessionAuthenticationFilter(UserRepository userRepository,
+		@Value("${app.session.idle-timeout-minutes:10}") long sessionIdleMinutes) {
 		this.userRepository = userRepository;
+		this.sessionIdleMinutes = sessionIdleMinutes;
 	}
 
 	@Override
@@ -48,7 +52,14 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
 	}
 
 	private void authenticate(User user) {
-		if (user.getSessionExpiresAt() == null || user.getSessionExpiresAt().isBefore(LocalDateTime.now())) {
+		LocalDateTime now = LocalDateTime.now();
+		if (user.getSessionExpiresAt() == null || user.getSessionExpiresAt().isBefore(now)) {
+			return;
+		}
+		// Inactive for too long: the session is over (the user is logged out automatically and
+		// the account can be used on another device). Activity is recorded by login and by the
+		// frontend's heartbeat (/api/auth/verify-device), which it only sends while the user is active.
+		if (user.getLastActiveAt() == null || user.getLastActiveAt().isBefore(now.minusMinutes(sessionIdleMinutes))) {
 			return;
 		}
 		AuthenticatedUser principal = new AuthenticatedUser(user.getUserId(), user.getEmail(), user.getRole());
