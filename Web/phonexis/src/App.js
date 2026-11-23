@@ -23,7 +23,8 @@ import StudentClassModal from './components/Dashboard/StudentClassModal';
 import Routing, { getSectionFromPath, getViewFromPath } from './router/Routing';
 import {
   supabase,
-  fetchBackendUsers,
+  fetchCurrentBackendUser,
+  hasBackendSession,
   fetchBackendProgress,
   fetchStudentClass,
   fetchLearningMaterials,
@@ -119,13 +120,11 @@ function App() {
     }
 
     try {
-      const backendUsers = await fetchBackendUsers();
-      if (backendUsers.error || !Array.isArray(backendUsers.data)) {
-        return profile;
-      }
-
-      const backendUser = backendUsers.data.find((entry) => String(entry?.email || '').trim().toLowerCase() === email);
-      if (!backendUser?.role) {
+      // Ask the backend who the current session belongs to. (The full user list is admin-only,
+      // so using it here made students lose their backend id - and their progress - on refresh.)
+      const meResult = await fetchCurrentBackendUser();
+      const backendUser = meResult.error ? null : meResult.data?.user;
+      if (!backendUser?.role || String(backendUser.email || '').trim().toLowerCase() !== email) {
         return profile;
       }
 
@@ -254,6 +253,13 @@ function App() {
         return;
       }
 
+      // Without a backend session nothing (including progress) can be loaded or saved,
+      // so ask the user to log in again instead of showing an empty dashboard.
+      if (!isLocalDevelopment && !hasBackendSession()) {
+        await supabase.auth.signOut();
+        return;
+      }
+
       const mappedUser = mapAuthUserToProfile(sessionUser);
       const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
@@ -285,6 +291,14 @@ function App() {
         setCurrentUser(null);
         setNavigationHistory([]);
         setActiveView('login');
+        return;
+      }
+
+      // INITIAL_SESSION is handled by restoreSession above, and TOKEN_REFRESHED fires every
+      // hour - re-running the profile sync for it would reload (and briefly reset) progress.
+      // SIGNED_IN fires before Login.js has obtained the backend session; Login.js finishes
+      // that flow itself through onSuccess, so only sync here once a backend session exists.
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || !hasBackendSession()) {
         return;
       }
 
@@ -458,13 +472,12 @@ function App() {
       return null;
     }
 
-    const backendUsers = await fetchBackendUsers();
-    if (backendUsers.error || !Array.isArray(backendUsers.data)) {
+    const meResult = await fetchCurrentBackendUser();
+    const backendUser = meResult.error ? null : meResult.data?.user;
+    if (!backendUser || String(backendUser.email || '').trim().toLowerCase() !== email) {
       return null;
     }
-
-    const matchedUser = backendUsers.data.find((entry) => String(entry?.email || '').trim().toLowerCase() === email);
-    return matchedUser?.id ?? null;
+    return backendUser.id ?? null;
   }, []);
 
   const refreshCurrentUserFromBackend = useCallback(async () => {
@@ -480,10 +493,57 @@ function App() {
     return refreshed;
   }, [currentUser, applyBackendRole]);
 
-  // Load progress for the current user when they log in
+  // Combine two progress snapshots without ever losing progress: completed flags stay
+  // completed, lists are merged, and the better score is kept for each alphabet level.
+  const mergeProgressSnapshots = useCallback((primary = {}, secondary = {}) => {
+    const unionList = (a, b) => Array.from(new Set([...(a || []), ...(b || [])]));
+    const unionVideos = (a, b) => unionList(parseVideoIds(a), parseVideoIds(b));
+    const ratio = (entry) => (entry && entry.total > 0 ? entry.score / entry.total : -1);
+
+    const mergedScores = { ...(secondary.alphabetScores || {}) };
+    Object.entries(primary.alphabetScores || {}).forEach(([level, entry]) => {
+      if (ratio(entry) >= ratio(mergedScores[level])) {
+        mergedScores[level] = entry;
+      }
+    });
+
+    return {
+      completedPretests: unionList(primary.completedPretests, secondary.completedPretests),
+      completedAlphabetModes: unionList(
+        primary.completedAlphabetModes || primary.completedPretests,
+        secondary.completedAlphabetModes || secondary.completedPretests,
+      ),
+      alphabetScores: mergedScores,
+      alphabetExploredLetters: unionList(primary.alphabetExploredLetters, secondary.alphabetExploredLetters),
+      alphabetHeardFryWords: unionList(primary.alphabetHeardFryWords, secondary.alphabetHeardFryWords),
+      vowelsCompleted: !!(primary.vowelsCompleted || secondary.vowelsCompleted),
+      vowelsExplored: unionList(primary.vowelsExplored, secondary.vowelsExplored),
+      consonantsCompleted: !!(primary.consonantsCompleted || secondary.consonantsCompleted),
+      consonantsExplored: unionList(primary.consonantsExplored, secondary.consonantsExplored),
+      cvcCompleted: !!(primary.cvcCompleted || secondary.cvcCompleted),
+      cvcExploredFamilies: unionList(primary.cvcExploredFamilies, secondary.cvcExploredFamilies),
+      cvcHeardWords: unionList(primary.cvcHeardWords, secondary.cvcHeardWords),
+      cvcSelectionCompleted: !!(primary.cvcSelectionCompleted || secondary.cvcSelectionCompleted),
+      vowelsWatchedVideos: unionVideos(primary.vowelsWatchedVideos, secondary.vowelsWatchedVideos),
+      consonantsWatchedVideos: unionVideos(primary.consonantsWatchedVideos, secondary.consonantsWatchedVideos),
+      cvcWatchedVideos: unionVideos(primary.cvcWatchedVideos, secondary.cvcWatchedVideos),
+    };
+  }, [parseVideoIds]);
+
+  // Progress is only reloaded when a *different* user logs in, not every time the profile
+  // object is refreshed (joining a class, role sync, ...), which used to reset it mid-session.
+  const progressUserKey = currentUser ? getProgressKey(currentUser) : null;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  // True only after progress was successfully read from the backend. Until then nothing is
+  // written back, so an empty/default state can never overwrite the student's saved progress.
+  const [isBackendSyncReady, setIsBackendSyncReady] = useState(false);
+
+  // Load progress for the current user when they log in (or the page is refreshed)
   useEffect(() => {
-    if (!currentUser) {
+    if (!progressUserKey) {
       resetProgressState();
+      setIsBackendSyncReady(false);
       return;
     }
 
@@ -491,35 +551,41 @@ function App() {
 
     const loadProgress = async () => {
       resetProgressState();
+      setIsBackendSyncReady(false);
+      const user = currentUserRef.current;
 
-      const resolvedBackendUserId = await resolveBackendUserId(currentUser);
-
-      if (!cancelled) {
-        setBackendUserId(resolvedBackendUserId);
+      let localSnapshot = {};
+      try {
+        const raw = localStorage.getItem(progressUserKey);
+        localSnapshot = raw ? JSON.parse(raw) : {};
+      } catch (error) {
+        localSnapshot = {};
       }
 
-      let backendProgressLoaded = false;
+      const resolvedBackendUserId = await resolveBackendUserId(user);
+      if (cancelled) {
+        return;
+      }
+      setBackendUserId(resolvedBackendUserId);
+
+      let snapshot = localSnapshot;
+      let backendLoaded = false;
       if (resolvedBackendUserId) {
         const backendResult = await fetchBackendProgress(resolvedBackendUserId);
-        if (!cancelled && !backendResult.error && Array.isArray(backendResult.data) && backendResult.data.length > 0) {
-          applyProgressSnapshot(mapBackendProgressToSnapshot(backendResult.data));
-          backendProgressLoaded = true;
+        if (cancelled) {
+          return;
+        }
+        if (!backendResult.error && Array.isArray(backendResult.data)) {
+          // The database is the source of truth; anything this browser saved locally but
+          // had not uploaded yet is merged in and uploaded on the next sync.
+          snapshot = mergeProgressSnapshots(mapBackendProgressToSnapshot(backendResult.data), localSnapshot);
+          backendLoaded = true;
         }
       }
 
-      if (!backendProgressLoaded) {
-        try {
-          const key = getProgressKey(currentUser);
-          const raw = key ? localStorage.getItem(key) : null;
-          applyProgressSnapshot(raw ? JSON.parse(raw) : {});
-        } catch (error) {
-          applyProgressSnapshot({});
-        }
-      }
-
-      if (!cancelled) {
-        setIsProgressHydrated(true);
-      }
+      applyProgressSnapshot(snapshot);
+      setIsBackendSyncReady(backendLoaded);
+      setIsProgressHydrated(true);
     };
 
     void loadProgress();
@@ -527,7 +593,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser, applyProgressSnapshot, mapBackendProgressToSnapshot, resolveBackendUserId, resetProgressState]);
+  }, [progressUserKey, applyProgressSnapshot, mapBackendProgressToSnapshot, mergeProgressSnapshots, resolveBackendUserId, resetProgressState]);
 
   // Let the games save their scores for the logged-in student.
   useEffect(() => {
@@ -615,7 +681,7 @@ function App() {
       // ignore storage errors
     }
 
-    if (!backendUserId) {
+    if (!backendUserId || !isBackendSyncReady) {
       return;
     }
 
@@ -647,7 +713,7 @@ function App() {
     };
 
     progressSyncRef.current = progressSyncRef.current.then(syncBackendProgress, syncBackendProgress);
-  }, [currentUser, backendUserId, isProgressHydrated, completedPretests, completedAlphabetModes, alphabetScores, alphabetExploredLetters, alphabetHeardFryWords, vowelsCompleted, vowelsExplored, consonantsCompleted, consonantsExplored, cvcCompleted, cvcExploredFamilies, cvcHeardWords, cvcSelectionCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
+  }, [currentUser, backendUserId, isProgressHydrated, isBackendSyncReady, completedPretests, completedAlphabetModes, alphabetScores, alphabetExploredLetters, alphabetHeardFryWords, vowelsCompleted, vowelsExplored, consonantsCompleted, consonantsExplored, cvcCompleted, cvcExploredFamilies, cvcHeardWords, cvcSelectionCompleted, vowelsWatchedVideos, consonantsWatchedVideos, cvcWatchedVideos]);
 
   // Keep one music instance playing across authenticated views.
   useEffect(() => {

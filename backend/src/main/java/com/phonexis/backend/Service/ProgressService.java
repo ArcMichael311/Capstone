@@ -54,8 +54,11 @@ public class ProgressService {
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
-		// Update videos watched
-		Set<Integer> uniqueVideoIds = new LinkedHashSet<>(videoIds == null ? List.of() : videoIds);
+		// Update videos watched (merged with what is already saved, never shrinks)
+		Set<Integer> uniqueVideoIds = new LinkedHashSet<>(parseVideoIds(progress.getVideosWatched()));
+		if (videoIds != null) {
+			uniqueVideoIds.addAll(videoIds);
+		}
 		String videosJson = "[" + String.join(",", uniqueVideoIds.stream().map(String::valueOf).toList()) + "]";
 		progress.setVideosWatched(videosJson);
 
@@ -109,21 +112,24 @@ public class ProgressService {
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElseGet(() -> createDefaultProgress(user, moduleName));
 
-		// Update completion flags
-		if (request.easyModeCompleted() != null) {
-			progress.setEasyModeCompleted(request.easyModeCompleted());
+		// Progress only moves forward: a completed step is never un-completed and watched videos
+		// are merged with what is already saved. This stops a stale or freshly reset browser state
+		// (e.g. right after a refresh or a new login) from wiping the student's saved progress.
+		if (Boolean.TRUE.equals(request.easyModeCompleted())) {
+			progress.setEasyModeCompleted(true);
 		}
-		if (request.mediumModeCompleted() != null) {
-			progress.setMediumModeCompleted(request.mediumModeCompleted());
+		if (Boolean.TRUE.equals(request.mediumModeCompleted())) {
+			progress.setMediumModeCompleted(true);
 		}
-		if (request.hardModeCompleted() != null) {
-			progress.setHardModeCompleted(request.hardModeCompleted());
+		if (Boolean.TRUE.equals(request.hardModeCompleted())) {
+			progress.setHardModeCompleted(true);
 		}
-		if (request.pretestCompleted() != null) {
-			progress.setPretestCompleted(request.pretestCompleted());
+		if (Boolean.TRUE.equals(request.pretestCompleted())) {
+			progress.setPretestCompleted(true);
 		}
 		if (request.videosWatched() != null) {
-			Set<Integer> uniqueVideoIds = new LinkedHashSet<>(request.videosWatched());
+			Set<Integer> uniqueVideoIds = new LinkedHashSet<>(parseVideoIds(progress.getVideosWatched()));
+			uniqueVideoIds.addAll(request.videosWatched());
 			String videosJson = "[" + String.join(",", uniqueVideoIds.stream().map(String::valueOf).toList()) + "]";
 			progress.setVideosWatched(videosJson);
 		}
@@ -201,6 +207,16 @@ public class ProgressService {
 			dto.pretestCompleted(), dto.easyModeCompleted(), dto.mediumModeCompleted(), dto.hardModeCompleted(),
 			learning, dto.assessmentScores(), dto.activityProgress(), dto.createdAt(), dto.updatedAt()
 		);
+	}
+
+	private List<Integer> parseVideoIds(String videosWatchedJson) {
+		if (videosWatchedJson == null || videosWatchedJson.isBlank()) {
+			return List.of();
+		}
+		return java.util.Arrays.stream(videosWatchedJson.replaceAll("[\\[\\]\\s]", "").split(","))
+			.filter(id -> id.matches("-?\\d+"))
+			.map(Integer::valueOf)
+			.toList();
 	}
 
 	private int calculateLearningCompletion(String moduleName, String videosWatchedJson) {

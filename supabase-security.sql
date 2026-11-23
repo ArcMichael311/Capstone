@@ -16,15 +16,12 @@ ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS session_token VARCHAR(64);
 
 ALTER TABLE IF EXISTS public.users
-<<<<<<< HEAD
-=======
 	ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(64);
 
 ALTER TABLE IF EXISTS public.users
 	ADD COLUMN IF NOT EXISTS reset_token_expires_at TIMESTAMPTZ;
 
 ALTER TABLE IF EXISTS public.users
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	ADD COLUMN IF NOT EXISTS session_expires_at TIMESTAMPTZ;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_session_token_uq
@@ -46,3 +43,23 @@ ALTER VIEW IF EXISTS public.teacher_student_progress SET (security_invoker = tru
 
 REVOKE ALL ON public.user_progress_summary FROM anon, authenticated;
 REVOKE ALL ON public.teacher_student_progress FROM anon, authenticated;
+
+-- Lock down EVERY table in the public schema (including users, which stores password
+-- hashes and session token hashes). The browser only uses Supabase for authentication;
+-- the backend connects as the database owner, which is not affected by these rules.
+DO $$
+DECLARE
+	r record;
+BEGIN
+	FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+		EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', r.tablename);
+		EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon, authenticated', r.tablename);
+	END LOOP;
+END $$;
+
+-- Tables created later should not be exposed by default either.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+
+-- Session tokens are now stored as SHA-256 hashes. Clear any old plaintext tokens
+-- (users simply log in again).
+UPDATE public.users SET session_token = NULL, session_expires_at = NULL WHERE session_token IS NOT NULL;

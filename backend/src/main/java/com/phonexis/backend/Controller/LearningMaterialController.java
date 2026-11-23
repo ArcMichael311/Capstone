@@ -13,14 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.LearningMaterialService;
 
 @RestController
 @RequestMapping("/api/learning-materials")
 public class LearningMaterialController {
 	private final LearningMaterialService learningMaterialService;
+	private final AccessGuard accessGuard;
 
-	public LearningMaterialController(LearningMaterialService learningMaterialService) {
+	public LearningMaterialController(LearningMaterialService learningMaterialService, AccessGuard accessGuard) {
+		this.accessGuard = accessGuard;
 		this.learningMaterialService = learningMaterialService;
 	}
 
@@ -32,6 +35,7 @@ public class LearningMaterialController {
 		@RequestParam(required = false) String title,
 		@RequestParam("file") MultipartFile file
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(learningMaterialService.upload(classId, teacherId, title, file));
 	}
 
@@ -43,6 +47,7 @@ public class LearningMaterialController {
 	@DeleteMapping("/{materialId}")
 	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteMaterial(@PathVariable Long materialId, @RequestParam Long teacherId) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		learningMaterialService.deleteMaterial(materialId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Material deleted successfully"));
 	}

@@ -11,19 +11,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.TeacherActivityService;
 
 @RestController
 @RequestMapping("/api/teacher-activities")
 public class TeacherActivityController {
 	private final TeacherActivityService activityService;
+	private final AccessGuard accessGuard;
 
-	public TeacherActivityController(TeacherActivityService activityService) {
+	public TeacherActivityController(TeacherActivityService activityService, AccessGuard accessGuard) {
+		this.accessGuard = accessGuard;
 		this.activityService = activityService;
 	}
 
 	@GetMapping("/teacher/{teacherId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<List<TeacherActivityService.ActivityResponse>> listActivities(@PathVariable Long teacherId) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(activityService.listActivities(teacherId));
 	}
 
@@ -33,6 +38,7 @@ public class TeacherActivityController {
 		@PathVariable Long teacherId,
 		@RequestBody TeacherActivityService.CreateActivityRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(activityService.createActivity(teacherId, request));
 	}
 }

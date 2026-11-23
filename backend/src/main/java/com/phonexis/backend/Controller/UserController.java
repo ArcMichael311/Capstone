@@ -13,14 +13,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.UserService;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 	private final UserService userService;
+	private final AccessGuard accessGuard;
 
-	public UserController(UserService userService) {
+	public UserController(UserService userService, AccessGuard accessGuard) {
+		this.accessGuard = accessGuard;
 		this.userService = userService;
 	}
 
@@ -69,11 +72,13 @@ public class UserController {
 	@PostMapping("/{id}/generate-class-code")
 	@PreAuthorize("hasRole('ADMIN') or hasRole('TEACHER')")
 	public ResponseEntity<UserResponse> generateClassCode(@PathVariable Long id) {
+		accessGuard.requireSelfOrAdmin(id);
 		return ResponseEntity.ok(new UserResponse(userService.generateClassCode(id)));
 	}
 
 	@PostMapping("/{id}/join-class")
 	public ResponseEntity<UserResponse> joinClass(@PathVariable Long id, @RequestBody JoinClassRequest request) {
+		accessGuard.requireSelfOrAdmin(id);
 		return ResponseEntity.ok(new UserResponse(userService.joinClass(id, request.classCode())));
 	}
 

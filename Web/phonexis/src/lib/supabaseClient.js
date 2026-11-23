@@ -11,10 +11,16 @@ export const isLocalDevelopment = process.env.NODE_ENV === 'development';
 let memoryDeviceId = '';
 let memoryAccessToken = '';
 
+// The backend session token is kept in localStorage (like the Supabase session) so it
+// survives page refreshes, new tabs and browser restarts. It expires server-side after
+// 8 hours and is revoked on logout.
+const ACCESS_TOKEN_KEY = 'phonexis_access_token';
+
 const getAccessToken = () => {
   if (memoryAccessToken) return memoryAccessToken;
   try {
-    memoryAccessToken = window.sessionStorage.getItem('phonexis_access_token')
+    memoryAccessToken = window.localStorage.getItem(ACCESS_TOKEN_KEY)
+      || window.sessionStorage.getItem(ACCESS_TOKEN_KEY)
       || '';
   } catch (error) {
     memoryAccessToken = '';
@@ -25,15 +31,18 @@ const getAccessToken = () => {
 const setAccessToken = (token) => {
   memoryAccessToken = token || '';
   try {
+    window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
     if (memoryAccessToken) {
-      window.sessionStorage.setItem('phonexis_access_token', memoryAccessToken);
+      window.localStorage.setItem(ACCESS_TOKEN_KEY, memoryAccessToken);
     } else {
-      window.sessionStorage.removeItem('phonexis_access_token');
+      window.localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
   } catch (error) {
     // In-memory storage remains available when browser storage is blocked.
   }
 };
+
+export const hasBackendSession = () => !!getAccessToken();
 
 export const clearBackendSession = () => setAccessToken('');
 
@@ -92,21 +101,35 @@ const readBackendError = async (response) => {
 
 export const isBackendUnavailable = (error) => error?.message === 'Backend unavailable';
 
+// Headers sent with every backend call. The session token travels in the
+// Authorization header (not a cookie), so cross-site cookie blocking can't break login.
+const buildAuthHeaders = (extraHeaders = {}) => {
+  const token = getAccessToken();
+  return {
+    'X-Device-Id': getDeviceId(),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extraHeaders,
+  };
+};
+
 const requestToBackend = async (path, options = {}) => {
   try {
     const url = `${backendUrl}${path}`;
+    const { headers: extraHeaders, ...restOptions } = options;
     const response = await fetch(url, {
-      credentials: 'include',
-      headers: {
+      ...restOptions,
+      credentials: 'omit',
+      headers: buildAuthHeaders({
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        'X-Device-Id': getDeviceId(),
-        ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
-        ...(options.headers || {}),
-      },
-      ...options,
+        ...(extraHeaders || {}),
+      }),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token missing, expired or revoked: drop it so the user logs in again.
+        clearBackendSession();
+      }
       const backendError = await readBackendError(response);
       return {
         data: null,
@@ -116,12 +139,9 @@ const requestToBackend = async (path, options = {}) => {
 
     const responseText = await response.text();
     const data = responseText ? JSON.parse(responseText) : null;
-<<<<<<< HEAD
-=======
     if (data?.accessToken) {
       setAccessToken(data.accessToken);
     }
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
     return {
       data,
       error: null,
@@ -154,7 +174,10 @@ const getNameParts = (user, profile = {}) => {
 };
 
 const isConflictError = (message) => /already exists|conflict|duplicate/i.test(message || '');
-const isAccountNotFoundError = (error) => error?.status === 404 || /account not found|user not found/i.test(error?.message || '');
+// The backend answers 401 for both "wrong password" and "no such account" (so attackers
+// can't discover which emails exist). After Supabase has already verified the password,
+// a 401 here means the backend account is missing, so we try to register it.
+const isAccountNotFoundError = (error) => error?.status === 401 || error?.status === 404 || /account not found|user not found/i.test(error?.message || '');
 
 const syncBackendUser = async (user, password, profile = {}) => {
   if (!user?.email || !password) {
@@ -187,11 +210,8 @@ const syncBackendUser = async (user, password, profile = {}) => {
 
   const createResult = await postToBackend('/api/auth/register', payload);
 
-  if (!createResult.error) {
-    return createResult;
-  }
-
-  if (isConflictError(createResult.error.message)) {
+  // Registering doesn't return a session token, so log in right after to get one.
+  if (!createResult.error || isConflictError(createResult.error.message)) {
     return postToBackend('/api/auth/login', {
       email: user.email,
       password,
@@ -235,6 +255,8 @@ export const releaseSupabaseUserDevice = (email) => postToBackend('/api/auth/log
 }).finally(() => clearBackendSession());
 export const syncSupabasePasswordToBackend = syncBackendPassword;
 export const fetchBackendUsers = () => getFromBackend('/api/users');
+// The logged-in user's own backend profile (works for every role, unlike the admin-only user list).
+export const fetchCurrentBackendUser = () => getFromBackend('/api/auth/me');
 export const fetchBackendProgress = (userId) => getFromBackend(`/api/progress/user/${userId}`);
 export const fetchBackendActivity = (userId) => getFromBackend(`/api/activity/user/${userId}`);
 export const recordBackendActivity = (userId, moduleName, action, details = null) => postToBackend(`/api/activity/user/${userId}`, {
@@ -282,7 +304,8 @@ export const uploadLearningMaterial = async (classId, teacherId, file, title) =>
     const url = `${backendUrl}/api/learning-materials/class/${classId}?teacherId=${teacherId}`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'X-Device-Id': getDeviceId() },
+      credentials: 'omit',
+      headers: buildAuthHeaders(),
       body: formData,
     });
 
@@ -322,7 +345,8 @@ export const uploadPretestAudio = async (pretestId, teacherId, blob, fileName = 
     const url = `${backendUrl}/api/pretests/${pretestId}/audio?teacherId=${teacherId}`;
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'X-Device-Id': getDeviceId() },
+      credentials: 'omit',
+      headers: buildAuthHeaders(),
       body: formData,
     });
 
