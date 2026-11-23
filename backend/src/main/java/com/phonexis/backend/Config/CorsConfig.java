@@ -14,48 +14,54 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * CORS is registered with Spring Security (see SecurityConfig#cors) so that browser
- * preflight (OPTIONS) requests are answered before authentication runs. Registering it
- * only with Spring MVC makes preflights fail with 401 and the frontend can't connect.
+ * preflight (OPTIONS) requests are answered before authentication runs.
  *
- * Allowed origins come from FRONTEND_URL (comma-separated). Localhost is always allowed
- * for development.
+ * Why every website is allowed by default: this API authenticates with a Bearer token sent
+ * in the Authorization header, never with cookies, and credentials are disabled below. Another
+ * website cannot read or send a user's token, so restricting origins adds no protection here -
+ * it only broke the app whenever the frontend's address changed (every Vercel deploy gets a new
+ * URL), which showed up as "Backend unavailable".
+ *
+ * To restrict it anyway, set CORS_ALLOW_ALL_ORIGINS=false and list the sites in FRONTEND_URL
+ * (comma-separated, "*" wildcards allowed, e.g. https://phonexis-*-phonexis.vercel.app).
  */
 @Configuration
 public class CorsConfig {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CorsConfig.class);
 
+	@Value("${app.cors.allow-all-origins:true}")
+	private boolean allowAllOrigins;
+
 	@Value("${app.frontend-url:}")
 	private String frontendUrl;
 
-	// Vercel gives every deployment its own URL (https://phonexis-<random>-phonexis.vercel.app),
-	// so an exact FRONTEND_URL breaks on each redeploy. These patterns cover this Vercel project.
-	// Override with FRONTEND_URL_PATTERNS (comma-separated, "*" = any characters).
 	@Value("${app.frontend-url-patterns:https://phonexis.vercel.app,https://phonexis-*-phonexis.vercel.app}")
 	private String frontendUrlPatterns;
 
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
-		List<String> allowedOrigins = new ArrayList<>(List.of(
-			"http://localhost:3000",
-			"http://127.0.0.1:3000"
-		));
-		addOrigins(allowedOrigins, frontendUrlPatterns);
-		addOrigins(allowedOrigins, frontendUrl);
-
-		// Printed at startup so a "Backend unavailable" error in the browser (usually a CORS block)
-		// can be diagnosed from the Render logs: the website's URL must match one of these.
-		LOGGER.info("CORS allowed origins (FRONTEND_URL / FRONTEND_URL_PATTERNS): {}", allowedOrigins);
+		List<String> allowedOrigins = new ArrayList<>();
+		if (allowAllOrigins) {
+			allowedOrigins.add("*");
+		} else {
+			allowedOrigins.add("http://localhost:3000");
+			allowedOrigins.add("http://127.0.0.1:3000");
+			addOrigins(allowedOrigins, frontendUrlPatterns);
+			addOrigins(allowedOrigins, frontendUrl);
+		}
+		LOGGER.info("CORS allowed origins: {}", allowedOrigins);
 
 		CorsConfiguration configuration = new CorsConfiguration();
 		configuration.setAllowedOriginPatterns(allowedOrigins);
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Device-Id"));
-		// Auth uses a Bearer header, not cookies, so credentials are not needed (reduces CSRF risk).
+		// Never send cookies cross-site: auth is the Bearer header only (this is what makes "*" safe).
 		configuration.setAllowCredentials(false);
 		configuration.setMaxAge(3600L);
 
 		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 		source.registerCorsConfiguration("/api/**", configuration);
+		source.registerCorsConfiguration("/health", configuration);
 		return source;
 	}
 
@@ -69,8 +75,9 @@ public class CorsConfig {
 				normalizedOrigin = normalizedOrigin.substring(0, normalizedOrigin.length() - 1);
 			}
 			// Browsers send the origin without a path, e.g. https://site.vercel.app (no "/login").
-			int pathStart = normalizedOrigin.indexOf('/', normalizedOrigin.indexOf("://") + 3);
-			if (normalizedOrigin.contains("://") && pathStart > 0) {
+			int schemeEnd = normalizedOrigin.indexOf("://");
+			int pathStart = schemeEnd < 0 ? -1 : normalizedOrigin.indexOf('/', schemeEnd + 3);
+			if (pathStart > 0) {
 				normalizedOrigin = normalizedOrigin.substring(0, pathStart);
 			}
 			if (!normalizedOrigin.isEmpty() && !allowedOrigins.contains(normalizedOrigin)) {

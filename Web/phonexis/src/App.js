@@ -35,6 +35,7 @@ import {
   releaseSupabaseUserDevice,
   isLocalDevelopment,
   clearBackendSession,
+  SESSION_ENDED_EVENT,
 } from './lib/supabaseClient';
 
 function App() {
@@ -872,6 +873,26 @@ function App() {
     setActiveView('login');
     setActiveSection(null);
   }, [currentUser]);
+
+  // The backend rejected our session (it expired, or this account just signed in on another
+  // device). Return to the login screen; Login shows the reason.
+  useEffect(() => {
+    const handleSessionEnded = async () => {
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        // ignore sign-out errors and clear local state anyway
+      }
+      setIsAuthenticated(false);
+      setCurrentUser(null);
+      setNavigationHistory([]);
+      setActiveView('login');
+      setActiveSection(null);
+    };
+
+    window.addEventListener(SESSION_ENDED_EVENT, handleSessionEnded);
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, handleSessionEnded);
+  }, []);
 
   // Auto-logout after 30 minutes with no user activity, and heartbeat the backend
   // periodically so the account's device lock doesn't stay held by a closed/crashed tab.
