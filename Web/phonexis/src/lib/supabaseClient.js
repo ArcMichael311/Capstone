@@ -112,11 +112,31 @@ const buildAuthHeaders = (extraHeaders = {}) => {
   };
 };
 
-const requestToBackend = async (path, options = {}) => {
+const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
+
+// fetch() only throws when the request never got a response: the backend is down/asleep,
+// the URL is wrong, or the browser blocked it because of CORS (the website's URL is not in
+// the backend's FRONTEND_URL setting). Safe (idempotent) requests are retried once, which
+// also covers Render's free tier waking up from sleep.
+const fetchWithRetry = async (url, init) => {
+  const method = String(init.method || 'GET').toUpperCase();
+  const canRetry = method === 'GET' || method === 'PUT';
   try {
-    const url = `${backendUrl}${path}`;
+    return await fetch(url, init);
+  } catch (error) {
+    if (!canRetry) {
+      throw error;
+    }
+    await wait(2500);
+    return fetch(url, init);
+  }
+};
+
+const requestToBackend = async (path, options = {}) => {
+  const url = `${backendUrl}${path}`;
+  try {
     const { headers: extraHeaders, ...restOptions } = options;
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       ...restOptions,
       credentials: 'omit',
       headers: buildAuthHeaders({
@@ -138,7 +158,14 @@ const requestToBackend = async (path, options = {}) => {
     }
 
     const responseText = await response.text();
-    const data = responseText ? JSON.parse(responseText) : null;
+    let data = null;
+    try {
+      data = responseText ? JSON.parse(responseText) : null;
+    } catch (parseError) {
+      // Usually REACT_APP_BACKEND_URL points at the website instead of the backend (HTML comes back).
+      console.error(`[Phonexis] ${url} did not return JSON. Check REACT_APP_BACKEND_URL (currently ${backendUrl}).`);
+      return { data: null, error: { message: 'Backend unavailable' } };
+    }
     if (data?.accessToken) {
       setAccessToken(data.accessToken);
     }
@@ -147,6 +174,11 @@ const requestToBackend = async (path, options = {}) => {
       error: null,
     };
   } catch (error) {
+    console.error(
+      `[Phonexis] Could not reach the backend at ${url}. Either the backend is down, or it blocks `
+      + `this website (CORS): its FRONTEND_URL setting must include ${typeof window !== 'undefined' ? window.location.origin : 'this site'}.`,
+      error,
+    );
     return {
       data: null,
       error: { message: 'Backend unavailable' },
