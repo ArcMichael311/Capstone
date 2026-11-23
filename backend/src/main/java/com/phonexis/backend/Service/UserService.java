@@ -34,7 +34,6 @@ public class UserService {
 	private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 	private static final String CLASS_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	private static final int CLASS_CODE_LENGTH = 6;
-	private static final int DEVICE_LOCK_STALE_MINUTES = 30;
 	private static final Random RANDOM = new Random();
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 	private static final int SESSION_HOURS = 8;
@@ -268,13 +267,10 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
 		}
 
-		// Claims the device slot when it's free, already ours, or stale (no heartbeat
-		// for DEVICE_LOCK_STALE_MINUTES - e.g. the previous tab was closed without logging out).
-		LocalDateTime staleBefore = LocalDateTime.now().minusMinutes(DEVICE_LOCK_STALE_MINUTES);
-		if (deviceLockEnabled && userRepository.claimDeviceIfAvailable(user.getUserId(), normalizedDeviceId, staleBefore) != 1) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already logged in on another device.");
-		}
-
+		// One active session per account, "latest login wins": a successful login (correct
+		// password) replaces any previous session. The old device's token stops working at once,
+		// so it is signed out. This keeps the one-device rule without ever locking a user out
+		// when a logout never reached the server (closed tab, idle timeout, cleared storage...).
 		user.setActiveDeviceId(normalizedDeviceId);
 		user.setLastActiveAt(LocalDateTime.now());
 		// The raw token goes to the client once; only its SHA-256 hash is stored.
@@ -300,19 +296,9 @@ public class UserService {
 
 	@Transactional
 	public void releaseDevice(String email, String deviceId) {
+		// The caller is authenticated with the account's current session token, so it is the
+		// active device by definition. Logging out always succeeds (and is safe to repeat).
 		User user = getUserByEmail(email);
-		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		if (!deviceLockEnabled) {
-			user.setActiveDeviceId(null);
-			user.setSessionToken(null);
-			user.setSessionExpiresAt(null);
-			userRepository.save(user);
-			return;
-		}
-		if (normalizedDeviceId.isEmpty() || !normalizedDeviceId.equals(user.getActiveDeviceId())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This device is not active for the account");
-		}
-
 		user.setActiveDeviceId(null);
 		user.setSessionToken(null);
 		user.setSessionExpiresAt(null);
@@ -406,24 +392,7 @@ public class UserService {
 		return deviceId == null ? "" : deviceId.trim();
 	}
 
-	private boolean deviceMatches(User user, String deviceId) {
-		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		return !normalizedDeviceId.isEmpty() && (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()
-			|| normalizedDeviceId.equals(user.getActiveDeviceId()));
-	}
 
-	private void claimDevice(User user, String deviceId) {
-		if (!deviceMatches(user, deviceId)) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "This account is already active on another device");
-		}
-		if (user.getActiveDeviceId() == null || user.getActiveDeviceId().isBlank()) {
-			String normalizedDeviceId = normalizeDeviceId(deviceId);
-			if (normalizedDeviceId.isEmpty()) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
-			}
-			user.setActiveDeviceId(normalizedDeviceId);
-		}
-	}
 
 	private String normalizeOptionalValue(String value) {
 		if (value == null) {

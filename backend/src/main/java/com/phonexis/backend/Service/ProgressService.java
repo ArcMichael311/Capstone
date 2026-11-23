@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +23,6 @@ public class ProgressService {
 	private final GameScoreRepository gameScoreRepository;
 
 	private static final Set<String> GAME_NAMES = Set.of("alphaquest", "vowelrush", "wordblast", "balloonpop");
-
-	@Value("${app.device-lock.enabled:true}")
-	private boolean deviceLockEnabled = true;
 
 	public ProgressService(ProgressRepository progressRepository, UserRepository userRepository, GameScoreRepository gameScoreRepository) {
 		this.progressRepository = progressRepository;
@@ -49,7 +45,6 @@ public class ProgressService {
 	public ProgressDTO updateVideosWatched(Long userId, String moduleName, String deviceId, List<Integer> videoIds) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElseGet(() -> createDefaultProgress(user, moduleName));
@@ -83,7 +78,6 @@ public class ProgressService {
 	public boolean canAccessLesson(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -95,7 +89,6 @@ public class ProgressService {
 	public boolean canAccessPretest(Long userId, String moduleName, String deviceId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElse(null);
@@ -107,7 +100,6 @@ public class ProgressService {
 	public ProgressDTO updateModuleCompletion(Long userId, String moduleName, String deviceId, UpdateProgressRequest request) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-		assertActiveDevice(user, deviceId);
 
 		Progress progress = progressRepository.findByUserAndModuleName(user, moduleName)
 			.orElseGet(() -> createDefaultProgress(user, moduleName));
@@ -243,7 +235,6 @@ public class ProgressService {
 
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-		assertActiveDevice(user, deviceId);
 
 		GameScore gameScore = gameScoreRepository.findByUserAndGameName(user, normalizedGame)
 			.orElseGet(() -> new GameScore(user, normalizedGame));
@@ -271,17 +262,6 @@ public class ProgressService {
 		};
 	}
 
-	private void assertActiveDevice(User user, String deviceId) {
-		if (!deviceLockEnabled) {
-			return;
-		}
-		String activeDeviceId = user.getActiveDeviceId();
-		String requestedDeviceId = deviceId == null ? "" : deviceId.trim();
-		if (activeDeviceId == null || activeDeviceId.isBlank() || requestedDeviceId.isEmpty()
-			|| !activeDeviceId.equals(requestedDeviceId)) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This device is not authorized for the account");
-		}
-	}
 
 	// DTOs
 	public record ProgressDTO(

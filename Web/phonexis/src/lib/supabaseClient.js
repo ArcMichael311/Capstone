@@ -6,8 +6,22 @@ const configuredBackendUrl = process.env.REACT_APP_BACKEND_URL;
 const defaultBackendUrl = process.env.NODE_ENV === 'development'
   ? 'http://localhost:8080'
   : 'https://phonexis-backend.onrender.com';
+
 const backendUrl = (configuredBackendUrl || defaultBackendUrl).replace(/\/$/, '');
 export const isLocalDevelopment = process.env.NODE_ENV === 'development';
+
+// Render's free plan puts the backend to sleep when idle and waking it takes up to a minute.
+// Ping it as soon as the site loads so it is awake by the time the user presses "Sign in".
+// ('no-cors': we only need the request to arrive, not to read the answer.)
+export const wakeBackend = () => fetch(`${backendUrl}/health`, { mode: 'no-cors', credentials: 'omit', cache: 'no-store' }).catch(() => null);
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+  void wakeBackend();
+}
+
+// Fired when the backend rejects our session (it expired, or this account signed in on
+// another device). App.js listens for it and returns to the login screen.
+export const SESSION_ENDED_EVENT = 'phonexis:session-ended';
+export const LOGOUT_REASON_KEY = 'phonexis_logout_reason';
 let memoryDeviceId = '';
 let memoryAccessToken = '';
 
@@ -118,17 +132,31 @@ const wait = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 // the URL is wrong, or the browser blocked it because of CORS (the website's URL is not in
 // the backend's FRONTEND_URL setting). Safe (idempotent) requests are retried once, which
 // also covers Render's free tier waking up from sleep.
-const fetchWithRetry = async (url, init) => {
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+const RETRY_DELAYS_MS = [2500, 6000];
+// Login and the session heartbeat only (re)create the caller's own session, so they are
+// safe to repeat like GET/PUT. Other POSTs (e.g. game scores) are not retried.
+const SAFE_POST_PATHS = ['/api/auth/login', '/api/auth/verify-device'];
+
+const fetchWithRetry = async (url, init, path) => {
   const method = String(init.method || 'GET').toUpperCase();
-  const canRetry = method === 'GET' || method === 'PUT';
-  try {
-    return await fetch(url, init);
-  } catch (error) {
-    if (!canRetry) {
-      throw error;
+  const canRetry = method === 'GET' || method === 'PUT' || SAFE_POST_PATHS.includes(path);
+
+  for (let attempt = 0; ; attempt += 1) {
+    const isLastAttempt = !canRetry || attempt >= RETRY_DELAYS_MS.length;
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      const response = await fetch(url, init);
+      if (isLastAttempt || !RETRYABLE_STATUS.has(response.status)) {
+        return response;
+      }
+    } catch (error) {
+      if (isLastAttempt) {
+        throw error;
+      }
     }
-    await wait(2500);
-    return fetch(url, init);
+    // eslint-disable-next-line no-await-in-loop
+    await wait(RETRY_DELAYS_MS[attempt]);
   }
 };
 
@@ -136,6 +164,7 @@ const requestToBackend = async (path, options = {}) => {
   const url = `${backendUrl}${path}`;
   try {
     const { headers: extraHeaders, ...restOptions } = options;
+    const hadSession = !!getAccessToken();
     const response = await fetchWithRetry(url, {
       ...restOptions,
       credentials: 'omit',
@@ -143,12 +172,21 @@ const requestToBackend = async (path, options = {}) => {
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(extraHeaders || {}),
       }),
-    });
+    }, path);
 
     if (!response.ok) {
       if (response.status === 401) {
-        // Token missing, expired or revoked: drop it so the user logs in again.
+        // Token missing, expired or replaced by a newer login: drop it so the user logs in again.
         clearBackendSession();
+        if (hadSession && path !== '/api/auth/login' && typeof window !== 'undefined') {
+          try {
+            window.sessionStorage.setItem(LOGOUT_REASON_KEY,
+              'You were signed out because your session ended or this account signed in on another device. Please log in again.');
+          } catch (storageError) {
+            // ignore storage errors
+          }
+          window.dispatchEvent(new Event(SESSION_ENDED_EVENT));
+        }
       }
       const backendError = await readBackendError(response);
       return {

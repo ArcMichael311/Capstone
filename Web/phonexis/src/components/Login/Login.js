@@ -1,18 +1,42 @@
 import './Login.css';
 import { useState } from 'react';
 import logo from './logoB.png';
-import { clearBackendSession, getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
+import { clearBackendSession, getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, LOGOUT_REASON_KEY, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
+
+// Shown once after the app signed the user out (session expired / signed in elsewhere).
+const takeLogoutReason = () => {
+  try {
+    const reason = window.sessionStorage.getItem(LOGOUT_REASON_KEY);
+    window.sessionStorage.removeItem(LOGOUT_REASON_KEY);
+    return reason;
+  } catch (storageError) {
+    return null;
+  }
+};
 
 export default function Login({ onNavigate, onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(takeLogoutReason);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
     setError(null);
+    setIsSubmitting(true);
+    try {
+      await submitLogin();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitLogin = async () => {
 
     try {
       if (!getSessionDeviceId()) {
@@ -88,11 +112,14 @@ export default function Login({ onNavigate, onSuccess }) {
   };
 
   function formatLoginError(backendError, fallbackMessage) {
-    if (backendError?.status === 409) {
-      return 'This account is already logged in on another device.';
+    if (backendError?.status === 429) {
+      return backendError.message || 'Too many failed attempts. Please wait a few minutes and try again.';
     }
-    if (backendError?.status >= 500 || backendError?.message === 'Backend unavailable') {
-      return 'The login service is temporarily unavailable. Please try again after the backend redeploys.';
+    if (backendError?.message === 'Backend unavailable' || backendError?.status === 502 || backendError?.status === 504) {
+      return 'Could not reach the server. It may be starting up - please wait a moment and try again.';
+    }
+    if (backendError?.status >= 500) {
+      return backendError?.message || 'The server had a problem. Please try again in a moment.';
     }
     return backendError?.message || fallbackMessage || 'Login failed';
   }
@@ -147,8 +174,8 @@ export default function Login({ onNavigate, onSuccess }) {
 
         {error ? <p className="form-error">{error}</p> : null}
 
-        <button type="submit" className="login-submit">
-          SIGN IN
+        <button type="submit" className="login-submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+          {isSubmitting ? 'SIGNING IN...' : 'SIGN IN'}
         </button>
 
         <button type="button" className="login-link" onClick={() => onNavigate('register')}>
