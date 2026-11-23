@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.ProgressService;
 import com.phonexis.backend.Service.ProgressService.GameScoreDTO;
 import com.phonexis.backend.Service.ProgressService.GameScoreRequest;
@@ -22,13 +23,16 @@ import com.phonexis.backend.Service.ProgressService.UpdateProgressRequest;
 @RequestMapping("/api/progress")
 public class ProgressController {
 	private final ProgressService progressService;
+	private final AccessGuard accessGuard;
 
-	public ProgressController(ProgressService progressService) {
+	public ProgressController(ProgressService progressService, AccessGuard accessGuard) {
+		this.accessGuard = accessGuard;
 		this.progressService = progressService;
 	}
 
 	@GetMapping("/user/{userId}")
 	public ResponseEntity<List<ProgressDTO>> getUserProgress(@PathVariable Long userId) {
+		accessGuard.requireSelfOrStaff(userId);
 		List<ProgressDTO> progress = progressService.getUserProgress(userId);
 		return ResponseEntity.ok(progress);
 	}
@@ -38,6 +42,7 @@ public class ProgressController {
 		@PathVariable Long userId,
 		@PathVariable String moduleName
 	) {
+		accessGuard.requireSelfOrStaff(userId);
 		ProgressDTO progress = progressService.getProgress(userId, moduleName);
 		return ResponseEntity.ok(progress);
 	}
@@ -49,6 +54,7 @@ public class ProgressController {
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
 		@RequestBody VideoWatchedRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(userId);
 		ProgressDTO progress = progressService.updateVideosWatched(userId, moduleName, deviceId, request.videoIds());
 		return ResponseEntity.ok(progress);
 	}
@@ -60,12 +66,14 @@ public class ProgressController {
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
 		@RequestBody UpdateProgressRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(userId);
 		ProgressDTO progress = progressService.updateModuleCompletion(userId, moduleName, deviceId, request);
 		return ResponseEntity.ok(progress);
 	}
 
 	@GetMapping("/user/{userId}/games")
 	public ResponseEntity<List<GameScoreDTO>> getGameScores(@PathVariable Long userId) {
+		accessGuard.requireSelfOrStaff(userId);
 		return ResponseEntity.ok(progressService.getGameScores(userId));
 	}
 
@@ -75,6 +83,7 @@ public class ProgressController {
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceId,
 		@RequestBody GameScoreRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(userId);
 		return ResponseEntity.ok(progressService.recordGameScore(userId, request.gameName(), deviceId, request.score()));
 	}
 
@@ -84,6 +93,7 @@ public class ProgressController {
 		@PathVariable String moduleName,
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceId
 	) {
+		accessGuard.requireSelfOrStaff(userId);
 		boolean canAccess = progressService.canAccessLesson(userId, moduleName, deviceId);
 		return ResponseEntity.ok(new AccessCheckResponse(canAccess, "User " + (canAccess ? "can" : "cannot") + " access lesson"));
 	}
@@ -94,6 +104,7 @@ public class ProgressController {
 		@PathVariable String moduleName,
 		@RequestHeader(name = "X-Device-Id", required = false) String deviceId
 	) {
+		accessGuard.requireSelfOrStaff(userId);
 		boolean canAccess = progressService.canAccessPretest(userId, moduleName, deviceId);
 		return ResponseEntity.ok(new AccessCheckResponse(canAccess, "User " + (canAccess ? "can" : "cannot") + " access pretest"));
 	}

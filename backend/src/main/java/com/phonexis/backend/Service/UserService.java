@@ -1,11 +1,8 @@
 package com.phonexis.backend.Service;
 
 import java.time.LocalDateTime;
-<<<<<<< HEAD
-=======
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -20,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.phonexis.backend.Config.SessionAuthenticationFilter;
 import com.phonexis.backend.Entity.ClassSection;
 import com.phonexis.backend.Entity.User;
 import com.phonexis.backend.Entity.User.Role;
@@ -39,6 +37,8 @@ public class UserService {
 	private static final int DEVICE_LOCK_STALE_MINUTES = 30;
 	private static final Random RANDOM = new Random();
 	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+	private static final int SESSION_HOURS = 8;
+	private static final String DUMMY_PASSWORD_HASH = PASSWORD_ENCODER.encode("phonexis-timing-equalizer");
 
 	private final UserRepository userRepository;
 	private final ProgressRepository progressRepository;
@@ -233,8 +233,14 @@ public class UserService {
 
 	@Transactional
 	public AuthSession login(String email, String password, String deviceId) {
-		User user = getUserByEmail(email);
-		if (!PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
+		String normalizedEmail = normalizeEmail(email);
+		User user = normalizedEmail.isEmpty() ? null : userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+		if (user == null) {
+			// Run a hash anyway so response time doesn't reveal whether the account exists.
+			PASSWORD_ENCODER.matches(password == null ? "" : password, DUMMY_PASSWORD_HASH);
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+		}
+		if (password == null || !PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
 		}
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
@@ -251,18 +257,12 @@ public class UserService {
 
 		user.setActiveDeviceId(normalizedDeviceId);
 		user.setLastActiveAt(LocalDateTime.now());
-<<<<<<< HEAD
+		// The raw token goes to the client once; only its SHA-256 hash is stored.
 		String sessionToken = createSecureToken();
-		user.setSessionToken(sessionToken);
-		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
+		user.setSessionToken(SessionAuthenticationFilter.hashToken(sessionToken));
+		user.setSessionExpiresAt(LocalDateTime.now().plusHours(SESSION_HOURS));
 		userRepository.save(user);
 		return new AuthSession(toUserProfile(user), sessionToken);
-=======
-		user.setSessionToken(createSecureToken());
-		user.setSessionExpiresAt(LocalDateTime.now().plusHours(8));
-		userRepository.save(user);
-		return new AuthSession(toUserProfile(user), user.getSessionToken());
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 
 	@Transactional
@@ -295,10 +295,7 @@ public class UserService {
 
 		user.setActiveDeviceId(null);
 		user.setSessionToken(null);
-<<<<<<< HEAD
 		user.setSessionExpiresAt(null);
-=======
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 		userRepository.save(user);
 	}
 
@@ -308,8 +305,8 @@ public class UserService {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
 		}
 
-		User user = getUserByEmail(email);
-		if (token == null || token.isBlank()
+		User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email)).orElse(null);
+		if (user == null || token == null || token.isBlank()
 			|| user.getResetTokenHash() == null
 			|| user.getResetTokenExpiresAt() == null
 			|| user.getResetTokenExpiresAt().isBefore(LocalDateTime.now())
@@ -320,6 +317,8 @@ public class UserService {
 		user.setResetTokenHash(null);
 		user.setResetTokenExpiresAt(null);
 		user.setSessionToken(null);
+		user.setSessionExpiresAt(null);
+		user.setActiveDeviceId(null);
 		userRepository.save(user);
 	}
 
@@ -340,12 +339,13 @@ public class UserService {
 		}
 
 		User user = getUserByEmail(email);
-		if (!PASSWORD_ENCODER.matches(currentPassword, user.getPasswordHash())) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+		if (currentPassword == null || !PASSWORD_ENCODER.matches(currentPassword, user.getPasswordHash())) {
+			// 400 (not 401) so the frontend doesn't treat this as an expired session.
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
 		}
 
+		// The account is locked to one device, so the caller's session is the only one; keep it.
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
-		user.setSessionToken(null);
 		userRepository.save(user);
 	}
 
@@ -356,8 +356,6 @@ public class UserService {
 		}
 		User user = getUserByEmail(email);
 		user.setPasswordHash(PASSWORD_ENCODER.encode(password));
-		user.setSessionToken(null);
-		user.setSessionExpiresAt(null);
 		userRepository.save(user);
 	}
 
@@ -494,16 +492,6 @@ public class UserService {
 	public record UserProfile(Long id, String email, String firstName, String lastName, String role, String classroom, String classCode, java.time.LocalDateTime createdAt, Map<String, Object> user_metadata) {
 	}
 
-<<<<<<< HEAD
-	public record AuthSession(UserProfile user, String sessionToken) {
-	}
-
-	private String createSecureToken() {
-		byte[] bytes = new byte[32];
-		SECURE_RANDOM.nextBytes(bytes);
-		return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-=======
 	public record AuthSession(UserProfile user, String accessToken) {
->>>>>>> dcc1ad01afacd6547e0e7ae27ff0138a20bb8ac7
 	}
 }

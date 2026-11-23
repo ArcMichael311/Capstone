@@ -15,14 +15,17 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.PretestService;
 
 @RestController
 @RequestMapping("/api/pretests")
 public class PretestController {
 	private final PretestService pretestService;
+	private final AccessGuard accessGuard;
 
-	public PretestController(PretestService pretestService) {
+	public PretestController(PretestService pretestService, AccessGuard accessGuard) {
+		this.accessGuard = accessGuard;
 		this.pretestService = pretestService;
 	}
 
@@ -33,10 +36,12 @@ public class PretestController {
 		@RequestParam Long teacherId,
 		@RequestBody PretestService.CreatePretestRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.createPretest(classId, teacherId, request));
 	}
 
 	@GetMapping("/class/{classId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<List<PretestService.PretestSummaryResponse>> listPretests(@PathVariable Long classId) {
 		return ResponseEntity.ok(pretestService.listPretests(classId));
 	}
@@ -46,14 +51,17 @@ public class PretestController {
 		@PathVariable Long classId,
 		@PathVariable Long studentId
 	) {
+		accessGuard.requireSelfOrStaff(studentId);
 		return ResponseEntity.ok(pretestService.listPretestsForStudent(classId, studentId));
 	}
 
 	@GetMapping("/{pretestId}")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<PretestService.PretestDetailResponse> getPretest(
 		@PathVariable Long pretestId,
 		@RequestParam Long teacherId
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.getPretestForTeacher(pretestId, teacherId));
 	}
 
@@ -64,12 +72,14 @@ public class PretestController {
 		@RequestParam Long teacherId,
 		@RequestBody PretestService.UpdatePretestRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.updatePretest(pretestId, teacherId, request));
 	}
 
 	@DeleteMapping("/{pretestId}")
 	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deletePretest(@PathVariable Long pretestId, @RequestParam Long teacherId) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		pretestService.deletePretest(pretestId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Pretest deleted successfully"));
 	}
@@ -81,6 +91,7 @@ public class PretestController {
 		@RequestParam Long teacherId,
 		@RequestBody PretestService.QuestionRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.addQuestion(pretestId, teacherId, request));
 	}
 
@@ -91,12 +102,14 @@ public class PretestController {
 		@RequestParam Long teacherId,
 		@RequestBody PretestService.QuestionRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.updateQuestion(questionId, teacherId, request));
 	}
 
 	@DeleteMapping("/questions/{questionId}")
 	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteQuestion(@PathVariable Long questionId, @RequestParam Long teacherId) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		pretestService.deleteQuestion(questionId, teacherId);
 		return ResponseEntity.ok(new MessageResponse("Question deleted successfully"));
 	}
@@ -108,6 +121,7 @@ public class PretestController {
 		@RequestParam Long teacherId,
 		@RequestParam("file") MultipartFile file
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.uploadAudio(pretestId, teacherId, file));
 	}
 
@@ -116,6 +130,7 @@ public class PretestController {
 		@PathVariable Long pretestId,
 		@RequestParam Long studentId
 	) {
+		accessGuard.requireSelfOrAdmin(studentId);
 		return ResponseEntity.ok(pretestService.getPretestForStudent(pretestId, studentId));
 	}
 
@@ -126,14 +141,17 @@ public class PretestController {
 		@RequestParam Long studentId,
 		@RequestBody PretestService.SubmitAttemptRequest request
 	) {
+		accessGuard.requireSelfOrAdmin(studentId);
 		return ResponseEntity.ok(pretestService.submitAttempt(pretestId, studentId, request));
 	}
 
 	@GetMapping("/{pretestId}/attempts")
+	@PreAuthorize("hasRole('TEACHER') or hasRole('ADMIN')")
 	public ResponseEntity<List<PretestService.AttemptResultResponse>> listAttempts(
 		@PathVariable Long pretestId,
 		@RequestParam Long teacherId
 	) {
+		accessGuard.requireSelfOrAdmin(teacherId);
 		return ResponseEntity.ok(pretestService.listAttempts(pretestId, teacherId));
 	}
 
