@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.phonexis.backend.Entity.User;
@@ -24,30 +25,36 @@ public class BackendApplication {
 	}
 
 	@Bean
-	public CommandLineRunner createAdminIfMissing(UserRepository userRepository) {
-		return args -> ensureSeedAccount(userRepository, "ADMIN", User.Role.ADMIN, "Admin", "User");
+	public CommandLineRunner createAdminIfMissing(UserRepository userRepository, Environment environment) {
+		return args -> ensureSeedAccount(userRepository, environment, "ADMIN", User.Role.ADMIN, "Admin", "User");
 	}
 
 	@Bean
-	public CommandLineRunner createTeacherIfMissing(UserRepository userRepository) {
-		return args -> ensureSeedAccount(userRepository, "TEACHER", User.Role.TEACHER, "Teacher", "User");
+	public CommandLineRunner createTeacherIfMissing(UserRepository userRepository, Environment environment) {
+		return args -> ensureSeedAccount(userRepository, environment, "TEACHER", User.Role.TEACHER, "Teacher", "User");
 	}
 
 	// Creates (or promotes) the account described by <PREFIX>_EMAIL / <PREFIX>_PASSWORD
 	// in the backend DB with the given role, then mirrors it into Supabase Auth when
 	// SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.
-	private static void ensureSeedAccount(UserRepository userRepository, String prefix, User.Role role, String defaultFirstName, String defaultLastName) {
+	// Values are read through Spring's Environment, so they can come from real environment
+	// variables (Render) or from a local backend/.env file (see application.properties).
+	private static void ensureSeedAccount(UserRepository userRepository, Environment environment, String prefix, User.Role role, String defaultFirstName, String defaultLastName) {
 		try {
-			final String email = System.getenv(prefix + "_EMAIL");
-			final String password = System.getenv(prefix + "_PASSWORD");
-			final String firstName = getEnvOrDefault(prefix + "_FIRST_NAME", defaultFirstName);
-			final String lastName = getEnvOrDefault(prefix + "_LAST_NAME", defaultLastName);
-			final String supabaseUrl = getEnvOrDefault("SUPABASE_URL", getEnvOrDefault("REACT_APP_SUPABASE_URL", ""));
-			final String supabaseServiceKey = getEnvOrDefault("SUPABASE_SERVICE_ROLE_KEY", "");
+			final String email = getSetting(environment, prefix + "_EMAIL", "").trim().toLowerCase();
+			final String password = getSetting(environment, prefix + "_PASSWORD", "");
+			final String firstName = getSetting(environment, prefix + "_FIRST_NAME", defaultFirstName);
+			final String lastName = getSetting(environment, prefix + "_LAST_NAME", defaultLastName);
+			final String supabaseUrl = getSetting(environment, "SUPABASE_URL", getSetting(environment, "REACT_APP_SUPABASE_URL", ""));
+			final String supabaseServiceKey = getSetting(environment, "SUPABASE_SERVICE_ROLE_KEY", "");
 			final String roleLabel = role.name().toLowerCase();
 
-			if (email == null || email.isBlank() || password == null || password.isBlank()) {
+			if (email.isBlank() || password.isBlank()) {
 				System.out.println(prefix + "_EMAIL or " + prefix + "_PASSWORD not set; skipping " + roleLabel + " creation.");
+				return;
+			}
+			if (password.length() < 8) {
+				System.err.println(prefix + "_PASSWORD must be at least 8 characters; skipping " + roleLabel + " creation.");
 				return;
 			}
 
@@ -72,12 +79,12 @@ public class BackendApplication {
 		}
 	}
 
-	private static String getEnvOrDefault(String key, String fallback) {
-		String value = System.getenv(key);
+	private static String getSetting(Environment environment, String key, String fallback) {
+		String value = environment.getProperty(key);
 		if (value == null || value.isBlank()) {
 			return fallback;
 		}
-		return value;
+		return value.trim();
 	}
 
 	private static String jsonEscape(String value) {

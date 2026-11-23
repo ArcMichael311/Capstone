@@ -639,3 +639,28 @@
     min-width: 720px;
   }
 }
+
+/* Role picker (Student (Normal) / Teacher / Admin) */
+.admin-role-select {
+  appearance: auto;
+  min-width: 152px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--admin-border, rgba(100, 116, 139, 0.3));
+  background: var(--admin-surface, #ffffff);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-role-select:focus-visible {
+  outline: 2px solid var(--admin-blue);
+  outline-offset: 2px;
+}
+
+.admin-role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

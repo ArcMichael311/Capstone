@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Admin.css';
-import { deleteBackendUser, fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
+import { deleteBackendUser, fetchBackendUsers } from '../../lib/supabaseClient';
 import { toFullName, formatDate, getInitials } from './adminHelpers';
-import { ChalkboardIcon, SearchIcon, CloseIcon } from './AdminIcons';import { TrashIcon } from '../Teacher/TeacherIcons';
-export default function AdminTeachers() {
+import { ChalkboardIcon, SearchIcon, CloseIcon } from './AdminIcons';
+import { TrashIcon } from '../Teacher/TeacherIcons';
+import AdminRoleSelect from './AdminRoleSelect';
+
+export default function AdminTeachers({ currentUserId }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [demotingUserId, setDemotingUserId] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -39,28 +41,15 @@ export default function AdminTeachers() {
     return () => window.removeEventListener('focus', refreshOnFocus);
   }, []);
 
-  const demoteToStudent = async (userId) => {
-    const confirmDemote = window.confirm('Demote this teacher back to a student account?');
-    if (!confirmDemote) {
-      return;
-    }
-
-    setDemotingUserId(userId);
+  const handleRoleChanged = async (message) => {
     setError(null);
+    setNotice(message);
+    await loadUsers();
+  };
+
+  const handleRoleError = (message) => {
     setNotice(null);
-    try {
-      const res = await updateBackendUser(userId, { role: 'student' });
-      if (res.error) {
-        setError(res.error.message || 'Failed to demote teacher');
-      } else {
-        setNotice('Teacher demoted to student successfully.');
-        await loadUsers();
-      }
-    } catch (e) {
-      setError('Failed to demote teacher');
-    } finally {
-      setDemotingUserId(null);
-    }
+    setError(message);
   };
 
   const deleteAccount = async (userId) => {
@@ -109,7 +98,7 @@ export default function AdminTeachers() {
         <div className="admin-title-wrap">
           <p className="admin-kicker">Teacher Management</p>
           <h2>Teachers</h2>
-          <p className="admin-subtitle">Review teacher accounts and demote them back to students when needed.</p>
+          <p className="admin-subtitle">Review teacher accounts and change their role to Student (Normal) or Admin.</p>
         </div>
       </header>
 
@@ -166,7 +155,7 @@ export default function AdminTeachers() {
               <th>Email</th>
               <th>Class Code</th>
               <th>Joined</th>
-              <th className="admin-actions-column">Action</th>
+              <th className="admin-actions-column">Role &amp; Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -184,19 +173,18 @@ export default function AdminTeachers() {
                   <td>{teacher.classCode || teacher.user_metadata?.classCode || '—'}</td>
                   <td>{formatDate(teacher.createdAt)}</td>
                   <td className="admin-actions-cell">
-                    <button
-                      type="button"
-                      className="admin-demote-button"
-                      onClick={() => demoteToStudent(teacher.id)}
-                      disabled={loading || !!demotingUserId || !!deletingUserId}
-                    >
-                      {demotingUserId === teacher.id ? 'Demoting...' : 'Demote to Student'}
-                    </button>
+                    <AdminRoleSelect
+                      user={teacher}
+                      currentUserId={currentUserId}
+                      disabled={loading || !!deletingUserId}
+                      onChanged={handleRoleChanged}
+                      onError={handleRoleError}
+                    />
                     <button
                       type="button"
                       className="admin-delete-button"
                       onClick={() => deleteAccount(teacher.id)}
-                      disabled={loading || !!demotingUserId || !!deletingUserId}
+                      disabled={loading || !!deletingUserId}
                       title={deletingUserId === teacher.id ? 'Deleting...' : 'Delete teacher'}
                       aria-label={deletingUserId === teacher.id ? 'Deleting teacher' : 'Delete teacher'}
                     >

@@ -5,7 +5,7 @@ import profileIcon from '../Sidebar/Sidebar Icons/Profile.png';
 import settingsIcon from '../Sidebar/Sidebar Icons/Settings.png';
 import logoutIcon from '../Sidebar/Sidebar Icons/Logout.png';
 import hideSidebarIcon from '../Sidebar/Sidebar Icons/Hide sidebar.png';
-import { GraduationIcon, ChalkboardIcon } from './AdminIcons';
+import { GraduationIcon, ChalkboardIcon, ShieldIcon } from './AdminIcons';
 
 export default function AdminSidebar({ isOpen = true, onToggle, activeView, activeSection, currentUser, onNavigate, onLogout }) {
   const displayName = [
@@ -18,6 +18,7 @@ export default function AdminSidebar({ isOpen = true, onToggle, activeView, acti
   const isDashboard = activeView === 'admin' && !activeSection;
   const isStudents = activeView === 'admin' && activeSection === 'students';
   const isTeachers = activeView === 'admin' && activeSection === 'teachers';
+  const isAdmins = activeView === 'admin' && activeSection === 'admins';
   const isProfile = activeView === 'profile' && activeSection !== 'settings';
   const isSettings = activeView === 'profile' && activeSection === 'settings';
 
@@ -50,11 +51,15 @@ export default function AdminSidebar({ isOpen = true, onToggle, activeView, acti
 
           <p className="sidebar-section-title admin-nav-label">Management</p>
           <button type="button" className={isStudents ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('admin', 'students')}>
-            <GraduationIcon /> Student
+            <GraduationIcon /> Students
           </button>
 
           <button type="button" className={isTeachers ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('admin', 'teachers')}>
-            <ChalkboardIcon /> Teacher
+            <ChalkboardIcon /> Teachers
+          </button>
+
+          <button type="button" className={isAdmins ? 'sidebar-link active' : 'sidebar-link'} onClick={() => onNavigate('admin', 'admins')}>
+            <ShieldIcon /> Admins
           </button>
 
           <div className="sidebar-account">

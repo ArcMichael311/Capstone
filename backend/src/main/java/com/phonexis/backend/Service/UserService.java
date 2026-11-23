@@ -123,7 +123,7 @@ public class UserService {
 	}
 
 	@Transactional
-	public UserProfile updateUser(Long id, UpdateUserRequest request) {
+	public UserProfile updateUser(Long actingUserId, Long id, UpdateUserRequest request) {
 		User user = getUserEntity(id);
 		String firstName = request.firstName() != null ? request.firstName().trim() : user.getFirstName();
 		String lastName = request.lastName() != null ? request.lastName().trim() : user.getLastName();
@@ -149,8 +149,22 @@ public class UserService {
 		user.setLastName(lastName);
 		user.setEmail(email);
 
-		if (request.role() != null) {
-			user.setRole(normalizeRole(request.role()));
+		if (request.role() != null && !request.role().isBlank()) {
+			Role newRole = parseRoleStrict(request.role());
+			Role currentRole = user.getRole();
+			if (newRole != currentRole) {
+				if (id.equals(actingUserId)) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't change your own role");
+				}
+				if (currentRole == Role.ADMIN && userRepository.countByRole(Role.ADMIN) <= 1) {
+					throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There must be at least one admin account");
+				}
+				user.setRole(newRole);
+				// End their current session so they log in again and get the dashboard for the new role.
+				user.setSessionToken(null);
+				user.setSessionExpiresAt(null);
+				user.setActiveDeviceId(null);
+			}
 		}
 
 		if (request.classroom() != null) {
@@ -214,8 +228,14 @@ public class UserService {
 	}
 
 	@Transactional
-	public void deleteUser(Long id) {
+	public void deleteUser(Long actingUserId, Long id) {
 		User user = getUserEntity(id);
+		if (id.equals(actingUserId)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't delete your own account");
+		}
+		if (user.getRole() == Role.ADMIN && userRepository.countByRole(Role.ADMIN) <= 1) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "There must be at least one admin account");
+		}
 
 		progressRepository.deleteByUser(user);
 		gameScoreRepository.deleteByUser(user);
@@ -428,6 +448,16 @@ public class UserService {
 		}
 
 		throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique class code");
+	}
+
+	// Used when an admin changes a role: unknown values are rejected instead of silently becoming STUDENT.
+	private Role parseRoleStrict(String role) {
+		return switch (role.trim().toUpperCase()) {
+			case "STUDENT" -> Role.STUDENT;
+			case "TEACHER" -> Role.TEACHER;
+			case "ADMIN" -> Role.ADMIN;
+			default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Role must be student, teacher or admin");
+		};
 	}
 
 	private Role normalizeRole(String role) {
