@@ -23,6 +23,12 @@ export default function Register({ onNavigate, onSuccess }) {
       return;
     }
 
+    // Same rule as the backend (Supabase alone would accept 6 characters).
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,

@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.phonexis.backend.Config.AccessGuard;
 import com.phonexis.backend.Service.AuthService;
 import com.phonexis.backend.Service.LoginAttemptService;
+import com.phonexis.backend.Service.SupabaseAuthService;
 import com.phonexis.backend.Service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,9 +26,11 @@ public class AuthController {
 	private final LoginAttemptService loginAttemptService;
 	private final UserService userService;
 	private final AccessGuard accessGuard;
+	private final SupabaseAuthService supabaseAuthService;
 
 	public AuthController(AuthService authService, LoginAttemptService loginAttemptService,
-		UserService userService, AccessGuard accessGuard) {
+		UserService userService, AccessGuard accessGuard, SupabaseAuthService supabaseAuthService) {
+		this.supabaseAuthService = supabaseAuthService;
 		this.authService = authService;
 		this.loginAttemptService = loginAttemptService;
 		this.userService = userService;
@@ -45,6 +48,47 @@ public class AuthController {
 		UserService.UserProfile user = authService.register(request.firstname(), request.lastname(), request.email(),
 			request.password(), request.role(), resolveDeviceId(request.deviceId(), deviceHeader));
 		return ResponseEntity.ok(new AuthResponse(user, null));
+	}
+
+	/**
+	 * Login after the browser signed in with Supabase. The Supabase access token proves the
+	 * password was correct, so the backend's own password copy (which may be outdated after a
+	 * Supabase password reset) is not compared. The backend account is created on first use.
+	 */
+	@PostMapping("/supabase-login")
+	public ResponseEntity<AuthResponse> supabaseLogin(
+		@RequestBody SupabaseLoginRequest request,
+		@RequestHeader(name = "X-Device-Id", required = false) String deviceHeader,
+		HttpServletRequest servletRequest
+	) {
+		if (request == null || request.accessToken() == null || request.accessToken().isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Supabase access token is required");
+		}
+		String ipKey = "ip:" + clientIp(servletRequest);
+		loginAttemptService.checkAllowed(ipKey);
+
+		SupabaseAuthService.SupabaseUser supabaseUser;
+		try {
+			supabaseUser = supabaseAuthService.verifyAccessToken(request.accessToken());
+		} catch (ResponseStatusException exception) {
+			if (exception.getStatusCode().value() == HttpStatus.UNAUTHORIZED.value()) {
+				loginAttemptService.recordFailure(ipKey);
+			}
+			throw exception;
+		}
+
+		UserService.AuthSession session = userService.loginVerifiedSupabaseUser(
+			supabaseUser.email(),
+			firstNonBlank(supabaseUser.firstName(), request.firstname()),
+			firstNonBlank(supabaseUser.lastName(), request.lastname()),
+			request.password(),
+			resolveDeviceId(request.deviceId(), deviceHeader));
+		loginAttemptService.recordSuccess("email:" + supabaseUser.email());
+		return ResponseEntity.ok(new AuthResponse(session.user(), session.accessToken()));
+	}
+
+	private static String firstNonBlank(String first, String second) {
+		return first != null && !first.isBlank() ? first : second;
 	}
 
 	@PostMapping("/login")
@@ -144,6 +188,9 @@ public class AuthController {
 	}
 
 	public record LoginRequest(String email, String password, String deviceId) {
+	}
+
+	public record SupabaseLoginRequest(String accessToken, String password, String firstname, String lastname, String deviceId) {
 	}
 
 	public record DeviceRequest(String email, String deviceId) {

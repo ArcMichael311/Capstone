@@ -274,6 +274,44 @@ public class UserService {
 		if (password == null || !PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
 		}
+		return startSession(user, deviceId);
+	}
+
+	/**
+	 * Login for a user whose password Supabase has already verified (see SupabaseAuthService).
+	 * Creates the backend account on first login (always as STUDENT - roles are only granted by
+	 * an admin) and refreshes the backend's password copy so the two can never drift apart.
+	 */
+	@Transactional
+	public AuthSession loginVerifiedSupabaseUser(String email, String firstName, String lastName, String password, String deviceId) {
+		String normalizedEmail = normalizeEmail(email);
+		if (normalizedEmail.isEmpty()) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid Supabase session");
+		}
+
+		User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+		if (user == null) {
+			String emailName = normalizedEmail.split("@")[0].replaceAll("[^a-zA-Z0-9 ]", " ").trim();
+			user = new User();
+			user.setEmail(normalizedEmail);
+			user.setFirstName(limit(firstNonBlank(firstName, emailName, "Student"), 50));
+			user.setLastName(limit(firstNonBlank(lastName, "User"), 50));
+			user.setRole(Role.STUDENT);
+			// Placeholder until the real password is stored below; never usable as a password.
+			user.setPasswordHash(PASSWORD_ENCODER.encode(createSecureToken()));
+			user = userRepository.save(user);
+			for (String moduleName : List.of("alphabet", "vowels", "consonants", "cvc")) {
+				progressRepository.save(new Progress(user, moduleName));
+			}
+		}
+
+		if (password != null && !password.isBlank() && !PASSWORD_ENCODER.matches(password, user.getPasswordHash())) {
+			user.setPasswordHash(PASSWORD_ENCODER.encode(password));
+		}
+		return startSession(user, deviceId);
+	}
+
+	private AuthSession startSession(User user, String deviceId) {
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
 		if (normalizedDeviceId.isEmpty()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device id is required");
@@ -435,6 +473,19 @@ public class UserService {
 		}
 
 		throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique class code");
+	}
+
+	private static String firstNonBlank(String... values) {
+		for (String value : values) {
+			if (value != null && !value.isBlank()) {
+				return value.trim();
+			}
+		}
+		return "";
+	}
+
+	private static String limit(String value, int maxLength) {
+		return value.length() <= maxLength ? value : value.substring(0, maxLength);
 	}
 
 	// Used when an admin changes a role: unknown values are rejected instead of silently becoming STUDENT.

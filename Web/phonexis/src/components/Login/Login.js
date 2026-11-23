@@ -77,7 +77,7 @@ export default function Login({ onNavigate, onSuccess }) {
 
         if (backendResult?.error && !(isLocalDevelopment && isBackendUnavailable(backendResult.error))) {
           clearBackendSession();
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           setError(formatLoginError(backendResult.error, 'Login failed'));
           return;
         }

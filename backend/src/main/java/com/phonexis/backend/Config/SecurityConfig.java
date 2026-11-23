@@ -42,7 +42,7 @@ public class SecurityConfig {
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers(HttpMethod.OPTIONS, "/api/**").permitAll()
 				.requestMatchers("/", "/health", "/actuator/health", "/error").permitAll()
-				.requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register",
+				.requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/supabase-login", "/api/auth/register",
 					"/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
 				.requestMatchers("/api/**").authenticated()
 				.anyRequest().denyAll())

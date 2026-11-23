@@ -264,7 +264,7 @@ function App() {
       // Without a backend session nothing (including progress) can be loaded or saved,
       // so ask the user to log in again instead of showing an empty dashboard.
       if (!isLocalDevelopment && !hasBackendSession()) {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         return;
       }
 
@@ -272,7 +272,7 @@ function App() {
       const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(sessionUser.email);
       if (deviceResult.error) {
         clearBackendSession();
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
         return;
       }
       const roleAwareUser = await applyBackendRole(mappedUser);
@@ -315,7 +315,7 @@ function App() {
         const deviceResult = isLocalDevelopment ? { error: null } : await verifySupabaseUserDevice(session.user.email);
         if (deviceResult.error) {
           clearBackendSession();
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: 'local' });
           return;
         }
         const roleAwareUser = await applyBackendRole(mappedUser);
@@ -880,7 +880,7 @@ function App() {
   useEffect(() => {
     const handleSessionEnded = async () => {
       try {
-        await supabase.auth.signOut();
+        await supabase.auth.signOut({ scope: 'local' });
       } catch (error) {
         // ignore sign-out errors and clear local state anyway
       }

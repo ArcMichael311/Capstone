@@ -160,11 +160,24 @@ const fetchWithRetry = async (url, init, path) => {
   }
 };
 
+const PUBLIC_API_PATHS = [
+  '/api/auth/login',
+  '/api/auth/supabase-login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+];
+
 const requestToBackend = async (path, options = {}) => {
   const url = `${backendUrl}${path}`;
+  const hadSession = !!getAccessToken();
+  // Without a session the backend would answer 401 anyway (e.g. a background refresh that runs
+  // right after the session ended). Skip the request instead of filling the console with errors.
+  if (!hadSession && !PUBLIC_API_PATHS.includes(path)) {
+    return { data: null, error: { message: 'Not logged in', status: 401 } };
+  }
   try {
     const { headers: extraHeaders, ...restOptions } = options;
-    const hadSession = !!getAccessToken();
     const response = await fetchWithRetry(url, {
       ...restOptions,
       credentials: 'omit',
@@ -265,6 +278,33 @@ const syncBackendUser = async (user, password, profile = {}) => {
     role,
     deviceId: '',
   };
+
+  // Preferred: hand the backend the Supabase session. Supabase already checked the password,
+  // so the backend trusts that (creating the account on first login and refreshing its own
+  // password copy). This avoids "login 401 / register 400" when the two passwords drifted
+  // apart, e.g. after a Supabase "forgot password" reset or a password shorter than 8 characters.
+  let accessToken = '';
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    accessToken = sessionData?.session?.access_token || '';
+  } catch (error) {
+    accessToken = '';
+  }
+  if (accessToken) {
+    const supabaseLoginResult = await postToBackend('/api/auth/supabase-login', {
+      accessToken,
+      password,
+      firstname,
+      lastname,
+      deviceId: getDeviceId(),
+    });
+    // Fall back to the password flow only if this server can't verify Supabase sessions
+    // (not configured: 503, or an older backend without the endpoint: 404/405).
+    const status = supabaseLoginResult.error?.status;
+    if (!supabaseLoginResult.error || ![503, 404, 405].includes(status)) {
+      return supabaseLoginResult;
+    }
+  }
 
   // Existing Supabase users should authenticate through the backend first.
   // Registration is only needed when the backend has no matching account.
