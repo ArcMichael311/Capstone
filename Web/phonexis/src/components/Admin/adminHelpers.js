@@ -28,3 +28,18 @@ export const getInitials = (name) => {
 
   return initials || '?';
 };
+
+// The three account roles. Each role has its own dashboard:
+//   student -> normal learner dashboard (modules, games, progress)
+//   teacher -> teacher dashboard (classes, materials, pretests)
+//   admin   -> admin dashboard (manage every account and its role)
+export const ROLE_OPTIONS = [
+  { value: 'student', label: 'Student (Normal)' },
+  { value: 'teacher', label: 'Teacher' },
+  { value: 'admin', label: 'Admin' },
+];
+
+export const getRoleLabel = (role) => {
+  const normalized = String(role || 'student').toLowerCase();
+  return ROLE_OPTIONS.find((option) => option.value === normalized)?.label || 'Student (Normal)';
+};

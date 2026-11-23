@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Admin.css';
 import { fetchBackendUsers } from '../../lib/supabaseClient';
-import { toFullName, formatDate, getInitials } from './adminHelpers';
+import { toFullName, formatDate, getInitials, getRoleLabel } from './adminHelpers';
 import { UsersIcon, GraduationIcon, ChalkboardIcon, ShieldIcon, ArrowRightIcon } from './AdminIcons';
 
 export default function AdminDashboard({ onNavigate }) {
@@ -57,7 +57,7 @@ export default function AdminDashboard({ onNavigate }) {
         <div className="admin-title-wrap">
           <p className="admin-kicker">Control Center</p>
           <h2>Admin Dashboard</h2>
-          <p className="admin-subtitle">A monitoring overview of active students and teachers across Phonexis.</p>
+          <p className="admin-subtitle">Monitor and manage every account: Students (Normal), Teachers and Admins.</p>
         </div>
       </header>
 
@@ -120,6 +120,9 @@ export default function AdminDashboard({ onNavigate }) {
             <button type="button" className="admin-quick-link" onClick={() => onNavigate?.('admin', 'teachers')}>
               Manage Teachers <ArrowRightIcon />
             </button>
+            <button type="button" className="admin-quick-link" onClick={() => onNavigate?.('admin', 'admins')}>
+              Manage Admins <ArrowRightIcon />
+            </button>
           </div>
         </div>
 
@@ -150,7 +153,7 @@ export default function AdminDashboard({ onNavigate }) {
                   </div>
                   <div className="admin-recent-meta">
                     <span className={`admin-role-badge admin-role-${role}`}>
-                      {role.toUpperCase()}
+                      {getRoleLabel(role).toUpperCase()}
                     </span>
                     <span className="admin-recent-date">{formatDate(user.createdAt)}</span>
                   </div>

@@ -18,6 +18,15 @@ services:
         sync: false
       - key: SUPABASE_DB_PASSWORD
         sync: false
+      # Admin account created/promoted on every startup (set the values in the Render dashboard)
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_FIRST_NAME
+        sync: false
+      - key: ADMIN_LAST_NAME
+        sync: false
       - key: SUPABASE_DB_DRIVER
         value: org.postgresql.Driver
       - key: SUPABASE_DB_DIALECT

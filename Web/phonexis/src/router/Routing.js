@@ -26,7 +26,7 @@ const sectionsByView = {
   cvc: ['learning', 'families', 'selection', 'building'],
   class: ['materials', 'pretests'],
   profile: ['info', 'settings'],
-  admin: ['students', 'teachers'],
+  admin: ['students', 'teachers', 'admins'],
   teacher: ['dashboard', 'materials', 'pretest', 'progress'],
 };
 

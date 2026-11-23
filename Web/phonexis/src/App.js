@@ -16,6 +16,7 @@ import AdminSidebar from './components/Admin/AdminSidebar';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminStudents from './components/Admin/AdminStudents';
 import AdminTeachers from './components/Admin/AdminTeachers';
+import AdminAdmins from './components/Admin/AdminAdmins';
 import Teacher from './components/Teacher/Teacher';
 import TeacherSidebar from './components/Teacher/TeacherSidebar';
 import Sidebar from './components/Sidebar/Sidebar';
@@ -125,7 +126,12 @@ function App() {
       const meResult = await fetchCurrentBackendUser();
       const backendUser = meResult.error ? null : meResult.data?.user;
       if (!backendUser?.role || String(backendUser.email || '').trim().toLowerCase() !== email) {
-        return profile;
+        // The role must come from the backend. Supabase user_metadata can be edited by the
+        // user themselves, so never let it grant the Teacher or Admin dashboard.
+        if (isLocalDevelopment) {
+          return profile;
+        }
+        return { ...profile, role: 'student', user_metadata: { ...(profile.user_metadata || {}), role: 'student' } };
       }
 
       const nextRole = String(backendUser.role).toLowerCase();
@@ -148,7 +154,7 @@ function App() {
         },
       };
     } catch (error) {
-      return profile;
+      return isLocalDevelopment ? profile : { ...profile, role: 'student', user_metadata: { ...(profile.user_metadata || {}), role: 'student' } };
     }
   }, []);
 
@@ -973,11 +979,15 @@ function App() {
       }
 
       if (activeSection === 'students') {
-        return <AdminStudents />;
+        return <AdminStudents currentUserId={backendUserId ?? currentUser?.id} />;
       }
 
       if (activeSection === 'teachers') {
-        return <AdminTeachers />;
+        return <AdminTeachers currentUserId={backendUserId ?? currentUser?.id} />;
+      }
+
+      if (activeSection === 'admins') {
+        return <AdminAdmins currentUserId={backendUserId ?? currentUser?.id} />;
       }
 
       return <AdminDashboard onNavigate={navigateTo} />;

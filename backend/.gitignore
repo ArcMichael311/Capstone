@@ -34,3 +34,7 @@ build/
 
 ### Local H2 database (persists local dev data between restarts) ###
 /data/
+
+### Local secrets (ADMIN_EMAIL, ADMIN_PASSWORD, DB credentials) ###
+.env
+.env.*

@@ -57,7 +57,7 @@ public class UserController {
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
 		return ResponseEntity.ok(new UserResponse(
-			userService.updateUser(id, new UserService.UpdateUserRequest(
+			userService.updateUser(accessGuard.currentUser().id(), id, new UserService.UpdateUserRequest(
 				request.firstName(),
 				request.lastName(),
 				request.email(),
@@ -85,7 +85,7 @@ public class UserController {
 	@DeleteMapping("/{id}")
 	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<MessageResponse> deleteUser(@PathVariable Long id) {
-		userService.deleteUser(id);
+		userService.deleteUser(accessGuard.currentUser().id(), id);
 		return ResponseEntity.ok(new MessageResponse("User deleted successfully"));
 	}
 

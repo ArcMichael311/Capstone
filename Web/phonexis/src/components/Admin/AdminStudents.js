@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import './Admin.css';
-import { deleteBackendUser, fetchBackendUsers, updateBackendUser } from '../../lib/supabaseClient';
+import { deleteBackendUser, fetchBackendUsers } from '../../lib/supabaseClient';
 import { toFullName, formatDate, getInitials } from './adminHelpers';
 import { GraduationIcon, SearchIcon, CloseIcon } from './AdminIcons';
 import { TrashIcon } from '../Teacher/TeacherIcons';
+import AdminRoleSelect from './AdminRoleSelect';
 
-export default function AdminStudents() {
+export default function AdminStudents({ currentUserId }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [promotingUserId, setPromotingUserId] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -41,23 +41,15 @@ export default function AdminStudents() {
     return () => window.removeEventListener('focus', refreshOnFocus);
   }, []);
 
-  const promoteToTeacher = async (userId) => {
-    setPromotingUserId(userId);
+  const handleRoleChanged = async (message) => {
     setError(null);
+    setNotice(message);
+    await loadUsers();
+  };
+
+  const handleRoleError = (message) => {
     setNotice(null);
-    try {
-      const res = await updateBackendUser(userId, { role: 'teacher' });
-      if (res.error) {
-        setError(res.error.message || 'Failed to promote student');
-      } else {
-        setNotice('Student promoted to teacher successfully.');
-        await loadUsers();
-      }
-    } catch (e) {
-      setError('Failed to promote student');
-    } finally {
-      setPromotingUserId(null);
-    }
+    setError(message);
   };
 
   const deleteAccount = async (userId) => {
@@ -106,7 +98,7 @@ export default function AdminStudents() {
         <div className="admin-title-wrap">
           <p className="admin-kicker">Student Management</p>
           <h2>Students</h2>
-          <p className="admin-subtitle">Review student accounts and promote learners into teacher roles.</p>
+          <p className="admin-subtitle">Review student (normal) accounts and change their role to Teacher or Admin.</p>
         </div>
       </header>
 
@@ -162,7 +154,7 @@ export default function AdminStudents() {
               <th>Name</th>
               <th>Email</th>
               <th>Joined</th>
-              <th className="admin-actions-column">Action</th>
+              <th className="admin-actions-column">Role &amp; Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -179,19 +171,18 @@ export default function AdminStudents() {
                   <td>{student.email}</td>
                   <td>{formatDate(student.createdAt)}</td>
                   <td className="admin-actions-cell">
-                    <button
-                      type="button"
-                      className="admin-promote-button"
-                      onClick={() => promoteToTeacher(student.id)}
-                      disabled={loading || !!promotingUserId || !!deletingUserId}
-                    >
-                      {promotingUserId === student.id ? 'Promoting...' : 'Promote to Teacher'}
-                    </button>
+                    <AdminRoleSelect
+                      user={student}
+                      currentUserId={currentUserId}
+                      disabled={loading || !!deletingUserId}
+                      onChanged={handleRoleChanged}
+                      onError={handleRoleError}
+                    />
                     <button
                       type="button"
                       className="admin-delete-button"
                       onClick={() => deleteAccount(student.id)}
-                      disabled={loading || !!promotingUserId || !!deletingUserId}
+                      disabled={loading || !!deletingUserId}
                       title={deletingUserId === student.id ? 'Deleting...' : 'Delete student'}
                       aria-label={deletingUserId === student.id ? 'Deleting student' : 'Delete student'}
                     >
