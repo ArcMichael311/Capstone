@@ -3,6 +3,7 @@ import { useState } from 'react';
 import logo from '../Login/logoB.png';
 import { supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
+import { validateEmail, validatePassword } from '../../lib/authValidation';
 
 export default function Register({ onNavigate, onSuccess }) {
   const [firstname, setFirstname] = useState('');
@@ -13,22 +14,45 @@ export default function Register({ onNavigate, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
     setError(null);
+
+    if (!firstname.trim()) {
+      setError('First name is required');
+      return;
+    }
+    if (!lastname.trim()) {
+      setError('Last name is required');
+      return;
+    }
+
+    // Same rules as Login and the backend (Supabase alone would accept 6 characters).
+    const validationError = validateEmail(email) || validatePassword(password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    // Same rule as the backend (Supabase alone would accept 6 characters).
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
-      return;
+    setIsSubmitting(true);
+    try {
+      await submitRegistration();
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
+  const submitRegistration = async () => {
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -157,8 +181,8 @@ export default function Register({ onNavigate, onSuccess }) {
 
         {error ? <p className="form-error">{error}</p> : null}
 
-        <button type="submit" className="register-submit">
-          SIGN UP
+        <button type="submit" className="register-submit" disabled={isSubmitting} aria-busy={isSubmitting}>
+          {isSubmitting ? 'SIGNING UP...' : 'SIGN UP'}
         </button>
 
         <button type="button" className="register-link" onClick={() => onNavigate('login')}>

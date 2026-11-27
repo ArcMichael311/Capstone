@@ -3,6 +3,7 @@ import { useState } from 'react';
 import logo from './logoB.png';
 import { clearBackendSession, getSessionDeviceId, isBackendUnavailable, isLocalDevelopment, loginBackendUser, LOGOUT_REASON_KEY, supabase, syncSupabaseUserToBackend } from '../../lib/supabaseClient';
 import AuthLetterBackground from '../AuthLetterBackground/AuthLetterBackground';
+import { validateEmail, validatePassword } from '../../lib/authValidation';
 
 // Shown once after the app signed the user out (session expired / signed in elsewhere).
 const takeLogoutReason = () => {
@@ -28,6 +29,13 @@ export default function Login({ onNavigate, onSuccess }) {
       return;
     }
     setError(null);
+
+    const validationError = validateEmail(email) || validatePassword(password);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await submitLogin();
@@ -112,9 +120,6 @@ export default function Login({ onNavigate, onSuccess }) {
   };
 
   function formatLoginError(backendError, fallbackMessage) {
-    if (backendError?.status === 429) {
-      return backendError.message || 'Too many failed attempts. Please wait a few minutes and try again.';
-    }
     if (backendError?.message === 'Backend unavailable' || backendError?.status === 502 || backendError?.status === 504) {
       return 'Could not reach the server. It may be starting up - please wait a moment and try again.';
     }
